@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -10,6 +12,46 @@ import 'package:google_fonts/google_fonts.dart';
 //   - #674188 (ungu tua)     → warna utama (primary)
 //   - Hitam / Abu-abu        → teks
 // =========================================================
+
+// ================== Cara Pakai Tema ======================
+
+// # Di main.dart
+// MaterialApp(
+//   theme: AppTheme.light(),
+//   // ...
+// )
+
+// # Warna
+// Container(
+//   color: AppTheme.primaryDark,  // Ungu tua
+// ),
+// Text(
+//   'Hello',
+//   style: TextStyle(color: AppTheme.grey),  // Abu-abu
+// ),
+
+// #Spacing
+// SizedBox(height: AppTheme.spacingMedium),  // 16
+// Padding(padding: EdgeInsets.all(AppTheme.spacingLarge)),  // 24
+
+// # Ukuran Font
+// Text(
+//   'Judul',
+//   style: TextStyle(fontSize: AppTheme.fontSizeHeadline),  // 24
+// ),
+
+// # Tombol
+// ElevatedButton(
+//   style: AppTheme.primaryButtonStyle,   // Ungu tua
+//   onPressed: () {},
+//   child: Text('Simpan'),
+// ),
+
+// ElevatedButton(
+//   style: AppTheme.secondaryButtonStyle,  // Lavender
+//   onPressed: () {},
+//   child: Text('Batal'),
+// ),
 
 class AppTheme {
   // ===== Warna Utama (Primary) =====
