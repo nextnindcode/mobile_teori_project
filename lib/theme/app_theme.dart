@@ -141,7 +141,6 @@ class AppTheme {
     ),
   );
 
-  // ===== Style Tombol Primer (Ungu Tua) =====
   static ButtonStyle get primaryButtonStyle => ElevatedButton.styleFrom(
     backgroundColor: primaryDark,
     foregroundColor: white,
