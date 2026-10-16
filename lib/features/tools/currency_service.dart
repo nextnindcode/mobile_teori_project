@@ -1,4 +1,4 @@
-import '../../core/api/api_service.dart';
+import 'package:eclipseverse/core/api/api_service.dart';
 
 import 'package:intl/intl.dart';
 

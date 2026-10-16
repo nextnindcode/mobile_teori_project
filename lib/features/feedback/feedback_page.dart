@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:final_project_bgt_nih/theme/app_theme.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
+
 import '../fandom/shared/state_views.dart';
 import 'feedback_service.dart';
 
@@ -36,7 +37,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
           ? 'Saran wajib diisi'
           : (sug.length > 500 ? 'Maksimal 500 karakter' : null);
     });
-    return _ratingErr == null && _impressionErr == null && _suggestionErr == null;
+    return _ratingErr == null &&
+        _impressionErr == null &&
+        _suggestionErr == null;
   }
 
   Future<void> _submit() async {
@@ -66,21 +69,27 @@ class _FeedbackPageState extends State<FeedbackPage> {
       body: ListView(
         padding: const EdgeInsets.all(AppTheme.spacingLarge),
         children: [
-          Text('Mata kuliah Pemrograman Aplikasi Mobile',
-              style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Mata kuliah Pemrograman Aplikasi Mobile',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: AppTheme.spacingMedium),
           Text('Rating', style: Theme.of(context).textTheme.titleMedium),
-          Row(children: [
-            for (var i = 1; i <= 5; i++)
-              IconButton(
-                onPressed: _sending ? null : () => setState(() => _rating = i),
-                icon: Icon(
-                  i <= _rating ? Icons.star : Icons.star_border,
-                  color: AppTheme.accentYellow,
-                  size: 36,
+          Row(
+            children: [
+              for (var i = 1; i <= 5; i++)
+                IconButton(
+                  onPressed: _sending
+                      ? null
+                      : () => setState(() => _rating = i),
+                  icon: Icon(
+                    i <= _rating ? Icons.star : Icons.star_border,
+                    color: AppTheme.accentYellow,
+                    size: 36,
+                  ),
                 ),
-              ),
-          ]),
+            ],
+          ),
           if (_ratingErr != null)
             Text(_ratingErr!, style: const TextStyle(color: AppTheme.error)),
           const SizedBox(height: AppTheme.spacingMedium),
@@ -89,7 +98,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
             maxLines: 4,
             maxLength: 500,
             decoration: InputDecoration(
-                labelText: 'Kesan', errorText: _impressionErr),
+              labelText: 'Kesan',
+              errorText: _impressionErr,
+            ),
           ),
           const SizedBox(height: AppTheme.spacingSmall),
           TextField(
@@ -97,7 +108,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
             maxLines: 4,
             maxLength: 500,
             decoration: InputDecoration(
-                labelText: 'Saran', errorText: _suggestionErr),
+              labelText: 'Saran',
+              errorText: _suggestionErr,
+            ),
           ),
           const SizedBox(height: AppTheme.spacingMedium),
           ElevatedButton(
@@ -107,7 +120,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Text('Kirim'),
           ),
         ],

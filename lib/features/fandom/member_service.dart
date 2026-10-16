@@ -1,4 +1,5 @@
-import '../../core/api_service.dart';
+import 'package:eclipseverse/core/api_service.dart';
+
 import '../../core/local_db.dart';
 import 'member_model.dart';
 import 'shared/json_utils.dart';

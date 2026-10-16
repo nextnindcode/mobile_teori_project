@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:final_project_bgt_nih/theme/app_theme.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
 
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key});
@@ -11,18 +11,25 @@ class LoadingView extends StatelessWidget {
 class EmptyView extends StatelessWidget {
   final String text;
   final IconData icon;
-  const EmptyView({super.key, required this.text, this.icon = Icons.search_off});
+  const EmptyView({
+    super.key,
+    required this.text,
+    this.icon = Icons.search_off,
+  });
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingLarge),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 48, color: AppTheme.grey),
-            const SizedBox(height: AppTheme.spacingSmall),
-            Text(text, textAlign: TextAlign.center),
-          ]),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(AppTheme.spacingLarge),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: AppTheme.grey),
+          const SizedBox(height: AppTheme.spacingSmall),
+          Text(text, textAlign: TextAlign.center),
+        ],
+      ),
+    ),
+  );
 }
 
 class ErrorView extends StatelessWidget {
@@ -31,21 +38,26 @@ class ErrorView extends StatelessWidget {
   const ErrorView({super.key, required this.message, required this.onRetry});
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingLarge),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.wifi_off, size: 48, color: AppTheme.grey),
-            const SizedBox(height: AppTheme.spacingSmall),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: AppTheme.spacingMedium),
-            SizedBox(
-              width: 180,
-              child: ElevatedButton(
-                  onPressed: onRetry, child: const Text('Coba lagi')),
+    child: Padding(
+      padding: const EdgeInsets.all(AppTheme.spacingLarge),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.wifi_off, size: 48, color: AppTheme.grey),
+          const SizedBox(height: AppTheme.spacingSmall),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: AppTheme.spacingMedium),
+          SizedBox(
+            width: 180,
+            child: ElevatedButton(
+              onPressed: onRetry,
+              child: const Text('Coba lagi'),
             ),
-          ]),
-        ),
-      );
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Pesan error ramah untuk pengguna.
@@ -75,16 +87,16 @@ class DropdownField<T> extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => InputDecorator(
-        decoration: InputDecoration(labelText: label),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<T>(
-            value: value,
-            isExpanded: true,
-            items: items,
-            onChanged: onChanged,
-          ),
-        ),
-      );
+    decoration: InputDecoration(labelText: label),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<T>(
+        value: value,
+        isExpanded: true,
+        items: items,
+        onChanged: onChanged,
+      ),
+    ),
+  );
 }
 
 void showSnack(BuildContext context, String msg) {

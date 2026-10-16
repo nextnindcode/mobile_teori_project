@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:final_project_bgt_nih/theme/app_theme.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
+
 import '../event/event_model.dart';
 import '../event/event_service.dart';
 import '../fandom/shared/state_views.dart';
@@ -55,17 +56,24 @@ class _TimeTabState extends State<TimeTab> {
       if (hit.isEmpty) return null;
       return TimeService.convertAll(hit.first.eventDate);
     }
-    final utc = TimeService.toUtc(_date.year, _date.month, _date.day,
-        _time.hour, _time.minute, _origin.tzName);
+    final utc = TimeService.toUtc(
+      _date.year,
+      _date.month,
+      _date.day,
+      _time.hour,
+      _time.minute,
+      _origin.tzName,
+    );
     return TimeService.convertAll(utc);
   }
 
   Future<void> _pickDate() async {
     final d = await showDatePicker(
-        context: context,
-        initialDate: _date,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2100));
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
     if (d != null) setState(() => _date = d);
   }
 
@@ -101,50 +109,59 @@ class _TimeTabState extends State<TimeTab> {
     }
     if (_error != null) {
       return SizedBox(
-          height: 220,
-          child: ErrorView(message: _error!, onRetry: _loadEvents));
+        height: 220,
+        child: ErrorView(message: _error!, onRetry: _loadEvents),
+      );
     }
     if (_events.isEmpty) return const EmptyView(text: 'Belum ada event');
     return DropdownField<int>(
       label: 'Pilih event',
       value: _eventId!,
       items: _events
-          .map((e) => DropdownMenuItem(
-              value: e.id, child: Text(e.title, overflow: TextOverflow.ellipsis)))
+          .map(
+            (e) => DropdownMenuItem(
+              value: e.id,
+              child: Text(e.title, overflow: TextOverflow.ellipsis),
+            ),
+          )
           .toList(),
       onChanged: (v) => setState(() => _eventId = v ?? _eventId),
     );
   }
 
   Widget _manualPicker() {
-    return Column(children: [
-      Row(children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _pickDate,
-            icon: const Icon(Icons.calendar_today),
-            label: Text(DateFormat('d MMM yyyy').format(_date)),
-          ),
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _pickDate,
+                icon: const Icon(Icons.calendar_today),
+                label: Text(DateFormat('d MMM yyyy').format(_date)),
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingSmall),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _pickTime,
+                icon: const Icon(Icons.access_time),
+                label: Text(_time.format(context)),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: AppTheme.spacingSmall),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _pickTime,
-            icon: const Icon(Icons.access_time),
-            label: Text(_time.format(context)),
-          ),
+        const SizedBox(height: AppTheme.spacingMedium),
+        DropdownField<ZoneOption>(
+          label: 'Zona asal',
+          value: _origin,
+          items: TimeService.originZones
+              .map((z) => DropdownMenuItem(value: z, child: Text(z.label)))
+              .toList(),
+          onChanged: (z) => setState(() => _origin = z ?? _origin),
         ),
-      ]),
-      const SizedBox(height: AppTheme.spacingMedium),
-      DropdownField<ZoneOption>(
-        label: 'Zona asal',
-        value: _origin,
-        items: TimeService.originZones
-            .map((z) => DropdownMenuItem(value: z, child: Text(z.label)))
-            .toList(),
-        onChanged: (z) => setState(() => _origin = z ?? _origin),
-      ),
-    ]);
+      ],
+    );
   }
 
   List<Widget> _results() {
@@ -154,12 +171,17 @@ class _TimeTabState extends State<TimeTab> {
       for (final entry in r.entries)
         Card(
           child: ListTile(
-            title: Text(entry.key,
-                style: Theme.of(context).textTheme.titleMedium),
+            title: Text(
+              entry.key,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             subtitle: Text(
-                '${DateFormat('EEE, d MMM yyyy').format(entry.value)} • ${entry.value.timeZoneName}'),
-            trailing: Text(DateFormat('HH:mm').format(entry.value),
-                style: Theme.of(context).textTheme.titleLarge),
+              '${DateFormat('EEE, d MMM yyyy').format(entry.value)} • ${entry.value.timeZoneName}',
+            ),
+            trailing: Text(
+              DateFormat('HH:mm').format(entry.value),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
           ),
         ),
     ];

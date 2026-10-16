@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:final_project_bgt_nih/theme/app_theme.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
 // File milik C (H12/H13). Sesuaikan path bila berbeda.
-import 'package:final_project_bgt_nih/features/notification/notification_service.dart';
+import 'package:eclipseverse/features/notification/notification_service.dart';
+
 import '../fandom/shared/state_views.dart';
 import 'event_model.dart';
 import 'event_page.dart' show formatEventDate;
@@ -74,8 +75,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
         setState(() => _reminderOn = true);
         showSnack(context, 'Pengingat dijadwalkan');
       } else {
-        showSnack(context,
-            'Izin notifikasi ditolak. Aktifkan di Pengaturan agar pengingat bisa dibuat.');
+        showSnack(
+          context,
+          'Izin notifikasi ditolak. Aktifkan di Pengaturan agar pengingat bisa dibuat.',
+        );
       }
     } catch (_) {
       if (mounted) showSnack(context, 'Gagal membuat pengingat');
@@ -89,8 +92,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
       body: _loading
           ? const LoadingView()
           : _error != null
-              ? ErrorView(message: _error!, onRetry: _load)
-              : _content(_event!),
+          ? ErrorView(message: _error!, onRetry: _load)
+          : _content(_event!),
     );
   }
 
@@ -104,19 +107,25 @@ class _EventDetailPageState extends State<EventDetailPage> {
         Text(e.title, textAlign: TextAlign.center, style: t.headlineMedium),
         const SizedBox(height: AppTheme.spacingMedium),
         Card(
-          child: Column(children: [
-            ListTile(
+          child: Column(
+            children: [
+              ListTile(
                 leading: const Icon(Icons.schedule),
-                title: Text(formatEventDate(e.eventDate))),
-            ListTile(
+                title: Text(formatEventDate(e.eventDate)),
+              ),
+              ListTile(
                 leading: const Icon(Icons.place),
                 title: Text(e.venue),
-                subtitle: Text(e.city)),
-            ListTile(
+                subtitle: Text(e.city),
+              ),
+              ListTile(
                 leading: const Icon(Icons.my_location),
                 title: Text(
-                    '${e.latitude.toStringAsFixed(4)}, ${e.longitude.toStringAsFixed(4)}')),
-          ]),
+                  '${e.latitude.toStringAsFixed(4)}, ${e.longitude.toStringAsFixed(4)}',
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
         Text('Deskripsi', style: t.titleLarge),
@@ -125,12 +134,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
         const SizedBox(height: AppTheme.spacingLarge),
         ElevatedButton.icon(
           onPressed: e.isPast ? null : () => _toggleReminder(e),
-          icon: Icon(_reminderOn
-              ? Icons.notifications_off
-              : Icons.notifications_active),
-          label: Text(e.isPast
-              ? 'Event sudah lewat'
-              : (_reminderOn ? 'Batalkan pengingat' : 'Ingatkan saya')),
+          icon: Icon(
+            _reminderOn ? Icons.notifications_off : Icons.notifications_active,
+          ),
+          label: Text(
+            e.isPast
+                ? 'Event sudah lewat'
+                : (_reminderOn ? 'Batalkan pengingat' : 'Ingatkan saya'),
+          ),
         ),
       ],
     );
