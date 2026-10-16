@@ -1,4 +1,4 @@
-import '../../core/api_service.dart';
+import 'package:eclipseverse/core/api_service.dart';
 
 class FeedbackService {
   static Future<void> submit({

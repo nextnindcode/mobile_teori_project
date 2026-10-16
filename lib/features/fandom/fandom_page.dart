@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:final_project_bgt_nih/theme/app_theme.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
+
 import 'member_model.dart';
 import 'member_service.dart';
 import 'shared/state_views.dart';
@@ -55,20 +56,22 @@ class _FandomPageState extends State<FandomPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Fandom')),
-      body: Column(children: [
-        Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingMedium),
-          child: TextField(
-            controller: _search,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              hintText: 'Cari member...',
-              prefixIcon: Icon(Icons.search),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingMedium),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                hintText: 'Cari member...',
+                prefixIcon: Icon(Icons.search),
+              ),
             ),
           ),
-        ),
-        Expanded(child: _body()),
-      ]),
+          Expanded(child: _body()),
+        ],
+      ),
     );
   }
 
@@ -101,23 +104,30 @@ class _FandomPageState extends State<FandomPage> {
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: memberColor(m.id),
-                    child: Text(m.initial,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold)),
+                    child: Text(
+                      m.initial,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppTheme.spacingSmall),
-                  Text(m.stageName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: AppTheme.fontSizeBodySmall)),
-                  Text(m.position,
-                      maxLines: 2,
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    m.stageName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontSize: AppTheme.fontSizeBodySmall),
+                  ),
+                  Text(
+                    m.position,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ),
             ),

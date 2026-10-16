@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:final_project_bgt_nih/theme/app_theme.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
 import 'member_model.dart';
 import 'member_service.dart';
 import 'shared/state_views.dart';

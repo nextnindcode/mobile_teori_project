@@ -1,4 +1,5 @@
-import 'package:final_project_bgt_nih/core/api_service.dart';
+import 'package:eclipseverse/core/api_service.dart';
+
 import '../fandom/shared/json_utils.dart';
 import 'event_model.dart';
 

@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:final_project_bgt_nih/theme/app_theme.dart';
-import 'package:final_project_bgt_nih/core/local_db.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
+import 'package:eclipseverse/core/local_db.dart';
 
 import '../notification/notification_service.dart';
 import '../fandom/shared/state_views.dart';

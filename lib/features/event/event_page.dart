@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:final_project_bgt_nih/theme/app_theme.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
+
 import '../fandom/shared/state_views.dart';
 import 'event_model.dart';
 import 'event_service.dart';
@@ -51,34 +52,39 @@ class _EventListPageState extends State<EventListPage> {
       body: _loading
           ? const LoadingView()
           : _error != null
-              ? ErrorView(message: _error!, onRetry: _load)
-              : _events.isEmpty
-                  ? const EmptyView(
-                      text: 'Belum ada event', icon: Icons.event_busy)
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(AppTheme.spacingMedium),
-                        itemCount: _events.length,
-                        itemBuilder: (_, i) {
-                          final e = _events[i];
-                          return Card(
-                            child: ListTile(
-                              leading: const Icon(Icons.calendar_month,
-                                  color: AppTheme.primaryDark, size: 32),
-                              title: Text(e.title),
-                              subtitle: Text(
-                                  '${e.city} • ${e.venue}\n${formatEventDate(e.eventDate)}'),
-                              isThreeLine: true,
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () => Navigator.pushNamed(
-                                  context, '/event-detail',
-                                  arguments: e.id),
-                            ),
-                          );
-                        },
+          ? ErrorView(message: _error!, onRetry: _load)
+          : _events.isEmpty
+          ? const EmptyView(text: 'Belum ada event', icon: Icons.event_busy)
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(AppTheme.spacingMedium),
+                itemCount: _events.length,
+                itemBuilder: (_, i) {
+                  final e = _events[i];
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.calendar_month,
+                        color: AppTheme.primaryDark,
+                        size: 32,
+                      ),
+                      title: Text(e.title),
+                      subtitle: Text(
+                        '${e.city} • ${e.venue}\n${formatEventDate(e.eventDate)}',
+                      ),
+                      isThreeLine: true,
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/event-detail',
+                        arguments: e.id,
                       ),
                     ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

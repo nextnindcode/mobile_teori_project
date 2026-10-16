@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:final_project_bgt_nih/theme/app_theme.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
+
 import '../fandom/shared/state_views.dart';
 import 'currency_service.dart';
 
@@ -41,7 +42,9 @@ class _CurrencyTabState extends State<CurrencyTab> {
     } catch (e) {
       if (!mounted) return;
       final msg = friendlyError(e);
-      setState(() => _error = msg == 'Tidak ada koneksi' ? msg : 'Kurs belum tersedia');
+      setState(
+        () => _error = msg == 'Tidak ada koneksi' ? msg : 'Kurs belum tersedia',
+      );
     }
     if (mounted) setState(() => _loading = false);
   }
