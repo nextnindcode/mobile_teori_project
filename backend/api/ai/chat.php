@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Memanggil file konfigurasi
-require_once __DIR__ . '/../../config/Database.php';
+require_once __DIR__ . '/../../lib/Database.php';
 
 // Memanggil API Key dari secret.php
 $secretFile = __DIR__ . '/../../config/secret.php';
