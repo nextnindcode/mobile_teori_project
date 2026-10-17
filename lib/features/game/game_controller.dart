@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'game_model.dart';
+import 'game_service.dart'; 
 
 class GameController extends ChangeNotifier {
   final List<Map<String, String>> _allMembers = [
@@ -25,17 +26,26 @@ class GameController extends ChangeNotifier {
   int _score = 0;
   int _correctCount = 0;
   int _timeLeft = 15;
+  int _bestScore = 0; 
   Timer? _timer;
 
   List<GameQuestion> get questions => _questions;
   int get currentRound => _currentRound;
   int get score => _score;
   int get timeLeft => _timeLeft;
+  int get bestScore => _bestScore; 
   int get correctCount => _correctCount; 
   bool get isGameOver => _currentRound >= 10;
   GameQuestion get currentQuestion => _questions[_currentRound];
 
-  void startGame() {
+    void startGame() async {
+    try {
+      _bestScore = await GameService.getBestScore();
+    } catch (e) {
+      _bestScore = 0; // Jika error (misal karena dibuka di Web), set ke 0
+      debugPrint('SQLite tidak didukung di Web, best score di-reset.');
+    }
+    
     _generateQuestions();
     _currentRound = 0;
     _score = 0;
@@ -81,9 +91,9 @@ class GameController extends ChangeNotifier {
     nextRound(isCorrect: isCorrect);
   }
 
-  void nextRound({required bool isCorrect}) {
+    void nextRound({required bool isCorrect}) async { 
     if (isCorrect) {
-      _score += 10; // Benar = 10 poin
+      _score += 10;
       _correctCount++;
     }
 
@@ -92,9 +102,16 @@ class GameController extends ChangeNotifier {
       _startTimer();
     } else {
       _currentRound++;
+      // Logika Untuk Simpan Skor 
+      if (_score > _bestScore) {
+        _bestScore = _score;
+        await GameService.saveBestScore(_bestScore); // Simpan ke SQLite
+      }
+      await GameService.kirimSkorKeServer(_score, _correctCount); // Kirim ke API
+      
       notifyListeners();
     }
-  }
+  } 
 
   @override
   void dispose() {

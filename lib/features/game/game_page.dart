@@ -38,34 +38,30 @@ class _GamePageState extends State<GamePage> {
         // Jika diputar, otomatis pilih jawaban yang sedang disorot
         if (!_isAnswered && controller.questions.isNotEmpty && !controller.isGameOver) {
           String selectedOption = controller.currentQuestion.options[_highlightedIndex];
-          _handleAnswer(selectedOption, controller);
+          _handleAnswer(_highlightedIndex, selectedOption, controller);
         }
       },
     );
   }
 
   // Fungsi saat menjawab (lewat Tap atau Sensor)
-  void _handleAnswer(String option, GameController controller) async {
+  void _handleAnswer(int index, String option, GameController controller) async {
     if (_isAnswered) return; 
 
     setState(() {
+      _highlightedIndex = index; // Pindahkan sorotan ungu ke tombol yang di-tap
       _selectedOption = option;
       _isAnswered = true;
     });
 
-    // Jeda 1 detik agar user melihat warna Hijau/Merah
-    // Hijau: Benar 
-    // Merah: Salah 
     await Future.delayed(const Duration(milliseconds: 1000));
 
-    // Lanjut ronde
     controller.answerQuestion(option);
 
-    // Reset untuk ronde baru
     setState(() {
       _selectedOption = null;
       _isAnswered = false;
-      _highlightedIndex = 0; // Reset sorotan ke pilihan pertama
+      _highlightedIndex = 0; // Reset ke kiri atas untuk ronde baru
     });
   }
 
@@ -299,7 +295,7 @@ class _GamePageState extends State<GamePage> {
                         side: BorderSide(color: borderColor, width: 2),
                       ),
                     ),
-                    onPressed: () => _handleAnswer(option, controller),
+                    onPressed: () => _handleAnswer(index, option, controller),
                     child: Text(
                       option,
                       textAlign: TextAlign.center,
@@ -375,10 +371,14 @@ class _GamePageState extends State<GamePage> {
                       Text('Skor Akhir', style: AppTheme.textTheme.bodyMedium?.copyWith(color: AppTheme.grey)),
                       const SizedBox(height: 4),
                       Text('${controller.score}', style: AppTheme.textTheme.headlineMedium?.copyWith(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      // Menambahkan Skor Terbaik 
+                      Text('Terbaik: ${controller.bestScore}', 
+                        style: AppTheme.textTheme.bodySmall?.copyWith(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   Container(
-                    height: 50,
+                    height: 60, 
                     width: 1,
                     color: AppTheme.greyLight,
                     margin: const EdgeInsets.symmetric(horizontal: 24),
