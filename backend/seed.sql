@@ -96,9 +96,20 @@ INSERT INTO `events` (`id`, `title`, `description`, `event_date`, `venue`, `city
  'Olympic Hall Seoul', 'Seoul', 37.566500, 126.978000);
 
 -- =========================================================
+-- 6. KURS MATA UANG AWAL (Modul B)
+-- =========================================================
+INSERT INTO `currency_rates` (`base_code`, `target_code`, `rate`, `updated_at`) VALUES
+('USD', 'USD', 1.000000, NOW()),
+('USD', 'IDR', 16250.000000, NOW()),
+('USD', 'KRW', 1380.000000, NOW()),
+('USD', 'JPY', 155.000000, NOW())
+ON DUPLICATE KEY UPDATE `rate` = VALUES(`rate`), `updated_at` = VALUES(`updated_at`);
+
+-- =========================================================
 -- VERIFIKASI
 -- =========================================================
 SELECT 'users' AS tabel, COUNT(*) AS jumlah FROM users
 UNION ALL SELECT 'products', COUNT(*) FROM products
 UNION ALL SELECT 'members', COUNT(*) FROM members
-UNION ALL SELECT 'events', COUNT(*) FROM events;
+UNION ALL SELECT 'events', COUNT(*) FROM events
+UNION ALL SELECT 'currency_rates', COUNT(*) FROM currency_rates;

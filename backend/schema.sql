@@ -56,6 +56,20 @@ CREATE TABLE `events` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `currency_rates`
+--
+
+CREATE TABLE `currency_rates` (
+  `id` int UNSIGNED NOT NULL,
+  `base_code` char(3) NOT NULL,
+  `target_code` char(3) NOT NULL,
+  `rate` decimal(18,6) NOT NULL,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `feedback`
 --
 
@@ -195,6 +209,13 @@ ALTER TABLE `blockchain_transactions`
   ADD UNIQUE KEY `order_id` (`order_id`);
 
 --
+-- Indexes for table `currency_rates`
+--
+ALTER TABLE `currency_rates`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_base_target` (`base_code`,`target_code`);
+
+--
 -- Indexes for table `events`
 --
 ALTER TABLE `events`
@@ -271,6 +292,12 @@ ALTER TABLE `user_tokens`
 -- AUTO_INCREMENT for table `blockchain_transactions`
 --
 ALTER TABLE `blockchain_transactions`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `currency_rates`
+--
+ALTER TABLE `currency_rates`
   MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
