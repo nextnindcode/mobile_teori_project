@@ -1,31 +1,45 @@
 <?php
-require_once __DIR__ . '/../models/ProductModel.php';
-require_once __DIR__ . '/../models/TokenModel.php';
-require_once __DIR__ . '/../helpers/Response.php';
+require_once __DIR__ . '/../lib/response.php';
+require_once __DIR__ . '/../lib/auth_guard.php';
+require_once __DIR__ . '/../lib/database.php';
 
 class ProductController
 {
-    private $productModel;
-    private $tokenModel;
+    private $db;
 
     public function __construct()
     {
-        $this->productModel = new ProductModel();
-        $this->tokenModel = new TokenModel();
+        $this->db = (new Database())->getConnection();
     }
 
-    // GET /products
+    // GET /products?search=xxx&category=xxx
     public function list()
     {
-        // Cek auth
-        $this->requireAuth();
+        require_auth(); // Wajib login
 
         $search = $_GET['search'] ?? '';
         $category = $_GET['category'] ?? '';
 
-        $products = $this->productModel->getAll($search, $category);
+        $sql = "SELECT * FROM products WHERE 1=1";
+        $params = [];
 
-        // Konversi tipe
+        if (!empty($search)) {
+            $sql .= " AND name LIKE ?";
+            $params[] = "%$search%";
+        }
+
+        if (!empty($category) && $category !== 'all') {
+            $sql .= " AND category = ?";
+            $params[] = $category;
+        }
+
+        $sql .= " ORDER BY id ASC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Format tipe data
         foreach ($products as &$p) {
             $p['id'] = (int)$p['id'];
             $p['price'] = (int)$p['price'];
@@ -38,9 +52,12 @@ class ProductController
     // GET /products/{id}
     public function detail($id)
     {
-        $this->requireAuth();
+        require_auth();
 
-        $product = $this->productModel->findById($id);
+        $stmt = $this->db->prepare("SELECT * FROM products WHERE id = ?");
+        $stmt->execute([$id]);
+        $product = $stmt->fetch(PDO::FETCH_ASSOC);
+
         if (!$product) {
             Response::error("Produk tidak ditemukan", "NOT_FOUND", 404);
         }
@@ -50,25 +67,5 @@ class ProductController
         $product['stock'] = (int)$product['stock'];
 
         Response::success($product);
-    }
-
-    // ===== HELPER =====
-    private function requireAuth()
-    {
-        $headers = getallheaders();
-        $auth = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-
-        if (!preg_match('/Bearer\s+(.*)$/i', $auth, $matches)) {
-            Response::error("Token tidak ditemukan", "TOKEN_EXPIRED", 401);
-        }
-
-        $tokenHash = hash('sha256', $matches[1]);
-        $tokenData = $this->tokenModel->findValidByHash($tokenHash);
-
-        if (!$tokenData) {
-            Response::error("Token tidak valid atau kedaluwarsa", "TOKEN_EXPIRED", 401);
-        }
-
-        return $tokenData['user_id'];
     }
 }

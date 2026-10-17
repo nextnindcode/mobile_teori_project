@@ -9,8 +9,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/config/Database.php';
-require_once __DIR__ . '/helpers/Response.php';
+// Panggil helper
+require_once __DIR__ . '/lib/Response.php';
+require_once __DIR__ . '/lib/Database.php';
 
 $request = $_SERVER['REQUEST_URI'];
 $basePath = '/eclipseverse/api';
