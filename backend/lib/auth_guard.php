@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/Database.php'; 
 
 /**
  * Fungsi untuk mengecek token Authorization dari header request.
