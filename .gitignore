@@ -48,6 +48,7 @@ app.*.map.json
 .widget_preview/
 
 # Secret files
+backend/config/db.php
 backend/config/secret.php
 backend/.env
-*.env 
+*.env
