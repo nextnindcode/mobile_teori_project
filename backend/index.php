@@ -12,15 +12,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/config/Database.php';
 require_once __DIR__ . '/helpers/Response.php';
 
-$request = $_SERVER['REQUEST_URI'];
-$basePath = '/eclipseverse/api';
-$path = str_replace($basePath, '', $request);
-$path = strtok($path, '?');
+$request = $_SERVER['REQUEST_URI'] ?? '/';
+$urlPath = parse_url($request, PHP_URL_PATH);
+$basePaths = ['/eclipseverse/api', '/eclipseverse/backend', '/backend/api', '/backend', '/api'];
+$path = $urlPath;
+foreach ($basePaths as $bp) {
+    if (strpos($path, $bp) === 0) {
+        $path = substr($path, strlen($bp));
+        break;
+    }
+}
+$path = rtrim($path, '/');
+if (empty($path)) {
+    $path = '/';
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 switch (true) {
-    // ===== HEALTH =====
-    case $path === '/health' && $method === 'GET':
+    // ===== HEALTH (B-01 / Brief 8.4 #17) =====
+    case ($path === '/health' || $path === '/health.php') && $method === 'GET':
         Response::success([
             'status' => 'ok',
             'php' => phpversion(),
@@ -28,7 +39,7 @@ switch (true) {
         ]);
         break;
 
-    // ===== AUTH =====
+    // ===== AUTH (Modul A) =====
     case $path === '/auth/register' && $method === 'POST':
         require_once __DIR__ . '/controllers/AuthController.php';
         (new AuthController())->register();
@@ -49,15 +60,64 @@ switch (true) {
         (new AuthController())->me();
         break;
 
-    // ===== PRODUCTS =====
+    // ===== PRODUCTS (Modul A) =====
     case $path === '/products' && $method === 'GET':
         require_once __DIR__ . '/controllers/ProductController.php';
         (new ProductController())->list();
         break;
 
+    case $path === '/products/detail' && $method === 'GET':
+        require_once __DIR__ . '/controllers/ProductController.php';
+        (new ProductController())->detail($_GET['id'] ?? null);
+        break;
+
     case preg_match('#^/products/(\d+)$#', $path, $m) && $method === 'GET':
         require_once __DIR__ . '/controllers/ProductController.php';
         (new ProductController())->detail($m[1]);
+        break;
+
+    // ===== MEMBERS (Modul B - Brief 8.4 #11 & #12) =====
+    case $path === '/members' && $method === 'GET':
+        require_once __DIR__ . '/controllers/MemberController.php';
+        (new MemberController())->list();
+        break;
+
+    case $path === '/members/detail' && $method === 'GET':
+        require_once __DIR__ . '/controllers/MemberController.php';
+        (new MemberController())->detail($_GET['id'] ?? null);
+        break;
+
+    case preg_match('#^/members/(\d+)$#', $path, $m) && $method === 'GET':
+        require_once __DIR__ . '/controllers/MemberController.php';
+        (new MemberController())->detail($m[1]);
+        break;
+
+    // ===== EVENTS (Modul B - Brief 8.4 #13 & #14) =====
+    case $path === '/events' && $method === 'GET':
+        require_once __DIR__ . '/controllers/EventController.php';
+        (new EventController())->list();
+        break;
+
+    case $path === '/events/detail' && $method === 'GET':
+        require_once __DIR__ . '/controllers/EventController.php';
+        (new EventController())->detail($_GET['id'] ?? null);
+        break;
+
+    case preg_match('#^/events/(\d+)$#', $path, $m) && $method === 'GET':
+        require_once __DIR__ . '/controllers/EventController.php';
+        (new EventController())->detail($m[1]);
+        break;
+
+    // ===== CURRENCY RATES (Modul B - Brief 8.4 #15) =====
+    case $path === '/currency/rates' && $method === 'GET':
+        require_once __DIR__ . '/controllers/CurrencyController.php';
+        (new CurrencyController())->rates();
+        break;
+
+    // ===== FEEDBACK (Modul B - Brief 8.4 #16) =====
+    case $path === '/feedback' && $method === 'POST':
+        require_once __DIR__ . '/controllers/FeedbackController.php';
+        (new FeedbackController())->submit();
         break;
 
     // ===== DEFAULT =====

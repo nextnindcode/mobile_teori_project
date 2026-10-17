@@ -1,4 +1,4 @@
-import 'package:eclipseverse/core/api/api_service.dart';
+import 'package:eclipseverse/core/api_service.dart';
 
 import 'package:intl/intl.dart';
 
@@ -22,12 +22,14 @@ class CurrencyRates {
       amount / rates[from]! * rates[to]!;
 
   factory CurrencyRates.fromJson(Map<String, dynamic> j) {
-    final r = Map<String, dynamic>.from(j['rates'] as Map);
+    final payload =
+        (j['data'] is Map) ? Map<String, dynamic>.from(j['data'] as Map) : j;
+    final r = Map<String, dynamic>.from((payload['rates'] ?? {}) as Map);
     return CurrencyRates(
-      base: '${j['base'] ?? 'USD'}',
+      base: '${payload['base'] ?? 'USD'}',
       rates: r.map((k, v) => MapEntry(k, toDouble(v))),
-      updatedAt: parseUtc(j['updated_at']),
-      source: '${j['source'] ?? 'live'}',
+      updatedAt: parseUtc(payload['updated_at']),
+      source: '${payload['source'] ?? 'live'}',
     );
   }
 }

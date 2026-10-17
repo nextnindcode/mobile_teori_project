@@ -7,10 +7,20 @@ import 'secure_store.dart';
 
 class ApiService {
   // ===== GET =====
-  static Future<Map<String, dynamic>> get(String endpoint) async {
+  static Future<Map<String, dynamic>> get(
+    String endpoint, {
+    Map<String, dynamic>? query,
+  }) async {
     final token = await SecureStore.getToken();
+    var uri = Uri.parse('${Constants.baseUrl}$endpoint');
+    if (query != null && query.isNotEmpty) {
+      final stringParams = query.map((k, v) => MapEntry(k, v.toString()));
+      uri = uri.replace(
+        queryParameters: {...uri.queryParameters, ...stringParams},
+      );
+    }
     final response = await http.get(
-      Uri.parse('${Constants.baseUrl}$endpoint'),
+      uri,
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
