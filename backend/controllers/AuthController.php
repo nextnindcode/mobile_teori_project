@@ -1,75 +1,72 @@
 <?php
-require_once __DIR__ . '/../models/UserModel.php';
-require_once __DIR__ . '/../models/TokenModel.php';
-require_once __DIR__ . '/../helpers/Response.php';
+require_once __DIR__ . '/../lib/Response.php';
+require_once __DIR__ . '/../lib/validator.php';
+require_once __DIR__ . '/../lib/Database.php';
 
 class AuthController
 {
-    private $userModel;
-    private $tokenModel;
+    private $db;
 
     public function __construct()
     {
-        $this->userModel = new UserModel();
-        $this->tokenModel = new TokenModel();
+        $this->db = (new Database())->getConnection();
     }
 
-    // POST /auth/register
+    // 1. POST /auth/register
     public function register()
     {
-        $input = json_decode(file_get_contents('php://input'), true);
-
-        $name = trim($input['name'] ?? '');
-        $email = trim($input['email'] ?? '');
-        $password = $input['password'] ?? '';
+        $data = get_json_body();
 
         // Validasi
-        if (strlen($name) < 2 || strlen($name) > 50) {
-            Response::error("Nama harus 2-50 karakter", "VALIDATION_ERROR", 422);
+        if ($err = require_fields($data, ['name', 'email', 'password'])) {
+            Response::error($err, "VALIDATION_ERROR", 422);
         }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            Response::error("Email tidak valid", "VALIDATION_ERROR", 422);
+        if ($err = validate_name($data['name'])) {
+            Response::error($err, "VALIDATION_ERROR", 422);
         }
-        if (strlen($password) < 8) {
-            Response::error("Password minimal 8 karakter", "VALIDATION_ERROR", 422);
+        if ($err = validate_email($data['email'])) {
+            Response::error($err, "VALIDATION_ERROR", 422);
+        }
+        if ($err = validate_password($data['password'])) {
+            Response::error($err, "VALIDATION_ERROR", 422);
         }
 
-        // Cek email udah ada
-        if ($this->userModel->findByEmail($email)) {
+        // Cek email udah ada?
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->execute([$data['email']]);
+        if ($stmt->fetch()) {
             Response::error("Email sudah terdaftar", "EMAIL_TAKEN", 409);
         }
 
-        // Hash password
-        $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+        // Hash password & simpan
+        $hash = password_hash($data['password'], PASSWORD_BCRYPT);
+        $stmt = $this->db->prepare("INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)");
+        $stmt->execute([$data['name'], $data['email'], $hash]);
+        $userId = $this->db->lastInsertId();
 
-        // Simpan
-        $userId = $this->userModel->create($name, $email, $passwordHash);
+        // Kirim notifikasi selamat datang
+        $stmt = $this->db->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Selamat datang', 'Akun kamu berhasil dibuat. Selamat menjelajahi EclipseVerse!', 'system')");
+        $stmt->execute([$userId]);
 
-        // Notifikasi selamat datang
-        $this->createWelcomeNotification($userId);
-
-        Response::success(
-            ['user_id' => $userId],
-            "Registrasi berhasil",
-            201
-        );
+        Response::success(['user_id' => $userId], "Registrasi berhasil", 201);
     }
 
-    // POST /auth/login
+    // 2. POST /auth/login
     public function login()
     {
-        $input = json_decode(file_get_contents('php://input'), true);
+        $data = get_json_body();
 
-        $email = trim($input['email'] ?? '');
-        $password = $input['password'] ?? '';
-
-        if (empty($email) || empty($password)) {
-            Response::error("Email dan password wajib diisi", "VALIDATION_ERROR", 422);
+        if ($err = require_fields($data, ['email', 'password'])) {
+            Response::error($err, "VALIDATION_ERROR", 422);
         }
 
-        $user = $this->userModel->findByEmail($email);
+        // Cari user
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->execute([$data['email']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        // Cek password
+        if (!$user || !password_verify($data['password'], $user['password_hash'])) {
             Response::error("Email atau password salah", "INVALID_CREDENTIALS", 401);
         }
 
@@ -78,7 +75,8 @@ class AuthController
         $tokenHash = hash('sha256', $token);
         $expiresAt = date('Y-m-d H:i:s', strtotime('+7 days'));
 
-        $this->tokenModel->create($user['id'], $tokenHash, $expiresAt);
+        $stmt = $this->db->prepare("INSERT INTO user_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)");
+        $stmt->execute([$user['id'], $tokenHash, $expiresAt]);
 
         Response::success([
             'token' => $token,
@@ -88,79 +86,42 @@ class AuthController
                 'name' => $user['name'],
                 'email' => $user['email']
             ]
-        ]);
+        ], "Login berhasil");
     }
 
-    // POST /auth/logout
+    // 3. POST /auth/logout
     public function logout()
     {
-        $token = $this->getBearerToken();
-        if ($token) {
-            $tokenHash = hash('sha256', $token);
-            $this->tokenModel->deleteByHash($tokenHash);
+        require_once __DIR__ . '/../lib/auth_guard.php';
+        $userId = require_auth();
+
+        $headers = getallheaders();
+        $auth = $headers['Authorization'] ?? '';
+        preg_match('/Bearer\s+(\S+)/', $auth, $m);
+
+        if (isset($m[1])) {
+            $tokenHash = hash('sha256', $m[1]);
+            $stmt = $this->db->prepare("DELETE FROM user_tokens WHERE token_hash = ?");
+            $stmt->execute([$tokenHash]);
         }
+
         Response::success(null, "Logout berhasil");
     }
 
-    // GET /auth/me
+    // 4. GET /auth/me
     public function me()
     {
-        $user = $this->getAuthenticatedUser();
+        require_once __DIR__ . '/../lib/auth_guard.php';
+        $userId = require_auth();
+
+        $stmt = $this->db->prepare("SELECT id, name, email FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
         Response::success([
             'id' => (int)$user['id'],
             'name' => $user['name'],
             'email' => $user['email']
         ]);
-    }
-
-    // ===== HELPER =====
-    private function getBearerToken()
-    {
-        $headers = getallheaders();
-        $auth = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-        if (preg_match('/Bearer\s+(.*)$/i', $auth, $matches)) {
-            return $matches[1];
-        }
-        return null;
-    }
-
-    private function getAuthenticatedUser()
-    {
-        $token = $this->getBearerToken();
-        if (!$token) {
-            Response::error("Token tidak ditemukan", "TOKEN_EXPIRED", 401);
-        }
-
-        $tokenHash = hash('sha256', $token);
-        $tokenData = $this->tokenModel->findValidByHash($tokenHash);
-
-        if (!$tokenData) {
-            Response::error("Token tidak valid atau kedaluwarsa", "TOKEN_EXPIRED", 401);
-        }
-
-        $user = $this->userModel->findById($tokenData['user_id']);
-        if (!$user) {
-            Response::error("User tidak ditemukan", "TOKEN_EXPIRED", 401);
-        }
-
-        return $user;
-    }
-
-    private function createWelcomeNotification($userId)
-    {
-        try {
-            $db = (new Database())->getConnection();
-            $stmt = $db->prepare(
-                "INSERT INTO notifications (user_id, title, message, type) 
-                 VALUES (?, ?, ?, 'system')"
-            );
-            $stmt->execute([
-                $userId,
-                "Selamat datang di EclipseVerse",
-                "Akun kamu berhasil dibuat. Selamat menjelajahi dunia Eclipse!"
-            ]);
-        } catch (Exception $e) {
-            // Silent fail — jangan bikin register gagal karena notif
-        }
     }
 }
