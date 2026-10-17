@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -118,22 +119,37 @@ class LocalDb {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  static Future<String?> getPref(String key) => getPreference(key);
+  static Future<void> setPref(String key, String value) =>
+      setPreference(key, value);
+
   // ===== MEMBERS CACHE =====
-  static Future<void> cacheMembers(List<Map<String, dynamic>> members) async {
+  static Future<void> cacheMembers(List<Map<String, dynamic>> members) =>
+      saveMembers(members);
+
+  static Future<void> saveMembers(List<Map<String, dynamic>> members) async {
     final db = await database;
     await db.delete('members_cache');
     for (final m in members) {
       await db.insert('members_cache', {
         'id': m['id'],
-        'json': m.toString(),
+        'json': jsonEncode(m),
         'cached_at': DateTime.now().toIso8601String(),
-      });
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
   }
 
   static Future<List<Map<String, dynamic>>> getCachedMembers() async {
     final db = await database;
     return db.query('members_cache');
+  }
+
+  static Future<List<Map<String, dynamic>>> getMembers() async {
+    final db = await database;
+    final rows = await db.query('members_cache');
+    return rows
+        .map((r) => jsonDecode(r['json'] as String) as Map<String, dynamic>)
+        .toList();
   }
 
   // ===== USER PROFILE =====
@@ -156,6 +172,8 @@ class LocalDb {
     if (result.isEmpty) return null;
     return result.first;
   }
+
+  static Future<Map<String, dynamic>?> getUserProfile() => getProfile();
 
   static Future<void> clearAll() async {
     final db = await database;
