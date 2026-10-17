@@ -5,6 +5,7 @@ import './screens/login.dart';
 
 import 'features/shell/main_shell.dart';
 import 'features/ai/ai_page.dart'; 
+import 'features/game/game_page.dart'; 
 
 void main() {
   runApp(const MyApp());
@@ -27,6 +28,9 @@ class MyApp extends StatelessWidget {
         
         // Route untuk Eclipse AI 
         '/ai': (context) => const AiPage(),
+
+        // Route untuk Mini Game 
+        '/game': (context) => const GamePage(),
       },
     );
   }
