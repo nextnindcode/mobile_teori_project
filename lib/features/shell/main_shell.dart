@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; 
+import 'home_page.dart'; 
 
 // Kerangka utama dari aplikasi EclipseVerse.
 // Berisi 5 tab: Home, Fandom Hub, Saran & Kesan, Profil, serta Logout.
@@ -18,7 +19,7 @@ class _MainShellState extends State<MainShell> {
 
   // Placeholder untuk tiap tab. 
   static const List<Widget> _pages = [
-    _PlaceholderPage(title: 'Home', icon: Icons.home),
+    HomePage(), 
     _PlaceholderPage(title: 'Fandom Hub', icon: Icons.people),
     _PlaceholderPage(title: 'Saran & Kesan', icon: Icons.feedback),
     _PlaceholderPage(title: 'Profil', icon: Icons.person),
