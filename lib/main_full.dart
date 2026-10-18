@@ -19,7 +19,7 @@ import 'package:eclipseverse/features/fandom/member_detail_page.dart';
 import 'package:eclipseverse/features/game/game_page.dart';
 import 'package:eclipseverse/features/shell/main_shell.dart';
 import 'package:eclipseverse/features/tools/tools_page.dart';
-import 'package:eclipseverse/screens/login.dart';
+import 'package:eclipseverse/features/auth/login_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,13 +46,13 @@ class FullApp extends StatelessWidget {
       routes: {
         Routes.login: (_) => const LoginPage(),
         Routes.shell: (context) => MainShell(
-              onLogout: () async {
-                final nav = Navigator.of(context);
-                await SecureStore.deleteToken();
-                await LocalDb.clearAll();
-                nav.pushNamedAndRemoveUntil(Routes.login, (_) => false);
-              },
-            ),
+          onLogout: () async {
+            final nav = Navigator.of(context);
+            await SecureStore.deleteToken();
+            await LocalDb.clearAll();
+            nav.pushNamedAndRemoveUntil(Routes.login, (_) => false);
+          },
+        ),
         Routes.events: (_) => const EventListPage(),
         '/event-detail': (_) => const EventDetailPage(),
         '/member-detail': (_) => const MemberDetailPage(),
