@@ -49,6 +49,7 @@ class _SplashPageState extends State<SplashPage> {
       }
 
       // Kalau biometrik mati / ga support, tapi token ada -> Langsung ke Home!
+      // ignore: use_build_context_synchronously
       Navigator.pushReplacementNamed(context, Routes.shell);
     } else {
       // Kalau token ga ada -> ke Login
@@ -94,8 +95,7 @@ class _SplashPageState extends State<SplashPage> {
                         width: 100,
                         height: 100,
                         decoration: const BoxDecoration(
-                          color: AppTheme
-                              .primaryDark,
+                          color: AppTheme.primaryDark,
                           shape: BoxShape.circle,
                         ),
                       ),
