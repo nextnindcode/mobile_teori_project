@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'game_model.dart';
 import 'game_service.dart'; 
+import '../redeem/redeem_service.dart'; 
 
 class GameController extends ChangeNotifier {
   final List<Map<String, String>> _allMembers = [
@@ -107,8 +108,9 @@ class GameController extends ChangeNotifier {
         _bestScore = _score;
         await GameService.saveBestScore(_bestScore); // Simpan ke SQLite
       }
-      await GameService.kirimSkorKeServer(_score, _correctCount); // Kirim ke API
-      
+      await GameService.kirimSkorKeServer(_score, _correctCount); // Kirim ke API 
+      await RedeemService.addPoints(_score); // Setiap skor akan menjadi poin 
+
       notifyListeners();
     }
   } 

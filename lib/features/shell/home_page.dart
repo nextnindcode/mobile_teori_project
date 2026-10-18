@@ -60,6 +60,7 @@ class HomePage extends StatelessWidget {
                 _buildMenuCard(context, 'Eclipse AI', Icons.smart_toy, Routes.ai),
                 _buildMenuCard(context, 'Eclipse Tools', Icons.handyman, Routes.tools),
                 _buildMenuCard(context, 'Mini Game', Icons.sports_esports, Routes.game),
+                _buildMenuCard(context, 'Redeem Card', Icons.card_giftcard, Routes.redeem),
               ],
             ),
           ],
