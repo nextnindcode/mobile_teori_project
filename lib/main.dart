@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import './theme/app_theme.dart';
-import './screens/login.dart';
+import './features/auth/login_page.dart';
+import './features/auth/register_page.dart';
+import './features/auth/splash_page.dart';
+import './core/routes.dart';
 
 import 'features/shell/main_shell.dart';
 import 'features/ai/ai_page.dart'; 
