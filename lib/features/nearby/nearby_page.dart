@@ -39,15 +39,7 @@ class _NearbyPageState extends State<NearbyPage> {
         _userPosition = pos;
 
         // 2. Ambil data event
-        // List<Event> events = await EventService.fetchEvents(); // <-- NANTI KALAU API UDAH SIAP, PAKAI INI
-        
-        // --- DATA DUMMY UNTUK TESTING PETA ---
-        List<Event> events = [
-          Event(id: 1, title: 'Eclipse Fan Meeting Jakarta', description: '', eventDate: DateTime.now(), venue: 'Stadion GBK', city: 'Jakarta', latitude: -6.2088, longitude: 106.8456),
-          Event(id: 2, title: 'Eclipse World Tour Seoul', description: '', eventDate: DateTime.now(), venue: 'Seoul Dome', city: 'Seoul', latitude: 37.5665, longitude: 126.9780),
-          Event(id: 3, title: 'Eclipse Fan Meeting Yogyakarta', description: '', eventDate: DateTime.now(), venue: 'JEC', city: 'Yogyakarta', latitude: -7.7956, longitude: 110.3695),
-        ];
-        // -------------------------------------
+        List<Event> events = await EventService.fetchEvents(); 
 
         // 3. Hitung jarak
         List<Map<String, dynamic>> calculatedEvents = [];
