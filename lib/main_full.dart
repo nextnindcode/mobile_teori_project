@@ -1,10 +1,6 @@
 // FILE UJI LOKAL (seluruh aplikasi). Jangan ganti main.dart (milik A).
 // Jalankan:
-//   flutter run -t lib/main_full.dart --dart-define=API_BASE=https://xxxx.trycloudflare.com/eclipseverse/api
-//
-// Halaman milik A (login, catalog, cart, orders) dan C yang belum ada
-// (nearby, notifikasi) otomatis tampil sebagai "Belum tersedia", tidak crash.
-// Setelah A selesai, tambahkan route mereka di map `routes` di bawah.
+// flutter run -t lib/main_full.dart --dart-define=API_BASE=https://xxxx.trycloudflare.com/eclipseverse/api
 import 'package:flutter/material.dart';
 
 import 'package:eclipseverse/core/local_db.dart';
@@ -20,6 +16,9 @@ import 'package:eclipseverse/features/game/game_page.dart';
 import 'package:eclipseverse/features/shell/main_shell.dart';
 import 'package:eclipseverse/features/tools/tools_page.dart';
 import 'package:eclipseverse/screens/login.dart';
+import 'package:eclipseverse/features/nearby/nearby_page.dart';
+import 'package:eclipseverse/features/notification/notification_page.dart';
+import 'package:eclipseverse/features/redeem/redeem_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +58,9 @@ class FullApp extends StatelessWidget {
         Routes.tools: (_) => const ToolsPage(),
         Routes.ai: (_) => const AiPage(),
         Routes.game: (_) => const GamePage(),
+        Routes.nearby: (_) => const NearbyPage(),
+        Routes.notifications: (_) => const NotificationPage(),
+        Routes.redeem: (_) => const RedeemPage(),
       },
       onUnknownRoute: (settings) => MaterialPageRoute(
         builder: (_) => _ComingSoonPage(route: settings.name ?? '-'),
