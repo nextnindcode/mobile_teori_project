@@ -7,6 +7,19 @@ class Database
     private $password = "";
     public $conn;
 
+    public function __construct()
+    {
+        // Kredensial hosting ada di backend/config/db.php (TIDAK masuk repo, lihat .gitignore).
+        $file = __DIR__ . '/../config/db.php';
+        if (is_file($file)) {
+            $c = require $file;
+            $this->host     = $c['host']     ?? $this->host;
+            $this->db_name  = $c['db_name']  ?? $this->db_name;
+            $this->username = $c['username'] ?? $this->username;
+            $this->password = $c['password'] ?? $this->password;
+        }
+    }
+
     public function getConnection()
     {
         $this->conn = null;
@@ -18,7 +31,14 @@ class Database
             );
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
-            echo "Connection error: " . $e->getMessage();
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode([
+                "success" => false,
+                "message" => "Koneksi database gagal",
+                "code" => "ERROR"
+            ]);
+            exit;
         }
         return $this->conn;
     }
