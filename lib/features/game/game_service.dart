@@ -26,4 +26,16 @@ class GameService {
       debugPrint('Gagal mengirim skor ke server: $e');
     }
   }
+
+  // 4. Kirim poin ke database (untuk redeem kartu)
+  static Future<void> kirimPoin(int poin) async {
+    try {
+      await ApiService.post('/game/redeem.php', {
+        'action': 'add_points',
+        'points': poin,
+      });
+    } catch (e) {
+      // Abaikan jika gagal, karena mungkin sedang offline
+    }
+  }
 }
