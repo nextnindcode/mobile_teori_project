@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../event/event_model.dart';
 
 class NearbyMapPage extends StatelessWidget {
@@ -22,7 +23,8 @@ class NearbyMapPage extends StatelessWidget {
       body: FlutterMap(
         options: MapOptions(
           initialCenter: LatLng(userLat, userLon), // Pusatkan ke lokasi user
-          initialZoom: 5.0, // Skala zoom (5 = sedang, bisa dilihat se-Indonesia)
+          initialZoom:
+              5.0, // Skala zoom (5 = sedang, bisa dilihat se-Indonesia)
         ),
         children: [
           // 1. Gambar Peta OpenStreetMap
@@ -30,23 +32,23 @@ class NearbyMapPage extends StatelessWidget {
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: 'com.example.final_project_bgt_nih',
           ),
-          
+
           // 2. Titik-Titik Lokasi (Marker)
           MarkerLayer(
             markers: [
-              // Titik Lokasi User (Biru) 
+              // Titik Lokasi User (Biru)
               Marker(
                 point: LatLng(userLat, userLon),
                 width: 40,
                 height: 40,
                 child: const Icon(
-                  Icons.my_location, 
-                  color: Colors.blue, 
+                  Icons.my_location,
+                  color: Colors.blue,
                   size: 30,
                 ),
               ),
-              
-              // Titik Lokasi Event (Merah) 
+
+              // Titik Lokasi Event (Merah)
               ...events.map((event) {
                 return Marker(
                   point: LatLng(event.latitude, event.longitude),
@@ -63,24 +65,33 @@ class NearbyMapPage extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(event.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text(
+                                event.title,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               const SizedBox(height: 8),
                               Text('Kota: ${event.city}'),
                               const SizedBox(height: 4),
-                              Text('Lokasi: ${event.venue}', style: const TextStyle(color: Colors.grey)),
+                              Text(
+                                'Lokasi: ${event.venue}',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
                             ],
                           ),
                         ),
                       );
                     },
                     child: const Icon(
-                      Icons.location_on, 
-                      color: Colors.red, 
+                      Icons.location_on,
+                      color: Colors.red,
                       size: 40,
                     ),
                   ),
                 );
-              }).toList(),
+              }),
             ],
           ),
         ],

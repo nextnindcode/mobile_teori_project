@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api_service.dart';
-import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 
 class RegisterPage extends StatefulWidget {
