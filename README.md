@@ -77,6 +77,7 @@ Jika backend PHP sudah diunggah dan seluruh endpoint berfungsi di InfinityFree, 
 2. Backup database sebelum impor. **`backend/schema.sql` berisi `DROP TABLE IF EXISTS`**, sehingga impor ulang dapat menghapus tabel dan data dengan nama yang sama.
 3. Pilih database yang benar di phpMyAdmin, lalu impor schema dan (bila dibutuhkan) seed.
 4. Unggah file backend dengan susunan folder yang konsisten dengan path `require_once` di PHP. Router harus berada pada URL dasar yang cocok dengan `Constants.baseUrl` di `lib/core/constants.dart`.
+5. Setelah `schema.sql`, impor `backend/migrations/001_game_redeem_blockchain.sql` untuk membuat tabel poin, kartu milik pengguna, dan ledger hash-chain. Migration ini tidak menggantikan schema utama.
 5. Buat konfigurasi rahasia berdasarkan file contoh di `backend/config/`; jangan commit file berisi password hosting atau API key.
 6. Uji `/health`, login/register, member, event, feedback, currency, AI, game, redeem, dan notifikasi secara terpisah. Health check yang berhasil saja tidak menjamin endpoint lainnya berfungsi.
 7. Pastikan ekstensi PHP yang diperlukan (misalnya PDO MySQL dan cURL) tersedia pada paket hosting.
