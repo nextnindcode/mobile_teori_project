@@ -81,7 +81,13 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _toggleNotification(bool on) async {
     if (on) {
       try {
-        await NotificationService.init(); // meminta izin notifikasi
+        final granted = await NotificationService.init();
+        if (!granted) {
+          if (mounted) {
+            showSnack(context, 'Izin notifikasi belum diberikan.');
+          }
+          return;
+        }
       } catch (_) {
         if (mounted) {
           showSnack(
