@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../../lib/Database.php';
 require_once __DIR__ . '/../../lib/Response.php';
 require_once __DIR__ . '/../../lib/auth_guard.php';
+require_once __DIR__ . '/../../lib/blockchain.php';
 
 // Cek token (wajib login)
 $userId = require_auth();
