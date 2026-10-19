@@ -68,4 +68,50 @@ class ProductController
 
         Response::success($product);
     }
+
+    public function create()
+    {
+        require_auth(); // dicek role-nya
+        $data = get_json_body();
+
+        $stmt = $this->db->prepare("INSERT INTO products (name, category, description, price, stock, image_url) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $data['name'],
+            $data['category'],
+            $data['description'],
+            $data['price'],
+            $data['stock'],
+            $data['image_url']
+        ]);
+
+        Response::success(['id' => $this->db->lastInsertId()], "Produk ditambahkan", 201);
+    }
+
+    public function update($id)
+    {
+        require_auth();
+        $data = get_json_body();
+
+        $stmt = $this->db->prepare("UPDATE products SET name=?, category=?, description=?, price=?, stock=?, image_url=? WHERE id=?");
+        $stmt->execute([
+            $data['name'],
+            $data['category'],
+            $data['description'],
+            $data['price'],
+            $data['stock'],
+            $data['image_url'],
+            $id
+        ]);
+
+        Response::success(null, "Produk diupdate");
+    }
+
+    public function delete($id)
+    {
+        require_auth();
+        $stmt = $this->db->prepare("DELETE FROM products WHERE id=?");
+        $stmt->execute([$id]);
+
+        Response::success(null, "Produk dihapus");
+    }
 }
