@@ -71,4 +71,19 @@ switch (true) {
     // 5. Fallback (Kalau URL ga dikenali)
     default:
         Response::error("Endpoint tidak ditemukan: $path", "NOT_FOUND", 404);
+
+    case $path === '/products' && $method === 'POST':
+        require_once __DIR__ . '/controllers/ProductController.php';
+        (new ProductController())->create();
+        break;
+
+    case preg_match('#^/products/(\d+)$#', $path, $m) && $method === 'PUT':
+        require_once __DIR__ . '/controllers/ProductController.php';
+        (new ProductController())->update($m[1]);
+        break;
+
+    case preg_match('#^/products/(\d+)$#', $path, $m) && $method === 'DELETE':
+        require_once __DIR__ . '/controllers/ProductController.php';
+        (new ProductController())->delete($m[1]);
+        break;
 }

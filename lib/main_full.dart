@@ -20,6 +20,9 @@ import 'package:eclipseverse/features/game/game_page.dart';
 import 'package:eclipseverse/features/shell/main_shell.dart';
 import 'package:eclipseverse/features/tools/tools_page.dart';
 import 'package:eclipseverse/features/auth/login_page.dart';
+import 'package:eclipseverse/features/auth/register_page.dart';
+import 'package:eclipseverse/features/auth/splash_page.dart';
+import 'package:eclipseverse/features/marketplace/catalog_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +56,10 @@ class FullApp extends StatelessWidget {
             nav.pushNamedAndRemoveUntil(Routes.login, (_) => false);
           },
         ),
+        Routes.splash: (_) => const SplashPage(),
+        Routes.login: (_) => const LoginPage(),
+        Routes.register: (_) => const RegisterPage(),
+        Routes.catalog: (_) => const CatalogPage(),
         Routes.events: (_) => const EventListPage(),
         '/event-detail': (_) => const EventDetailPage(),
         '/member-detail': (_) => const MemberDetailPage(),

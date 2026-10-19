@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../models/products.dart';
+import '../admin/prodct_form_page.dart';
 
 class CatalogPage extends StatefulWidget {
   const CatalogPage({super.key});
@@ -14,6 +15,7 @@ class CatalogPage extends StatefulWidget {
 class _CatalogPageState extends State<CatalogPage> {
   List<Product> _products = [];
   bool _isLoading = true;
+  String _userRole = 'user';
 
   @override
   void initState() {
@@ -45,7 +47,22 @@ class _CatalogPageState extends State<CatalogPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Marketplace')),
+      appBar: AppBar(
+        title: const Text('Marketplace'),
+        actions: [
+          if (_userRole == 'admin')
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => const ProductFormPage()),
+                );
+                if (result == true) _loadProducts(); // Refresh kalau berhasil
+              },
+            ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : GridView.builder(
