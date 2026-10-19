@@ -29,12 +29,25 @@ if ($action === 'add_points') {
         Response::error("Poin tidak valid", "VALIDATION_ERROR", 422);
     }
 
-    // Insert poin jika belum ada, atau tambahkan jika sudah ada
-    $stmt = $db->prepare("INSERT INTO user_points (user_id, total_points) VALUES (?, ?) 
-                        ON DUPLICATE KEY UPDATE total_points = total_points + ?");
-    $stmt->execute([$userId, $points, $points]);
-    
-    Response::success(null, "Poin sebesar $points berhasil ditambahkan");
+    // Perubahan poin dan catatan hash harus berhasil sebagai satu transaksi.
+    try {
+        $db->beginTransaction();
+        $stmt = $db->prepare(
+            "INSERT INTO user_points (user_id, total_points) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE total_points = total_points + ?"
+        );
+        $stmt->execute([$userId, $points, $points]);
+        append_blockchain_entry($db, $userId, 'points_added', [
+            'points' => $points,
+        ]);
+        $db->commit();
+        Response::success(null, "Poin sebesar $points berhasil ditambahkan");
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        Response::error("Gagal menambahkan poin", "DATABASE_ERROR", 500);
+    }
 }
 
 // 2. Mengambil Total Poin & Daftar Kartu (Dipanggil saat buka halaman Redeem)
@@ -82,7 +95,13 @@ if ($action === 'redeem') {
         // 2. Simpan kartu ke koleksi user
         $stmt2 = $db->prepare("INSERT INTO user_cards (user_id, card_id) VALUES (?, ?)");
         $stmt2->execute([$userId, $cardId]);
-        
+
+        // Catat redeem dalam hash chain sebelum transaksi database di-commit.
+        append_blockchain_entry($db, $userId, 'card_redeemed', [
+            'card_id' => $cardId,
+            'cost' => $cost,
+        ]);
+
         $db->commit();
         Response::success(null, "Kartu berhasil ditukar!");
     } catch (Exception $e) {
