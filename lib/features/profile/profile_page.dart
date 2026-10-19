@@ -10,7 +10,9 @@ import '../fandom/shared/state_views.dart';
 import 'biometric_service.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final Future<void> Function()? onLogout;
+
+  const ProfilePage({super.key, this.onLogout});
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
@@ -92,6 +94,29 @@ class _ProfilePageState extends State<ProfilePage> {
     }
     await LocalDb.setPref('notification_enabled', on ? '1' : '0');
     if (mounted) setState(() => _notifEnabled = on);
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Keluar dari EclipseVerse?'),
+        content: const Text('Sesi akun di perangkat ini akan diakhiri.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await widget.onLogout?.call();
+    }
   }
 
   Future<void> _testNotification() async {
@@ -196,6 +221,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   onPressed: _testNotification,
                   icon: const Icon(Icons.notifications_active),
                   label: const Text('Uji notifikasi'),
+                ),
+                const SizedBox(height: AppTheme.spacingMedium),
+                OutlinedButton.icon(
+                  onPressed: widget.onLogout == null ? null : _confirmLogout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
                 ),
               ],
             ),
