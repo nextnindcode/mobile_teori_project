@@ -56,7 +56,6 @@ class FullApp extends StatelessWidget {
           },
         ),
         Routes.splash: (_) => const SplashPage(),
-        Routes.login: (_) => const LoginPage(),
         Routes.register: (_) => const RegisterPage(),
         Routes.catalog: (_) => const CatalogPage(),
         Routes.events: (_) => const EventListPage(),
