@@ -1,6 +1,6 @@
 // FILE UJI LOKAL (seluruh aplikasi). Jangan ganti main.dart (milik A).
-// Jalankan:
-// flutter run -t lib/main_full.dart --dart-define=API_BASE=https://xxxx.trycloudflare.com/eclipseverse/api
+// Jalankan: flutter run -t lib/main_full.dart
+// API_BASE diatur di lib/core/constants.dart untuk hosting aktif.
 import 'package:flutter/material.dart';
 
 import 'package:eclipseverse/core/local_db.dart';
