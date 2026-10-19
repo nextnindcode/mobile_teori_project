@@ -1,6 +1,22 @@
 -- EclipseVerse migration 001: tabel poin, kartu milik user, dan ledger hash berantai.
 -- Jalankan SETELAH backend/schema.sql pada database hosting yang benar.
 -- Aman dijalankan ulang karena menggunakan CREATE TABLE IF NOT EXISTS.
+-- Tambahkan image_url jika schema produk lama belum memilikinya (MySQL 5.7+).
+SET @has_image_url = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'products'
+    AND COLUMN_NAME = 'image_url'
+);
+SET @image_url_sql = IF(
+  @has_image_url = 0,
+  'ALTER TABLE products ADD COLUMN image_url VARCHAR(500) NULL AFTER description',
+  'SELECT 1'
+);
+PREPARE image_url_stmt FROM @image_url_sql;
+EXECUTE image_url_stmt;
+DEALLOCATE PREPARE image_url_stmt;
+
 
 CREATE TABLE IF NOT EXISTS user_points (
   user_id INT UNSIGNED NOT NULL,
