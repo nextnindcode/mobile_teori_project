@@ -1,4 +1,3 @@
-// Game ini masih menggunakan hardcode belum mengambil member dari database 
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'game_model.dart';
@@ -39,11 +38,11 @@ class GameController extends ChangeNotifier {
   bool get isGameOver => _currentRound >= 10;
   GameQuestion get currentQuestion => _questions[_currentRound];
 
-    void startGame() async {
+  void startGame() async {
     try {
       _bestScore = await GameService.getBestScore();
     } catch (e) {
-      _bestScore = 0; // Jika error (misal karena dibuka di Web), set ke 0
+      _bestScore = 0; 
       debugPrint('SQLite tidak didukung di Web, best score di-reset.');
     }
     
@@ -64,7 +63,9 @@ class GameController extends ChangeNotifier {
       String correct = member['name']!;
       String fact = member['funFact']!;
       List<String> wrongOptions = _allMembers.where((m) => m['name'] != correct).map((m) => m['name']!).toList()..shuffle();
-      List<String> options = [correct, ...wrongOptions.take(3)]..shuffle();
+      
+      // Hanya mengambil 1 jawaban salah (total ada 2 pilihan jawaban)
+      List<String> options = [correct, ...wrongOptions.take(1)]..shuffle();
 
       _questions.add(GameQuestion(funFact: fact, options: options, correctAnswer: correct));
     }
@@ -86,13 +87,13 @@ class GameController extends ChangeNotifier {
     });
   }
 
-    void answerQuestion(String selectedAnswer) {
+  void answerQuestion(String selectedAnswer) {
     _timer?.cancel();
     bool isCorrect = selectedAnswer == currentQuestion.correctAnswer;
     nextRound(isCorrect: isCorrect);
   }
 
-    void nextRound({required bool isCorrect}) async { 
+  void nextRound({required bool isCorrect}) async { 
     if (isCorrect) {
       _score += 10;
       _correctCount++;
@@ -103,13 +104,14 @@ class GameController extends ChangeNotifier {
       _startTimer();
     } else {
       _currentRound++;
-      // Logika Untuk Simpan Skor 
+      
       if (_score > _bestScore) {
         _bestScore = _score;
-        await GameService.saveBestScore(_bestScore); // Simpan ke SQLite
+        await GameService.saveBestScore(_bestScore); 
       }
-      await GameService.kirimSkorKeServer(_score, _correctCount); // Kirim ke API 
-      await RedeemService.addPoints(_score); // Setiap skor akan menjadi poin 
+      
+      await GameService.kirimSkorKeServer(_score, _correctCount); 
+      await RedeemService.addPoints(_score); 
 
       notifyListeners();
     }
