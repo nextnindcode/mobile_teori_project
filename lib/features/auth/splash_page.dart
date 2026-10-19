@@ -31,7 +31,7 @@ class _SplashPageState extends State<SplashPage> {
     if (token != null) {
       final biometricEnabled = await LocalDb.getPref('biometric_enabled');
 
-      if (biometricEnabled == 'true') {
+      if (biometricEnabled == '1' || biometricEnabled == 'true') {
         final isSupported = await BiometricService.isSupported();
 
         if (isSupported) {
