@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
+import '../marketplace/catalog_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -80,14 +82,19 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuCard(BuildContext context, String title, IconData icon, String route) {
+  Widget _buildMenuCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    String route,
+  ) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.white, 
+        color: AppTheme.white,
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryDark.withValues(alpha: 0.08), 
+            color: AppTheme.primaryDark.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -108,7 +115,7 @@ class HomePage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryLight.withValues(alpha: 0.2), 
+                    color: AppTheme.primaryLight.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(

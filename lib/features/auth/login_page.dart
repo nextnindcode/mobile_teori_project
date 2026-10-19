@@ -33,6 +33,7 @@ class _LoginPageState extends State<LoginPage> {
       if (response['success'] == true) {
         await SecureStore.saveToken(response['data']['token']);
         await LocalDb.setPref('biometric_enabled', 'true');
+        await LocalDb.setPref('user_role', response['data']['user']['role']);
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, Routes.shell);
       }

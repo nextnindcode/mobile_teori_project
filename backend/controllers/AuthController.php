@@ -84,7 +84,8 @@ class AuthController
             'user' => [
                 'id' => (int)$user['id'],
                 'name' => $user['name'],
-                'email' => $user['email']
+                'email' => $user['email'],
+                'role' => $user['role']
             ]
         ], "Login berhasil");
     }
@@ -121,7 +122,8 @@ class AuthController
         Response::success([
             'id' => (int)$user['id'],
             'name' => $user['name'],
-            'email' => $user['email']
+            'email' => $user['email'],
+            'role' => $user['role']
         ]);
     }
 }
