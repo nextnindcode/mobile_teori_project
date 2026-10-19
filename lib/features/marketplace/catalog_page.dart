@@ -35,6 +35,7 @@ class _CatalogPageState extends State<CatalogPage> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Gagal memuat produk: $e'),
@@ -78,9 +79,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 final product = _products[index];
                 return Card(
                   child: InkWell(
-                    onTap: () {
-                      // TODO: Buka Bottom Sheet Detail
-                    },
+                    onTap: () {},
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

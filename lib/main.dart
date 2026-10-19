@@ -39,6 +39,7 @@ class MyApp extends StatelessWidget {
         // Route untuk Marketplace Catalog
         '/catalog': (context) => const CatalogPage(),
       },
+      home: const LoginPage(),
     );
   }
 }

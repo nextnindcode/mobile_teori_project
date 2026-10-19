@@ -21,4 +21,7 @@ class Routes {
   static const String ai = '/ai';
   static const String game = '/game';
   static const String notifications = '/notifications';
+
+  // Redeem Kartu 
+  static const String redeem = '/redeem';
 }
