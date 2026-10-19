@@ -128,6 +128,11 @@ switch (true) {
         require_once __DIR__ . '/api/game/redeem.php';
         exit;
 
+    case $path === '/blockchain/verify' && $method === 'GET':
+        require_once __DIR__ . '/controllers/BlockchainController.php';
+        (new BlockchainController())->verify();
+        break;
+
     case $path === '/notifications' && $method === 'GET':
         require_once __DIR__ . '/api/notifications/index.php';
         exit;
