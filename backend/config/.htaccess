@@ -1,0 +1,2 @@
+# Blokir akses HTTP langsung ke file konfigurasi rahasia.
+Require all denied
