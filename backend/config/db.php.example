@@ -1,0 +1,12 @@
+<?php
+/**
+ * Salin file ini menjadi db.php di server InfinityFree.
+ * Isi nilai dari panel hosting. Jangan commit db.php.
+ */
+return [
+    'host' => 'sql200.infinityfree.com',
+    'port' => 3306,
+    'db_name' => 'ISI_NAMA_DATABASE_LENGKAP',
+    'username' => 'ISI_USERNAME_MYSQL',
+    'password' => 'ISI_PASSWORD_MYSQL_BARU',
+];

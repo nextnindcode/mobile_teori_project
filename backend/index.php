@@ -34,11 +34,21 @@ switch (true) {
         break;
 
     case $path === '/health' && $method === 'GET':
-        Response::success([
-            'status' => 'ok',
-            'php' => phpversion(),
-            'time' => date('Y-m-d H:i:s'),
-        ]);
+        // Periksa PHP dan koneksi database; jangan tampilkan detail rahasia.
+        try {
+            require_once __DIR__ . '/lib/Database.php';
+            $pdo = (new Database())->getConnection();
+            $pdo->query('SELECT 1');
+            Response::success([
+                'status' => 'ok',
+                'database' => 'connected',
+                'php' => phpversion(),
+                'time' => date('Y-m-d H:i:s'),
+            ]);
+        } catch (Throwable $e) {
+            error_log('[EclipseVerse] Health check failed: ' . $e->getMessage());
+            Response::error('Database belum siap. Periksa konfigurasi backend.', 'DATABASE_UNAVAILABLE', 503);
+        }
         break;
 
     case $path === '/auth/register' && $method === 'POST':
@@ -66,7 +76,7 @@ switch (true) {
         (new ProductController())->list();
         break;
 
-    case preg_match('#^/products/(\\d+)$#', $path, $matches) === 1 && $method === 'GET':
+    case preg_match('#^/products/(\d+)$#', $path, $matches) === 1 && $method === 'GET':
         require_once __DIR__ . '/controllers/ProductController.php';
         (new ProductController())->detail((int) $matches[1]);
         break;
@@ -76,12 +86,12 @@ switch (true) {
         (new ProductController())->create();
         break;
 
-    case preg_match('#^/products/(\\d+)$#', $path, $matches) === 1 && $method === 'PUT':
+    case preg_match('#^/products/(\d+)$#', $path, $matches) === 1 && $method === 'PUT':
         require_once __DIR__ . '/controllers/ProductController.php';
         (new ProductController())->update((int) $matches[1]);
         break;
 
-    case preg_match('#^/products/(\\d+)$#', $path, $matches) === 1 && $method === 'DELETE':
+    case preg_match('#^/products/(\d+)$#', $path, $matches) === 1 && $method === 'DELETE':
         require_once __DIR__ . '/controllers/ProductController.php';
         (new ProductController())->delete((int) $matches[1]);
         break;
@@ -91,7 +101,7 @@ switch (true) {
         (new MemberController())->list();
         break;
 
-    case ($path === '/members/detail' || preg_match('#^/members/(\\d+)$#', $path, $matches) === 1) && $method === 'GET':
+    case ($path === '/members/detail' || preg_match('#^/members/(\d+)$#', $path, $matches) === 1) && $method === 'GET':
         require_once __DIR__ . '/controllers/MemberController.php';
         (new MemberController())->detail(isset($matches[1]) ? (int) $matches[1] : null);
         break;
@@ -101,7 +111,7 @@ switch (true) {
         (new EventController())->list();
         break;
 
-    case ($path === '/events/detail' || preg_match('#^/events/(\\d+)$#', $path, $matches) === 1) && $method === 'GET':
+    case ($path === '/events/detail' || preg_match('#^/events/(\d+)$#', $path, $matches) === 1) && $method === 'GET':
         require_once __DIR__ . '/controllers/EventController.php';
         (new EventController())->detail(isset($matches[1]) ? (int) $matches[1] : null);
         break;
