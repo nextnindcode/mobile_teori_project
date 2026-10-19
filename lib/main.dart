@@ -33,8 +33,8 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.light(),
       debugShowCheckedModeBanner: false,
       
-      // Aplikasi dimulai dari Login 
-      home: const LoginPage(),
+      // Splash memeriksa sesi tersimpan dan biometrik sebelum membuka shell.
+      home: const SplashPage(),
 
       routes: {
         Routes.login: (_) => const LoginPage(),
