@@ -1,12 +1,17 @@
 <?php
 /**
- * Salin file ini menjadi db.php di server InfinityFree.
- * Isi nilai dari panel hosting. Jangan commit db.php.
+ * TEMPLATE konfigurasi database EclipseVerse untuk InfinityFree.
+ *
+ * Cara pakai di hosting:
+ * 1. Upload file ini ke htdocs/api/config/.
+ * 2. Ubah nama file menjadi db.php (bukan db.php.example).
+ * 3. Masukkan password MySQL dari panel InfinityFree.
+ * 4. Jangan pernah mengunggah db.php berisi password ke GitHub.
  */
 return [
     'host' => 'sql200.infinityfree.com',
     'port' => 3306,
-    'db_name' => 'ISI_NAMA_DATABASE_LENGKAP',
-    'username' => 'ISI_USERNAME_MYSQL',
-    'password' => 'ISI_PASSWORD_MYSQL_BARU',
+    'db_name' => 'if0_431944419_eclipse',
+    'username' => 'if0_431944419',
+    'password' => 'GANTI_DENGAN_PASSWORD_MYSQL',
 ];
