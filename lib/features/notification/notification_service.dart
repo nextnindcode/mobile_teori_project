@@ -30,13 +30,14 @@ class NotificationService {
           await androidImplementation.requestNotificationsPermission();
     }
 
-    _initialized = ok ?? true;
-    return permissionGranted ?? true;
+    _initialized = (ok ?? false) && (permissionGranted ?? false);
+    return _initialized;
   }
 
   // Menampilkan notifikasi uji coba 10 detik kemudian.
   static Future<void> showTest() async {
-    await init();
+    final granted = await init();
+    if (!granted) return;
     final isEnabled = (await LocalDb.getPref('notification_enabled')) == '1';
     if (!isEnabled) return;
 
