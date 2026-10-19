@@ -24,7 +24,7 @@ return [
 ];
 ```
 
-Jangan gunakan placeholder pada server produksi. Jangan taruh kredensial di Flutter atau di source publik.
+Jangan gunakan placeholder pada server produksi. Jangan taruh kredensial di Flutter atau di source publik. Jika fitur AI digunakan, salin `config/secret.php.example` menjadi `config/secret.php` di hosting dan isi `GEMINI_API_KEY`; jangan commit file rahasia tersebut.
 
 ## 2. Impor schema
 
