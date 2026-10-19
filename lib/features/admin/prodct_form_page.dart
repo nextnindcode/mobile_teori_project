@@ -81,7 +81,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _category,
+                initialValue: _category,
                 decoration: const InputDecoration(labelText: 'Kategori'),
                 items: ['album', 'apparel', 'accessory', 'collectible']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))

@@ -15,7 +15,7 @@ class CatalogPage extends StatefulWidget {
 class _CatalogPageState extends State<CatalogPage> {
   List<Product> _products = [];
   bool _isLoading = true;
-  String _userRole = 'user';
+  final String _userRole = 'user';
 
   @override
   void initState() {
