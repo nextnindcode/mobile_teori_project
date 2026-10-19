@@ -45,6 +45,31 @@ class _RedeemPageState extends State<RedeemPage> {
     }
   }
 
+  Future<void> _verifyBlockchain() async {
+    try {
+      final result = await RedeemService.verifyBlockchain();
+      if (!mounted) return;
+      final valid = result['valid'] == true;
+      final count = result['block_count'] ?? 0;
+      final invalidId = result['invalid_block_id'];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            valid
+                ? 'Blockchain valid: $count blok terverifikasi.'
+                : 'Verifikasi gagal pada blok $invalidId.',
+          ),
+          backgroundColor: valid ? Colors.green : Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memverifikasi blockchain: $e')),
+      );
+    }
+  }
+
   Future<void> _handleRedeem(EclipseCard card) async {
     // Cek poin terlebih dahulu 
     if (_userPoints < card.cost) {
@@ -94,7 +119,16 @@ class _RedeemPageState extends State<RedeemPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('Redeem Card')),
+      appBar: AppBar(
+        title: const Text('Redeem Card'),
+        actions: [
+          IconButton(
+            onPressed: _verifyBlockchain,
+            tooltip: 'Verifikasi blockchain',
+            icon: const Icon(Icons.verified_outlined),
+          ),
+        ],
+      ),
       body: _buildBody(),
     );
   }

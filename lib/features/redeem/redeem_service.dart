@@ -18,6 +18,13 @@ class RedeemService {
     });
   }
 
+  static Future<Map<String, dynamic>> verifyBlockchain() async {
+    final response = await ApiService.get('/blockchain/verify');
+    final data = response['data'];
+    if (data is Map) return Map<String, dynamic>.from(data);
+    throw Exception('Respons verifikasi blockchain tidak valid');
+  }
+
   static Future<void> addPoints(int points) async {
     await ApiService.post('/game/redeem.php', {
       'action': 'add_points',

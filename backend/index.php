@@ -1,42 +1,46 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Handle preflight request dari browser
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    http_response_code(204);
     exit;
 }
 
-// Panggil helper (sesuaikan path-nya dengan struktur folder kamu)
-require_once __DIR__ . '/lib/response.php';
-require_once __DIR__ . '/lib/database.php';
+require_once __DIR__ . '/lib/Response.php';
 
-$request = $_SERVER['REQUEST_URI'];
-$basePath = '/eclipseverse/api';
-$path = str_replace($basePath, '', $request);
-$path = strtok($path, '?'); // Buang query string (misal ?search=xxx)
-$method = $_SERVER['REQUEST_METHOD'];
+// Ambil path request tanpa query string, lalu buang direktori tempat router dipasang.
+// Ini mendukung pemasangan pada /api maupun /eclipseverse/api.
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$scriptDirectory = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
+$scriptDirectory = rtrim($scriptDirectory, '/');
 
-// ===== ROUTER =====
+if ($scriptDirectory !== '' && $scriptDirectory !== '.' && $scriptDirectory !== '/' &&
+    strpos($requestPath, $scriptDirectory) === 0) {
+    $requestPath = substr($requestPath, strlen($scriptDirectory));
+}
+
+$path = '/' . trim($requestPath, '/');
+if ($path === '//') {
+    $path = '/';
+}
+$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+
 switch (true) {
-    // 1. Root (Biar ga error kalau buka /api/)
     case $path === '/' && $method === 'GET':
         Response::success(['app' => 'EclipseVerse API', 'status' => 'running']);
         break;
 
-    // 2. Health Check
     case $path === '/health' && $method === 'GET':
         Response::success([
             'status' => 'ok',
             'php' => phpversion(),
-            'time' => date('Y-m-d H:i:s')
+            'time' => date('Y-m-d H:i:s'),
         ]);
         break;
 
-    // 3. Auth (Register, Login, Logout, Me)
     case $path === '/auth/register' && $method === 'POST':
         require_once __DIR__ . '/controllers/AuthController.php';
         (new AuthController())->register();
@@ -57,33 +61,86 @@ switch (true) {
         (new AuthController())->me();
         break;
 
-    // 4. Products (List & Detail)
     case $path === '/products' && $method === 'GET':
         require_once __DIR__ . '/controllers/ProductController.php';
         (new ProductController())->list();
         break;
 
-    case preg_match('#^/products/(\d+)$#', $path, $m) && $method === 'GET':
+    case preg_match('#^/products/(\\d+)$#', $path, $matches) === 1 && $method === 'GET':
         require_once __DIR__ . '/controllers/ProductController.php';
-        (new ProductController())->detail($m[1]);
+        (new ProductController())->detail((int) $matches[1]);
         break;
-
-    // 5. Fallback (Kalau URL ga dikenali)
-    default:
-        Response::error("Endpoint tidak ditemukan: $path", "NOT_FOUND", 404);
 
     case $path === '/products' && $method === 'POST':
         require_once __DIR__ . '/controllers/ProductController.php';
         (new ProductController())->create();
         break;
 
-    case preg_match('#^/products/(\d+)$#', $path, $m) && $method === 'PUT':
+    case preg_match('#^/products/(\\d+)$#', $path, $matches) === 1 && $method === 'PUT':
         require_once __DIR__ . '/controllers/ProductController.php';
-        (new ProductController())->update($m[1]);
+        (new ProductController())->update((int) $matches[1]);
         break;
 
-    case preg_match('#^/products/(\d+)$#', $path, $m) && $method === 'DELETE':
+    case preg_match('#^/products/(\\d+)$#', $path, $matches) === 1 && $method === 'DELETE':
         require_once __DIR__ . '/controllers/ProductController.php';
-        (new ProductController())->delete($m[1]);
+        (new ProductController())->delete((int) $matches[1]);
         break;
+
+    case $path === '/members' && $method === 'GET':
+        require_once __DIR__ . '/controllers/MemberController.php';
+        (new MemberController())->list();
+        break;
+
+    case ($path === '/members/detail' || preg_match('#^/members/(\\d+)$#', $path, $matches) === 1) && $method === 'GET':
+        require_once __DIR__ . '/controllers/MemberController.php';
+        (new MemberController())->detail(isset($matches[1]) ? (int) $matches[1] : null);
+        break;
+
+    case $path === '/events' && $method === 'GET':
+        require_once __DIR__ . '/controllers/EventController.php';
+        (new EventController())->list();
+        break;
+
+    case ($path === '/events/detail' || preg_match('#^/events/(\\d+)$#', $path, $matches) === 1) && $method === 'GET':
+        require_once __DIR__ . '/controllers/EventController.php';
+        (new EventController())->detail(isset($matches[1]) ? (int) $matches[1] : null);
+        break;
+
+    case $path === '/feedback' && $method === 'POST':
+        require_once __DIR__ . '/controllers/FeedbackController.php';
+        (new FeedbackController())->submit();
+        break;
+
+    case $path === '/currency/rates' && $method === 'GET':
+        require_once __DIR__ . '/controllers/CurrencyController.php';
+        (new CurrencyController())->rates();
+        break;
+
+    case $path === '/ai/chat' && $method === 'POST':
+        require_once __DIR__ . '/api/ai/chat.php';
+        exit;
+
+    case $path === '/game/score' && $method === 'POST':
+        require_once __DIR__ . '/api/game/score.php';
+        exit;
+
+    case $path === '/game/redeem.php' && $method === 'POST':
+        require_once __DIR__ . '/api/game/redeem.php';
+        exit;
+
+    case $path === '/blockchain/verify' && $method === 'GET':
+        require_once __DIR__ . '/controllers/BlockchainController.php';
+        (new BlockchainController())->verify();
+        break;
+
+    case $path === '/notifications' && $method === 'GET':
+        require_once __DIR__ . '/api/notifications/index.php';
+        exit;
+
+    case $path === '/notifications/read' && $method === 'POST':
+        require_once __DIR__ . '/api/notifications/read.php';
+        exit;
+
+    default:
+        Response::error('Endpoint tidak ditemukan: ' . $path, 'NOT_FOUND', 404);
 }

@@ -11,6 +11,7 @@ class SensorService {
     required Function() onConfirm,
   }) {
     bool isLocked = false;
+    bool isConfirmLocked = false;
 
     // 1. Accelerometer (Miring ke kiri/kanan untuk geser)
     _accelSubscription = accelerometerEventStream().listen((AccelerometerEvent event) {
@@ -32,9 +33,14 @@ class SensorService {
 
     // 2. Gyroscope (Anggukkan hp ke depan untuk konfirmasi jawaban)
     _gyroSubscription = gyroscopeEventStream().listen((GyroscopeEvent event) {
-      // event.x mendeteksi putaran depan/belakang (seperti mengangguk)
-      if (event.x.abs() > 4.0) { 
+      // event.x mendeteksi putaran depan/belakang (seperti mengangguk).
+      // Debounce mencegah satu gerakan memicu jawaban berkali-kali.
+      if (event.x.abs() > 4.0 && !isConfirmLocked) {
+        isConfirmLocked = true;
         onConfirm();
+        Future.delayed(const Duration(milliseconds: 800), () {
+          isConfirmLocked = false;
+        });
       }
     });
   }

@@ -9,8 +9,14 @@ class AiService {
         'message': pesan,
       });
       
-      // Mengambil balasan 'reply' dari JSON
-      return response['reply'] ?? 'Maaf, AI tidak memberikan jawaban.';
+      // Response API dibungkus dalam key `data` oleh Response::success.
+      final payload = response['data'];
+      if (payload is Map && payload['reply'] is String) {
+        return (payload['reply'] as String).trim();
+      }
+      // Fallback untuk kompatibilitas jika server mengirim format lama.
+      return response['reply']?.toString() ??
+          'Maaf, AI tidak memberikan jawaban.';
       
     } on ApiException catch (e) {
       // Lempar error agar ditangkap oleh UI
