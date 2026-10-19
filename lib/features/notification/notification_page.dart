@@ -64,7 +64,14 @@ class _NotificationPageState extends State<NotificationPage> {
             const SizedBox(height: 16),
             Text('Gagal memuat notifikasi\n$_errorMessage', textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _fetchNotifications, child: const Text('Coba Lagi')),
+            SizedBox(
+              width: 200, 
+              child: ElevatedButton(
+                style: AppTheme.primaryButtonStyle,
+                onPressed: _fetchNotifications, 
+                child: const Text('Coba Lagi')
+              ),
+            ),
           ],
         ),
       );

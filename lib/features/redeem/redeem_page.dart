@@ -29,10 +29,11 @@ class _RedeemPageState extends State<RedeemPage> {
     });
 
     try {
+      // Mengambil poin dan kartu dari API backend 
       final data = await RedeemService.getUserStats();
       setState(() {
         _userPoints = data['points'] ?? 0;
-        // Konversi list dari API ke List<int>
+        // Konversi list dari API ke List<int> 
         _ownedCardIds = List<int>.from(data['owned_cards'] ?? []);
         _isLoading = false;
       });
@@ -45,6 +46,7 @@ class _RedeemPageState extends State<RedeemPage> {
   }
 
   Future<void> _handleRedeem(EclipseCard card) async {
+    // Cek poin terlebih dahulu 
     if (_userPoints < card.cost) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Poin kamu tidak cukup!'), backgroundColor: Colors.red),
@@ -52,7 +54,7 @@ class _RedeemPageState extends State<RedeemPage> {
       return;
     }
 
-    // Tampilkan dialog konfirmasi
+    // Tampilkan dialog konfirmasi 
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -70,12 +72,13 @@ class _RedeemPageState extends State<RedeemPage> {
     setState(() => _isLoading = true);
 
     try {
+      // Panggil API untuk memproses redeem kartu 
       await RedeemService.redeemCard(card.id, card.cost);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Berhasil mendapatkan ${card.name}!'), backgroundColor: Colors.green),
         );
-        _fetchData(); // Refresh data poin dan kartu
+        _fetchData(); // Refresh data poin dan kartu 
       }
     } catch (e) {
       if (mounted) {
@@ -103,44 +106,65 @@ class _RedeemPageState extends State<RedeemPage> {
 
     if (_errorMessage != null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 60, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Gagal memuat data\n$_errorMessage', textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(onPressed: _fetchData, child: const Text('Coba Lagi')),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 60, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Gagal memuat data\n$_errorMessage', textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 200, 
+                child: ElevatedButton(
+                  style: AppTheme.primaryButtonStyle,
+                  onPressed: _fetchData,
+                  child: const Text('Coba Lagi'),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return Column(
       children: [
-        // Header Poin
+        // Header Poin User 
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
             boxShadow: [
-              BoxShadow(color: AppTheme.primaryDark.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5)),
+              BoxShadow(
+                color: AppTheme.primaryDark.withValues(alpha: 0.3), 
+                blurRadius: 10, 
+                offset: const Offset(0, 5)
+              ),
             ],
           ),
           child: Column(
             children: [
-              const Text('Total Poin Kamu', style: TextStyle(color: Colors.white70, fontSize: 16)),
+              const Text(
+                'Total Poin Kamu', 
+                style: TextStyle(color: Colors.white70, fontSize: 16)
+              ),
               const SizedBox(height: 8),
               Text(
                 '$_userPoints',
-                style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white, 
+                  fontSize: 48, 
+                  fontWeight: FontWeight.bold
+                ),
               ),
             ],
           ),
         ),
         
-        // Grid Kartu
+        // Grid Kartu Member 
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.all(16),
@@ -148,13 +172,12 @@ class _RedeemPageState extends State<RedeemPage> {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.75,
+              childAspectRatio: 0.7, 
             ),
             itemCount: dummyCards.length,
             itemBuilder: (context, index) {
               final card = dummyCards[index];
               final isOwned = _ownedCardIds.contains(card.id);
-              
               return _buildCardItem(card, isOwned);
             },
           ),
@@ -169,39 +192,82 @@ class _RedeemPageState extends State<RedeemPage> {
         color: AppTheme.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05), 
+            blurRadius: 10, 
+            offset: const Offset(0, 5)
+          ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Gambar kartu baru menggunakan inisial huruf 
+          // Bagian Gambar Kartu 
           Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryLight.withValues(alpha: 0.2),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Gambar dari URL 
+                  Image.network(
+                    card.imageUrl,
+                    fit: BoxFit.cover, 
+                    
+                    // Tampilan jika gambar sedang loading 
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: AppTheme.greyLight,
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryDark),
+                        ),
+                      );
+                    },
 
-              // Tampilan Lingkaran + Inisial 
-              child: Center(
-                child: CircleAvatar(
-                  radius: 35,
-                  backgroundColor: isOwned ? AppTheme.primaryDark : AppTheme.greyLight,
-                  child: Text(
-                    card.initial,
-                    style: TextStyle(
-                      fontSize: 28, 
-                      fontWeight: FontWeight.bold,
-                      color: isOwned ? Colors.white : AppTheme.grey,
-                    ),
+                    // Tampilan jika link gambar mati/error 
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppTheme.greyLight,
+                        child: const Center(
+                          child: Icon(Icons.broken_image, color: AppTheme.grey, size: 40),
+                        ),
+                      );
+                    },
                   ),
-                ),
+                  
+                  // Jika kartu belum dimiliki: Efek Gelap + Gembok
+                  if (!isOwned) 
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      child: const Center(
+                        child: Icon(Icons.lock, color: Colors.white, size: 50),
+                      ),
+                    ),
+                  
+                  // Jika kartu sudah dimiliki: Label "OWNED"
+                  if (isOwned)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'OWNED',
+                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
           
-          // Detail Kartu
+          // Bagian Detail dan Tombol
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Column(
@@ -210,17 +276,36 @@ class _RedeemPageState extends State<RedeemPage> {
                   card.name,
                   style: AppTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 if (isOwned)
-                  const Text('Sudah Dimiliki', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))
+                  const Text(
+                    'Sudah Dimiliki', 
+                    style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)
+                  )
                 else
-                  Text('${card.cost} Poin', style: TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${card.cost} Poin', 
+                        style: TextStyle(
+                          color: AppTheme.primaryDark, 
+                          fontWeight: FontWeight.bold
+                        )
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 12),
                 
-                // Tombol Redeem
+                // Tombol Tukar 
                 SizedBox(
                   width: double.infinity,
+                  height: 40,
                   child: ElevatedButton(
                     style: AppTheme.primaryButtonStyle,
                     onPressed: isOwned ? null : () => _handleRedeem(card),

@@ -1,4 +1,4 @@
-// Game ini mirip dengan Kahoot 
+// Game ini mirip dengan kahoot 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
@@ -14,28 +14,26 @@ class GamePage extends StatefulWidget {
 
 class _GamePageState extends State<GamePage> {
   final SensorService _sensorService = SensorService();
-  
   String? _selectedOption; 
   bool _isAnswered = false; 
-  int _highlightedIndex = 0; // Sorotan sensor (0-3)
+  int _highlightedIndex = 0; 
 
   @override
   void dispose() {
-    _sensorService.stopSensors(); // Matikan sensor saat keluar halaman
+    _sensorService.stopSensors(); 
     super.dispose();
   }
 
-  // Fungsi untuk menyalakan sensor saat game dimulai
   void _startSensors(GameController controller) {
     _sensorService.listenSensors(
       onMove: (direction) {
         setState(() {
-          _highlightedIndex = (_highlightedIndex + direction) % 4;
-          if (_highlightedIndex < 0) _highlightedIndex = 3;
+          // Navigasi melingkar untuk 2 pilihan (0 -> 1 -> 0)
+          _highlightedIndex = (_highlightedIndex + direction) % 2;
+          if (_highlightedIndex < 0) _highlightedIndex = 1;
         });
       },
       onConfirm: () {
-        // Jika diputar, otomatis pilih jawaban yang sedang disorot
         if (!_isAnswered && controller.questions.isNotEmpty && !controller.isGameOver) {
           String selectedOption = controller.currentQuestion.options[_highlightedIndex];
           _handleAnswer(_highlightedIndex, selectedOption, controller);
@@ -44,12 +42,11 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  // Fungsi saat menjawab (lewat Tap atau Sensor)
   void _handleAnswer(int index, String option, GameController controller) async {
     if (_isAnswered) return; 
 
     setState(() {
-      _highlightedIndex = index; // Pindahkan sorotan ungu ke tombol yang di-tap
+      _highlightedIndex = index; 
       _selectedOption = option;
       _isAnswered = true;
     });
@@ -61,7 +58,7 @@ class _GamePageState extends State<GamePage> {
     setState(() {
       _selectedOption = null;
       _isAnswered = false;
-      _highlightedIndex = 0; // Reset ke kiri atas untuk ronde baru
+      _highlightedIndex = 0; 
     });
   }
 
@@ -94,7 +91,6 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  // === TAMPILAN AWAL (START SCREEN) ===
   Widget _buildStartScreen(BuildContext context, GameController controller) {
     return Center(
       child: Padding(
@@ -134,7 +130,7 @@ class _GamePageState extends State<GamePage> {
                 border: Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.5)),
               ),
               child: Text(
-                'Baca petunjuk, lalu tebak membernya.\n\nMiringkan HP untuk memilih, Putar HP untuk konfirmasi. Atau gunakan sentuhan (Tap).',
+                'Baca petunjuk, lalu tebak nama membernya.\n\nMiringkan HP ke Kiri/Kanan untuk memilih, dan anggukkan HP ke depan untuk konfirmasi jawaban. Atau gunakan sentuhan (Tap).',
                 textAlign: TextAlign.center,
                 style: AppTheme.textTheme.bodyMedium?.copyWith(height: 1.5),
               ),
@@ -146,7 +142,7 @@ class _GamePageState extends State<GamePage> {
                 style: AppTheme.primaryButtonStyle,
                 onPressed: () {
                   controller.startGame();
-                  _startSensors(controller); // Aktifkan sensor
+                  _startSensors(controller); 
                 },
                 child: const Text('Mulai Bermain'),
               ),
@@ -157,7 +153,6 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  // === TAMPILAN BERMAIN (PLAY SCREEN) ===
   Widget _buildPlayScreen(BuildContext context, GameController controller) {
     final question = controller.currentQuestion;
 
@@ -165,33 +160,59 @@ class _GamePageState extends State<GamePage> {
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       child: Column(
         children: [
-          // Header
+        // Header ronde dan skor 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Badge Ronde
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryLight.withValues(alpha: 0.2),
+                  color: AppTheme.white, 
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.primaryLight, width: 2), 
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Text('Ronde ${controller.currentRound + 1}/10', 
-                  style: AppTheme.textTheme.titleSmall?.copyWith(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
+                  style: AppTheme.textTheme.titleSmall?.copyWith(
+                    color: AppTheme.primaryDark, 
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  )),
               ),
+              
+              // Badge Skor
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryDark,
+                  color: AppTheme.white, 
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.primaryDark, width: 2), 
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Text('Skor: ${controller.score}', 
-                  style: AppTheme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: AppTheme.textTheme.titleSmall?.copyWith(
+                    color: AppTheme.primaryDark, 
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  )),
               ),
             ],
           ),
           const SizedBox(height: 16),
           
-          // Timer Bar
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
@@ -207,7 +228,7 @@ class _GamePageState extends State<GamePage> {
           
           const SizedBox(height: 24),
 
-          // Kotak Soal Fun Fact 
+          // Kotak Soal
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -240,35 +261,27 @@ class _GamePageState extends State<GamePage> {
 
           const SizedBox(height: 24),
 
-          // 4 Tombol Pilihan Jawaban (Dengan Sensor & Tap)
+          // 2 Tombol Pilihan Jawaban Berdampingan Kiri dan Kanan 
           Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 2.2, 
-              ),
-              itemCount: question.options.length,
-              itemBuilder: (context, index) {
+            child: Row(
+              children: List.generate(question.options.length, (index) {
                 final option = question.options[index];
                 bool isCorrectAnswer = option == question.correctAnswer;
                 bool isSelected = option == _selectedOption;
-                bool isHighlighted = index == _highlightedIndex; // Sensor sorotan
+                bool isHighlighted = index == _highlightedIndex;
 
-                // Logika Warna
                 Color buttonColor = AppTheme.white;
                 Color textColor = AppTheme.primaryDark;
                 Color borderColor = AppTheme.primaryLight;
 
-                // Jika disorot sensor dan belum menjawab 
+                // Sorotan Sensor
                 if (isHighlighted && !_isAnswered) {
-                  buttonColor = AppTheme.primaryDark; // Ungu tua
+                  buttonColor = AppTheme.primaryDark; 
                   textColor = Colors.white;
                   borderColor = AppTheme.primaryDark;
                 }
 
-                // Jika sudah menjawab (benar/salah)
+                // Feedback Jawaban Benar/Salah
                 if (_isAnswered) {
                   if (isCorrectAnswer) {
                     buttonColor = Colors.green;
@@ -281,32 +294,41 @@ class _GamePageState extends State<GamePage> {
                   }
                 }
 
-                return AnimatedScale(
-                  scale: isHighlighted ? 1.05 : 1.0, // Membesar saat disorot sensor
-                  duration: const Duration(milliseconds: 200),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: buttonColor,
-                      foregroundColor: textColor,
-                      elevation: isHighlighted ? 8 : 2,
-                      shadowColor: AppTheme.primaryDark.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: borderColor, width: 2),
-                      ),
-                    ),
-                    onPressed: () => _handleAnswer(index, option, controller),
-                    child: Text(
-                      option,
-                      textAlign: TextAlign.center,
-                      style: AppTheme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
+                return Expanded(
+                  child: Padding(
+                    // Jarak antar tombol kiri dan kanan
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0), 
+                    child: AnimatedScale(
+                      scale: isHighlighted ? 1.02 : 1.0, 
+                      duration: const Duration(milliseconds: 200),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: buttonColor,
+                            foregroundColor: textColor,
+                            elevation: isHighlighted ? 8 : 2,
+                            shadowColor: AppTheme.primaryDark.withValues(alpha: 0.3),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(color: borderColor, width: 2),
+                            ),
+                          ),
+                          onPressed: () => _handleAnswer(index, option, controller),
+                          child: Text(
+                            option,
+                            textAlign: TextAlign.center,
+                            style: AppTheme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 );
-              },
+              }),
             ),
           ),
           
@@ -314,7 +336,7 @@ class _GamePageState extends State<GamePage> {
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: Text(
-              'Miringkan HP: Geser • Putar HP: Konfirmasi',
+              'Miring ke Kiri/Kanan: Geser • Anggukkan ke Depan: Konfirmasi Jawaban',
               style: AppTheme.textTheme.bodySmall?.copyWith(color: AppTheme.grey),
             ),
           ),
@@ -323,7 +345,6 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  // === TAMPILAN GAME OVER ===
   Widget _buildGameOverScreen(BuildContext context, GameController controller) {
     return Center(
       child: Padding(
@@ -349,7 +370,6 @@ class _GamePageState extends State<GamePage> {
             ),
             const SizedBox(height: 24),
             
-            // Kartu Statistik
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               decoration: BoxDecoration(
@@ -372,7 +392,6 @@ class _GamePageState extends State<GamePage> {
                       const SizedBox(height: 4),
                       Text('${controller.score}', style: AppTheme.textTheme.headlineMedium?.copyWith(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      // Menambahkan Skor Terbaik 
                       Text('Terbaik: ${controller.bestScore}', 
                         style: AppTheme.textTheme.bodySmall?.copyWith(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
                     ],
@@ -401,7 +420,7 @@ class _GamePageState extends State<GamePage> {
                 style: AppTheme.primaryButtonStyle,
                 onPressed: () {
                   controller.startGame();
-                  _startSensors(controller); // Nyalakan sensor lagi
+                  _startSensors(controller);
                 },
                 child: const Text('Main Lagi'),
               ),
