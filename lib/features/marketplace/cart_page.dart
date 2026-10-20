@@ -55,10 +55,12 @@ class _CartPageState extends State<CartPage> {
     try {
       final response = await ApiService.post('/orders', {
         'items': _cartItems
-            .map((item) => {
-                  'product_id': item['product_id'],
-                  'quantity': item['quantity'],
-                })
+            .map(
+              (item) => {
+                'product_id': item['product_id'],
+                'quantity': item['quantity'],
+              },
+            )
             .toList(),
       });
 
@@ -78,9 +80,8 @@ class _CartPageState extends State<CartPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Checkout gagal: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Checkout gagal: $e')));
     } finally {
       if (mounted) setState(() => _isCheckingOut = false);
     }
@@ -141,17 +142,14 @@ class _CartPageState extends State<CartPage> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _checkout,
-                          child: const Text(
-                            'Bayar Sekarang',
-                            style: TextStyle(fontSize: 16),
-                          ),
                           onPressed: _isCheckingOut ? null : _checkout,
                           child: _isCheckingOut
                               ? const SizedBox(
                                   width: 22,
                                   height: 22,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : const Text(
                                   'Bayar Sekarang',
