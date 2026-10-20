@@ -60,7 +60,7 @@ class _CartPageState extends State<CartPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Pesanan #\${response['data']?['order_id'] ?? '-'} berhasil dibuat.',
+            'Pesanan #${response['data']?['order_id'] ?? '-'} berhasil dibuat.',
           ),
           backgroundColor: Colors.green.shade700,
         ),
@@ -122,11 +122,11 @@ class _CartPageState extends State<CartPage> {
                             child: Icon(Icons.shopping_bag_outlined,
                                 color: Theme.of(context).colorScheme.primary),
                           ),
-                          title: Text('\${item['name'] ?? 'Produk'}',
+                          title: Text('${item['name'] ?? 'Produk'}',
                               maxLines: 2, overflow: TextOverflow.ellipsis),
                           subtitle: Text('Rp $price × $quantity'),
                           trailing: Text(
-                            'Rp \${price * quantity}',
+                            'Rp ${price * quantity}',
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
