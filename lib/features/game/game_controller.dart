@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'game_model.dart';
 import 'game_service.dart'; 
-import '../redeem/redeem_service.dart'; 
 
 class GameController extends ChangeNotifier {
   final List<Map<String, String>> _allMembers = [
@@ -121,12 +120,6 @@ class GameController extends ChangeNotifier {
       await GameService.kirimSkorKeServer(_score, _correctCount);
     } catch (e) {
       debugPrint('Gagal mengirim skor ke server: $e');
-    }
-
-    try {
-      await RedeemService.addPoints(_score);
-    } catch (e) {
-      debugPrint('Gagal menambahkan poin redeem: $e');
     }
 
     notifyListeners();
