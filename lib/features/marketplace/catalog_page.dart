@@ -95,6 +95,11 @@ class _CatalogPageState extends State<CatalogPage> {
         title: const Text('Marketplace'),
         actions: [
           IconButton(
+            tooltip: 'Riwayat pesanan',
+            icon: const Icon(Icons.receipt_long_outlined),
+            onPressed: () => Navigator.pushNamed(context, Routes.orders),
+          ),
+          IconButton(
             tooltip: 'Buka keranjang',
             icon: const Icon(Icons.shopping_bag_outlined),
             onPressed: () => Navigator.pushNamed(context, Routes.cart),
