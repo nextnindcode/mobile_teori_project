@@ -4,7 +4,9 @@ import '../../core/api_service.dart';
 import '../../theme/app_theme.dart';
 
 class OrdersPage extends StatefulWidget {
-  const OrdersPage({super.key});
+  final bool previewMode;
+
+  const OrdersPage({super.key, this.previewMode = false});
 
   @override
   State<OrdersPage> createState() => _OrdersPageState();
@@ -22,6 +24,18 @@ class _OrdersPageState extends State<OrdersPage> {
   }
 
   Future<void> _loadOrders() async {
+    if (widget.previewMode) {
+      if (!mounted) return;
+      setState(() {
+        _orders = [
+          {'id': 'EV-2048', 'status': 'SHIPPED', 'created_at': '2026-10-18T10:30:00', 'item_count': 2, 'total': 268000},
+          {'id': 'EV-2031', 'status': 'CONFIRMED', 'created_at': '2026-10-12T14:15:00', 'item_count': 1, 'total': 79000},
+        ];
+        _loading = false;
+        _error = null;
+      });
+      return;
+    }
     if (mounted) {
       setState(() {
         _loading = true;
