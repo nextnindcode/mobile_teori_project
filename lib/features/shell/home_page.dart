@@ -127,8 +127,8 @@ class HomePage extends StatelessWidget {
               children: [
                 _QuickAction(label: 'Store', icon: Icons.storefront_outlined,
                     tint: const Color(0xFFE8DFFF), onTap: () => _open(context, Routes.catalog)),
-                _QuickAction(label: 'Fandom', icon: Icons.people_alt_outlined,
-                    tint: const Color(0xFFF5DCEB), onTap: () => _open(context, Routes.shell)),
+                _QuickAction(label: 'Notifikasi', icon: Icons.notifications_outlined,
+                    tint: const Color(0xFFF5DCEB), onTap: () => _open(context, Routes.notifications)),
                 _QuickAction(label: 'Eclipse AI', icon: Icons.auto_awesome_outlined,
                     tint: const Color(0xFFE1E7FF), onTap: () => _open(context, Routes.ai)),
                 _QuickAction(label: 'Nearby', icon: Icons.near_me_outlined,
