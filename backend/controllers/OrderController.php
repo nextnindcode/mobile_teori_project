@@ -3,6 +3,7 @@ require_once __DIR__ . '/../lib/Database.php';
 require_once __DIR__ . '/../lib/Response.php';
 require_once __DIR__ . '/../lib/auth_guard.php';
 require_once __DIR__ . '/../lib/blockchain.php';
+require_once __DIR__ . '/../lib/validator.php';
 
 class OrderController
 {
