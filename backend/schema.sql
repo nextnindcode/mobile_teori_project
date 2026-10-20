@@ -179,6 +179,7 @@ CREATE TABLE `user_cards` (
   `card_id` int NOT NULL,
   `redeemed_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_user_card` (`user_id`, `card_id`),
   CONSTRAINT `user_cards_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
