@@ -93,7 +93,7 @@ class GameController extends ChangeNotifier {
     nextRound(isCorrect: isCorrect);
   }
 
-  void nextRound({required bool isCorrect}) async { 
+  void nextRound({required bool isCorrect}) async {
     if (isCorrect) {
       _score += 10;
       _correctCount++;
@@ -102,20 +102,35 @@ class GameController extends ChangeNotifier {
     if (_currentRound < 9) {
       _currentRound++;
       _startTimer();
-    } else {
-      _currentRound++;
-      
-      if (_score > _bestScore) {
-        _bestScore = _score;
-        await GameService.saveBestScore(_bestScore); 
-      }
-      
-      await GameService.kirimSkorKeServer(_score, _correctCount); 
-      await RedeemService.addPoints(_score); 
-
-      notifyListeners();
+      return;
     }
-  } 
+
+    _currentRound++;
+
+    if (_score > _bestScore) {
+      _bestScore = _score;
+      try {
+        await GameService.saveBestScore(_bestScore);
+      } catch (e) {
+        debugPrint('Gagal menyimpan skor lokal: $e');
+      }
+    }
+
+    // Kegagalan jaringan tidak boleh membuat layar hasil permainan menggantung.
+    try {
+      await GameService.kirimSkorKeServer(_score, _correctCount);
+    } catch (e) {
+      debugPrint('Gagal mengirim skor ke server: $e');
+    }
+
+    try {
+      await RedeemService.addPoints(_score);
+    } catch (e) {
+      debugPrint('Gagal menambahkan poin redeem: $e');
+    }
+
+    notifyListeners();
+  }
 
   @override
   void dispose() {
