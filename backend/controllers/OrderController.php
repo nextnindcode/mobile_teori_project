@@ -14,6 +14,30 @@ class OrderController
         $this->db = (new Database())->getConnection();
     }
 
+    public function list(): void
+    {
+        $userId = require_auth();
+        $stmt = $this->db->prepare(
+            'SELECT o.id, o.total, o.status, o.created_at, COUNT(oi.id) AS item_count
+             FROM orders o
+             LEFT JOIN order_items oi ON oi.order_id = o.id
+             WHERE o.user_id = ?
+             GROUP BY o.id, o.total, o.status, o.created_at
+             ORDER BY o.created_at DESC, o.id DESC'
+        );
+        $stmt->execute([$userId]);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($orders as &$order) {
+            $order['id'] = (int) $order['id'];
+            $order['total'] = (int) $order['total'];
+            $order['item_count'] = (int) $order['item_count'];
+        }
+        unset($order);
+
+        Response::success($orders, 'Riwayat pesanan berhasil dimuat');
+    }
+
     public function create(): void
     {
         $userId = require_auth();
