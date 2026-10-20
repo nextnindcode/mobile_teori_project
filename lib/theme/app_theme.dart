@@ -53,12 +53,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // ===== Warna Utama (Primary) =====
-  static const Color primaryDark = Color(0xFF674188); // Ungu tua
-  static const Color primaryLight = Color(0xFFC3ACD0); // Lavender
+  static const Color primaryDark = Color(0xFF211B35); // Midnight plum
+  static const Color primaryLight = Color(0xFFD8C9FF); // Lunar lavender
 
   // ===== Warna Background & Surface =====
-  static const Color background = Color(0xFFFFFBF5); // Krem terang
-  static const Color surface = Color(0xFFF7EFE5); // Krem
+  static const Color background = Color(0xFFF6F3FA); // Cloud white
+  static const Color surface = Color(0xFFFFFFFF); // Clean surface
 
   // ===== Warna Teks =====
   static const Color black = Color(0xFF212121); // Hitam
@@ -77,7 +77,7 @@ class AppTheme {
 
   // ===== Gradient (opsional) =====
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primaryDark, primaryLight],
+    colors: [Color(0xFF211B35), Color(0xFF6D5A92), Color(0xFFD8A9C8)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
