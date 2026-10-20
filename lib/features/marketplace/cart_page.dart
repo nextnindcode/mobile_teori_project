@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api_service.dart';
 import '../../core/local_db.dart';
+import '../../core/routes.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -65,6 +66,7 @@ class _CartPageState extends State<CartPage> {
           backgroundColor: Colors.green.shade700,
         ),
       );
+      Navigator.pushReplacementNamed(context, Routes.orders);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
