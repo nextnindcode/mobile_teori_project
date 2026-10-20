@@ -14,7 +14,9 @@ import './features/tools/tools_page.dart';
 import 'features/shell/main_shell.dart';
 import 'features/ai/ai_page.dart';
 import 'features/game/game_page.dart';
-import 'features/marketplace/catalog_page.dart'; 
+import 'features/marketplace/catalog_page.dart';
+import 'features/marketplace/cart_page.dart';
+import 'features/marketplace/orders_page.dart';
 import 'features/nearby/nearby_page.dart';
 import 'features/redeem/redeem_page.dart';
 import 'features/notification/notification_page.dart';
@@ -61,7 +63,9 @@ class MyApp extends StatelessWidget {
         ),
         Routes.events: (_) => const EventListPage(),
         Routes.tools: (_) => const ToolsPage(),
-        '/catalog': (context) => const CatalogPage(),
+        Routes.catalog: (_) => const CatalogPage(),
+        Routes.cart: (_) => const CartPage(),
+        Routes.orders: (_) => const OrdersPage(),
         '/ai': (context) => const AiPage(),
         '/game': (context) => const GamePage(),
         '/nearby': (context) => const NearbyPage(),
