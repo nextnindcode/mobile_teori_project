@@ -10,7 +10,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../../lib/Database.php';
-require_once __DIR__ . '/../../lib/Response.php'; 
+require_once __DIR__ . '/../../lib/Response.php';
+require_once __DIR__ . '/../../lib/auth_guard.php';
+
+// Endpoint AI hanya boleh digunakan oleh pengguna yang sudah login.
+require_auth();
 
 // Ambil API Key & Config Gemini
 $secretFile = __DIR__ . '/../../config/secret.php';
