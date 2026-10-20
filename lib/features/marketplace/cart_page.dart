@@ -40,7 +40,6 @@ class _CartPageState extends State<CartPage> {
   }
 
   Future<void> _checkout() async {
-    // TODO: Panggil API POST /orders di sini nanti
     await LocalDb.clearCart();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
