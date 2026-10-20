@@ -31,7 +31,8 @@ Jangan gunakan placeholder pada server produksi. Jangan taruh kredensial di Flut
 - Pilih database hosting yang benar di phpMyAdmin.
 - Backup database terlebih dahulu.
 - Impor `schema.sql` hanya jika memang ingin membuat ulang struktur; file ini berisi `DROP TABLE IF EXISTS` dan dapat menghapus tabel/data lama.
-- Untuk fitur poin/kartu/hash ledger, periksa kebutuhan skema dan migration terhadap database yang sudah dipakai sebelum menjalankan SQL. Jangan impor ulang secara membabi buta pada database berisi data produksi.
+- Untuk database yang sudah berisi data, jalankan migration yang aman satu per satu dari `backend/migrations/`. Khusus hash ledger, impor `20261021_create_blockchain_ledger.sql` setelah tabel `users` tersedia. File migration ini tidak menghapus tabel/data lama.
+- `schema.sql` membuat ulang struktur dan berisi `DROP TABLE IF EXISTS`; jangan impor ulang secara membabi buta pada database berisi data produksi.
 
 ## 3. Uji API
 
