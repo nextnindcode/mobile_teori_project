@@ -21,7 +21,9 @@ $db = (new Database())->getConnection();
 $input = json_decode(file_get_contents('php://input'), true);
 $action = $input['action'] ?? '';
 
-// Poin hanya dapat diperoleh melalui hasil permainan di /game/score.\n\n// 1. Mengambil Total Poin & Daftar Kartu (Dipanggil saat buka halaman Redeem)
+// Poin hanya dapat diperoleh melalui hasil permainan di /game/score.
+
+// 1. Mengambil Total Poin & Daftar Kartu (Dipanggil saat buka halaman Redeem)
 if ($action === 'get_points') {
     $stmt = $db->prepare("SELECT total_points FROM user_points WHERE user_id = ?");
     $stmt->execute([$userId]);
