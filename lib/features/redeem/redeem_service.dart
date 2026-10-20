@@ -25,10 +25,5 @@ class RedeemService {
     throw Exception('Respons verifikasi blockchain tidak valid');
   }
 
-  static Future<void> addPoints(int points) async {
-    await ApiService.post('/game/redeem.php', {
-      'action': 'add_points',
-      'points': points,
-    });
-  }
+
 }
