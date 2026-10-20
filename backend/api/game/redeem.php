@@ -21,36 +21,7 @@ $db = (new Database())->getConnection();
 $input = json_decode(file_get_contents('php://input'), true);
 $action = $input['action'] ?? '';
 
-// 1. Menambahkan Poin (Dipanggil saat Game Selesai)
-if ($action === 'add_points') {
-    $points = (int)($input['points'] ?? 0);
-    
-    if ($points <= 0) {
-        Response::error("Poin tidak valid", "VALIDATION_ERROR", 422);
-    }
-
-    // Perubahan poin dan catatan hash harus berhasil sebagai satu transaksi.
-    try {
-        $db->beginTransaction();
-        $stmt = $db->prepare(
-            "INSERT INTO user_points (user_id, total_points) VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE total_points = total_points + ?"
-        );
-        $stmt->execute([$userId, $points, $points]);
-        append_blockchain_entry($db, $userId, 'points_added', [
-            'points' => $points,
-        ]);
-        $db->commit();
-        Response::success(null, "Poin sebesar $points berhasil ditambahkan");
-    } catch (Throwable $e) {
-        if ($db->inTransaction()) {
-            $db->rollBack();
-        }
-        Response::error("Gagal menambahkan poin", "DATABASE_ERROR", 500);
-    }
-}
-
-// 2. Mengambil Total Poin & Daftar Kartu (Dipanggil saat buka halaman Redeem)
+// Poin hanya dapat diperoleh melalui hasil permainan di /game/score.\n\n// 1. Mengambil Total Poin & Daftar Kartu (Dipanggil saat buka halaman Redeem)
 if ($action === 'get_points') {
     $stmt = $db->prepare("SELECT total_points FROM user_points WHERE user_id = ?");
     $stmt->execute([$userId]);
@@ -67,7 +38,7 @@ if ($action === 'get_points') {
     ], "Data poin berhasil diambil");
 }
 
-// 3. Tukar Poin dengan Kartu (Redeem)
+// 2. Tukar Poin dengan Kartu (Redeem)
 if ($action === 'redeem') {
     $cardId = (int)($input['card_id'] ?? 0);
     $cost = (int)($input['cost'] ?? 0);
