@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/Database.php'; 
+require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Response.php'; 
 
 /**
  * Fungsi untuk mengecek token Authorization dari header request.
@@ -49,4 +50,23 @@ function require_auth(): int
 
     // Return user_id yang sedang login
     return (int) $userId;
+}
+
+
+/**
+ * Memastikan endpoint hanya bisa diakses oleh akun dengan role admin.
+ */
+function require_admin(): int
+{
+    $userId = require_auth();
+    $db = (new Database())->getConnection();
+    $stmt = $db->prepare('SELECT role FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    $role = $stmt->fetchColumn();
+
+    if ($role !== 'admin') {
+        Response::error('Akses khusus admin.', 'FORBIDDEN', 403);
+    }
+
+    return $userId;
 }
