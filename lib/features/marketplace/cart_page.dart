@@ -6,7 +6,9 @@ import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key});
+  final bool previewMode;
+
+  const CartPage({super.key, this.previewMode = false});
 
   @override
   State<CartPage> createState() => _CartPageState();
@@ -54,6 +56,12 @@ class _CartPageState extends State<CartPage> {
   }
 
   Future<void> _checkout() async {
+    if (widget.previewMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Checkout aktif setelah backend dan database online disiapkan.')),
+      );
+      return;
+    }
     if (_cartItems.isEmpty || _isCheckingOut) return;
     setState(() => _isCheckingOut = true);
 
@@ -259,9 +267,11 @@ class _CartPageState extends State<CartPage> {
                                     child: CircularProgressIndicator(strokeWidth: 2),
                                   )
                                 : const Icon(Icons.lock_outline),
-                            label: Text(_isCheckingOut
-                                ? 'Memproses pesanan...'
-                                : 'Checkout sekarang'),
+                            label: Text(widget.previewMode
+                                ? 'Checkout (mode preview)'
+                                : _isCheckingOut
+                                    ? 'Memproses pesanan...'
+                                    : 'Checkout sekarang'),
                           ),
                         ),
                       ],
