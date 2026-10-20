@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'dart:convert';
+
 import '../../core/api_service.dart';
+import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../models/products.dart';
 import '../admin/prodct_form_page.dart';
+import 'product_detail_sheet.dart';
 
 class CatalogPage extends StatefulWidget {
   const CatalogPage({super.key});
@@ -51,6 +55,14 @@ class _CatalogPageState extends State<CatalogPage> {
       appBar: AppBar(
         title: const Text('Marketplace'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: () {
+              Navigator.pushNamed(context, Routes.cart);
+            },
+          ),
+
+          // Tombol tambah produk khusus admin
           if (_userRole == 'admin')
             IconButton(
               icon: const Icon(Icons.add),
@@ -79,7 +91,15 @@ class _CatalogPageState extends State<CatalogPage> {
                 final product = _products[index];
                 return Card(
                   child: InkWell(
-                    onTap: () {},
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) =>
+                            ProductDetailSheet(product: product),
+                      );
+                    },
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

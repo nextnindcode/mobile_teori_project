@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
       title: 'EclipseVerse',
       theme: AppTheme.light(),
       debugShowCheckedModeBanner: false,
-      home: const MainShell(),
+      // home: const MainShell(),
 
       routes: {
         // Route untuk Main Shell (Home)

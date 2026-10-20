@@ -86,4 +86,14 @@ switch (true) {
         require_once __DIR__ . '/controllers/ProductController.php';
         (new ProductController())->delete($m[1]);
         break;
+
+    case $path === '/blockchain/verify' && $method === 'GET':
+        require_once __DIR__ . '/controllers/OrderController.php';
+        (new OrderController())->verify();
+        break;
+
+    case $path === '/blockchain/verify' && $method === 'GET':
+        require_once __DIR__ . '/controllers/BlockchainController.php';
+        (new BlockchainController())->verify();
+        break;
 }
