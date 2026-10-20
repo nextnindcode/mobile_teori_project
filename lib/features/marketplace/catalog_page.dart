@@ -183,7 +183,7 @@ class _CatalogPageState extends State<CatalogPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
             child: Text(
-              _isLoading ? 'Memuat koleksi...' : '\${visibleProducts.length} produk ditemukan',
+              _isLoading ? 'Memuat koleksi...' : '${visibleProducts.length} produk ditemukan',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -297,7 +297,7 @@ class _CatalogPageState extends State<CatalogPage> {
                                                 color: AppTheme.primaryDark,
                                                 fontWeight: FontWeight.w800)),
                                         const SizedBox(height: 4),
-                                        Text('Stok: \${product.stock}',
+                                        Text('Stok: ${product.stock}',
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodySmall),
