@@ -32,8 +32,13 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response['success'] == true) {
         await SecureStore.saveToken(response['data']['token']);
-        await LocalDb.setPref('biometric_enabled', 'true');
-        await LocalDb.setPref('user_role', response['data']['user']['role']);
+        final user = Map<String, dynamic>.from(response['data']['user'] as Map);
+        await LocalDb.saveProfile(
+          userId: int.tryParse('${user['id']}') ?? 0,
+          name: '${user['name'] ?? ''}',
+          email: '${user['email'] ?? _emailController.text.trim()}',
+        );
+        await LocalDb.setPref('user_role', '${user['role'] ?? 'user'}');
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, Routes.shell);
       }

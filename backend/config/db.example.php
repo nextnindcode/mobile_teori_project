@@ -1,8 +1,12 @@
 <?php
-// Salin jadi backend/config/db.php lalu isi. db.php TIDAK boleh di-commit.
+/**
+ * Contoh konfigurasi database EclipseVerse untuk InfinityFree.
+ * Salin ke db.php di hosting; jangan commit file db.php yang berisi password.
+ */
 return [
-    'host'     => 'sqlXXX.infinityfree.com',   // dari panel: MySQL Hostname
-    'db_name'  => 'if0_XXXXXXX_eclipse',        // nama database lengkap
-    'username' => 'if0_XXXXXXX',                // MySQL Username
-    'password' => 'ISI_PASSWORD_AKUN_HOSTING',  // password akun hosting
+    'host' => 'sql200.infinityfree.com',
+    'port' => 3306,
+    'db_name' => 'if0_431944419_eclipse',
+    'username' => 'if0_431944419',
+    'password' => 'GANTI_DENGAN_PASSWORD_MYSQL',
 ];

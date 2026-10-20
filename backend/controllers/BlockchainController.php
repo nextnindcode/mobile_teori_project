@@ -1,64 +1,56 @@
 <?php
-require_once __DIR__ . '/../lib/database.php';
-require_once __DIR__ . '/../lib/response.php';
+require_once __DIR__ . '/../lib/Database.php';
+require_once __DIR__ . '/../lib/Response.php';
 require_once __DIR__ . '/../lib/auth_guard.php';
+require_once __DIR__ . '/../lib/blockchain.php';
 
-class BlockchainController {
-    private $db;
+class BlockchainController
+{
+    public function verify(): void
+    {
+        require_auth();
 
-    public function __construct() {
-        $this->db = (new Database())->getConnection();
-    }
+        $db = (new Database())->getConnection();
+        $stmt = $db->query(
+            "SELECT id, user_id, action_type, transaction_data,
+                    previous_hash, current_hash, created_at
+             FROM blockchain_ledger ORDER BY id ASC"
+        );
+        $blocks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    public function verify() {
-        require_auth(); // Wajib login
+        $expectedPreviousHash = str_repeat('0', 64);
+        $invalidBlockId = null;
 
-        $orderId = $_GET['order_id'] ?? null;
-        if (!$orderId) {
-            Response::error("Order ID wajib diisi", "VALIDATION_ERROR", 422);
+        foreach ($blocks as $block) {
+            $hashInput = implode('|', [
+                $expectedPreviousHash,
+                (string) $block['user_id'],
+                $block['action_type'],
+                $block['created_at'],
+                $block['transaction_data'],
+            ]);
+            $expectedHash = hash('sha256', $hashInput);
+
+            if (
+                !hash_equals($expectedPreviousHash, $block['previous_hash']) ||
+                !hash_equals($expectedHash, $block['current_hash'])
+            ) {
+                $invalidBlockId = (int) $block['id'];
+                break;
+            }
+
+            $expectedPreviousHash = $block['current_hash'];
         }
-
-        // 1. Ambil data order & hash yang tersimpan
-        $stmt = $this->db->prepare("SELECT * FROM orders WHERE id = ?");
-        $stmt->execute([$orderId]);
-        $order = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        $stmt = $this->db->prepare("SELECT * FROM blockchain_transactions WHERE order_id = ?");
-        $stmt->execute([$orderId]);
-        $block = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$order || !$block) {
-            Response::error("Data order atau blok tidak ditemukan", "NOT_FOUND", 404);
-        }
-
-        // 2. Hitung ulang hash dari data saat ini (untuk cek apakah ada yang diubah)
-        $itemsStmt = $this->db->prepare("SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = ? ORDER BY product_id ASC");
-        $itemsStmt->execute([$orderId]);
-        $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Susun ulang persis seperti saat create
-        $digestString = implode(',', array_map(
-            fn($i) => $i['product_id'] . 'x' . $i['quantity'] . '@' . $i['unit_price'], 
-            $items
-        ));
-        $digest = hash('sha256', $digestString);
-        
-        // Karena created_at dari DB formatnya beda dikit sama saat disimpan, kita ambil dari transaction_data
-        // (Ini trik simpel buat tugas, biar ga error format tanggal)
-        $dataParts = explode('|', $block['transaction_data']);
-        $expectedData = implode('|', [$order['id'], $order['user_id'], $order['total'], $dataParts[3], $digest]);
-        
-        $expectedHash = hash('sha256', $expectedData . $block['previous_hash']);
-
-        // 3. Bandingkan
-        $isValid = ($expectedHash === $block['current_hash']);
 
         Response::success([
-            'order_id' => (int)$orderId,
-            'valid' => $isValid,
-            'current_hash' => $block['current_hash'],
-            'message' => $isValid ? "Transaksi VALID" : "Transaksi INVALID (Data telah diubah!)"
-        ]);
+            'valid' => $invalidBlockId === null,
+            'block_count' => count($blocks),
+            'invalid_block_id' => $invalidBlockId,
+            'latest_hash' => count($blocks) > 0
+                ? $blocks[count($blocks) - 1]['current_hash']
+                : null,
+        ], $invalidBlockId === null
+            ? 'Rantai hash valid'
+            : 'Validasi rantai hash gagal');
     }
 }
-?>

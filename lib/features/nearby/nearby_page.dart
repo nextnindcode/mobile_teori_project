@@ -127,10 +127,13 @@ class _NearbyPageState extends State<NearbyPage> {
                 style: AppTheme.textTheme.titleMedium?.copyWith(color: Colors.red),
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                style: AppTheme.primaryButtonStyle,
-                onPressed: () => _fetchNearbyEvents(),
-                child: const Text('Coba Lagi'),
+              SizedBox(
+                width: 200, 
+                child: ElevatedButton(
+                  style: AppTheme.primaryButtonStyle,
+                  onPressed: _fetchNearbyEvents,
+                  child: const Text('Coba Lagi'),
+                ),
               ),
             ],
           ),

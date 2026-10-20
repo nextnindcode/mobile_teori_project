@@ -1,51 +1,54 @@
 import 'dart:async';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 class SensorService {
   StreamSubscription? _accelSubscription;
   StreamSubscription? _gyroSubscription;
 
-  // Fungsi untuk mendengarkan gerakan HP
   void listenSensors({
     required Function(int direction) onMove,
     required Function() onConfirm,
   }) {
-    bool isLocked = false; // Mencegah gerakan terlalu sensitif
+    bool isLocked = false;
+    bool isConfirmLocked = false;
 
-    // 1. Accelerometer (Miring kiri/kanan)
+    // 1. Accelerometer (Miring ke kiri/kanan untuk geser)
     _accelSubscription = accelerometerEventStream().listen((AccelerometerEvent event) {
       if (isLocked) return;
 
-      // Jika HP dimiringkan ke kanan (x > 3) -> Pindah ke kanan (+1)
-      if (event.x > 3.0) {
-        onMove(1);
+      // Jika HP dimiringkan ke kanan (x > 4)
+      if (event.x > 4.0) {
+        onMove(1); // Geser ke kanan
         _lockTemporarily(() => isLocked = false);
         isLocked = true;
       }
-      // Jika HP dimiringkan ke kiri (x < -3) -> Pindah ke kiri (-1)
-      else if (event.x < -3.0) {
-        onMove(-1);
+      // Jika HP dimiringkan ke kiri (x < -4)
+      else if (event.x < -4.0) {
+        onMove(-1); // Geser ke kiri
         _lockTemporarily(() => isLocked = false);
         isLocked = true;
       }
     });
 
-    // 2. Gyroscope (Putar HP untuk konfirmasi)
+    // 2. Gyroscope (Anggukkan hp ke depan untuk konfirmasi jawaban)
     _gyroSubscription = gyroscopeEventStream().listen((GyroscopeEvent event) {
-      // Jika HP diputar cepat (z > 3.5 rad/s)
-      if (event.z.abs() > 3.5) {
+      // event.x mendeteksi putaran depan/belakang (seperti mengangguk).
+      // Debounce mencegah satu gerakan memicu jawaban berkali-kali.
+      if (event.x.abs() > 4.0 && !isConfirmLocked) {
+        isConfirmLocked = true;
         onConfirm();
+        Future.delayed(const Duration(milliseconds: 800), () {
+          isConfirmLocked = false;
+        });
       }
     });
   }
 
-  // Jeda 600ms sebelum bisa miring lagi
   void _lockTemporarily(VoidCallback unlock) {
-    Future.delayed(const Duration(milliseconds: 600), unlock);
+    Future.delayed(const Duration(milliseconds: 800), unlock);
   }
 
-  // Selalu matikan sensor saat keluar halaman
   void stopSensors() {
     _accelSubscription?.cancel();
     _gyroSubscription?.cancel();

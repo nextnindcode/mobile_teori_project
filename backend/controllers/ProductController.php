@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/../lib/response.php';
+require_once __DIR__ . '/../lib/Response.php';
 require_once __DIR__ . '/../lib/auth_guard.php';
-require_once __DIR__ . '/../lib/database.php';
+require_once __DIR__ . '/../lib/Database.php';
 
 class ProductController
 {

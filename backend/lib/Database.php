@@ -1,45 +1,66 @@
 <?php
+/**
+ * Koneksi MySQL untuk EclipseVerse.
+ * Prioritas konfigurasi: backend/config/db.php (tidak di-commit), lalu environment.
+ * Jangan menyimpan kredensial hosting di source code publik.
+ */
 class Database
 {
-    private $host = "localhost";
-    private $db_name = "eclipseverse";
-    private $username = "root";
-    private $password = "";
     public $conn;
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
+    private $port;
 
     public function __construct()
     {
-        // Kredensial hosting ada di backend/config/db.php (TIDAK masuk repo, lihat .gitignore).
-        $file = __DIR__ . '/../config/db.php';
-        if (is_file($file)) {
-            $c = require $file;
-            $this->host     = $c['host']     ?? $this->host;
-            $this->db_name  = $c['db_name']  ?? $this->db_name;
-            $this->username = $c['username'] ?? $this->username;
-            $this->password = $c['password'] ?? $this->password;
+        $configFile = __DIR__ . '/../config/db.php';
+        $config = is_file($configFile) ? require $configFile : [];
+        if (!is_array($config)) {
+            $config = [];
         }
+
+        $this->host = (string)($config['host'] ?? getenv('DB_HOST') ?: '');
+        $this->db_name = (string)($config['db_name'] ?? getenv('DB_NAME') ?: '');
+        $this->username = (string)($config['username'] ?? getenv('DB_USER') ?: '');
+        $this->password = (string)($config['password'] ?? getenv('DB_PASS') ?: '');
+        $this->port = (int)($config['port'] ?? getenv('DB_PORT') ?: 3306);
     }
 
     public function getConnection()
     {
-        $this->conn = null;
-        try {
-            $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8mb4",
-                $this->username,
-                $this->password
-            );
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $e) {
+        if ($this->host === '' || $this->db_name === '' || $this->username === '') {
             http_response_code(500);
-            header('Content-Type: application/json');
+            header('Content-Type: application/json; charset=utf-8');
             echo json_encode([
-                "success" => false,
-                "message" => "Koneksi database gagal",
-                "code" => "ERROR"
+                'success' => false,
+                'message' => 'Konfigurasi database belum lengkap. Periksa backend/config/db.php.',
+                'code' => 'DATABASE_CONFIG_ERROR'
             ]);
             exit;
         }
-        return $this->conn;
+
+        try {
+            $dsn = 'mysql:host=' . $this->host . ';port=' . $this->port .
+                ';dbname=' . $this->db_name . ';charset=utf8mb4';
+            $this->conn = new PDO($dsn, $this->username, $this->password, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]);
+            return $this->conn;
+        } catch (PDOException $e) {
+            // Jangan kirim detail exception/kredensial database ke klien.
+            error_log('[EclipseVerse] Database connection failed: ' . $e->getMessage());
+            http_response_code(503);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Database tidak dapat dihubungi. Periksa konfigurasi hosting dan status MySQL.',
+                'code' => 'DATABASE_UNAVAILABLE'
+            ]);
+            exit;
+        }
     }
 }

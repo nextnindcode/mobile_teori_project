@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -8,15 +9,13 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
-  /// Inisialisasi notifikasi lokal dan minta izin jika di Android 13+.
-  /// Kontrak serah terima H12.
+  // Inisialisasi notifikasi lokal dan minta izin.
   static Future<bool> init() async {
     if (_initialized) return true;
 
     tzdata.initializeTimeZones();
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidSettings);
 
     final ok = await _notificationsPlugin.initialize(settings: initSettings);
@@ -31,18 +30,18 @@ class NotificationService {
           await androidImplementation.requestNotificationsPermission();
     }
 
-    _initialized = ok ?? true;
-    return permissionGranted ?? true;
+    _initialized = (ok ?? false) && (permissionGranted ?? false);
+    return _initialized;
   }
 
-  /// Menampilkan notifikasi uji coba 10 detik kemudian (Brief 6.4 & 11.3).
+  // Menampilkan notifikasi uji coba 10 detik kemudian.
   static Future<void> showTest() async {
-    await init();
+    final granted = await init();
+    if (!granted) return;
     final isEnabled = (await LocalDb.getPref('notification_enabled')) == '1';
     if (!isEnabled) return;
 
-    final scheduledTime =
-        tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
+    final scheduledTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
 
     const androidDetails = AndroidNotificationDetails(
       'eclipse_test_channel',
@@ -55,15 +54,14 @@ class NotificationService {
     await _notificationsPlugin.zonedSchedule(
       id: 9999,
       title: 'Uji Notifikasi EclipseVerse',
-      body:
-          'Notifikasi berhasil muncul setelah 10 detik! Fandom Eclipse siap menyapamu.',
+      body: 'Notifikasi berhasil muncul setelah 10 detik! Fandom Eclipse siap menyapamu.',
       scheduledDate: scheduledTime,
       notificationDetails: const NotificationDetails(android: androidDetails),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
     );
   }
 
-  /// Menampilkan notifikasi order berhasil dibuat (Brief 6.3 & H12).
+  // Menampilkan notifikasi order berhasil dibuat.
   static Future<void> showOrderConfirmed(dynamic orderId) async {
     await init();
     const androidDetails = AndroidNotificationDetails(
@@ -82,8 +80,7 @@ class NotificationService {
     );
   }
 
-  /// Jadwalkan pengingat event 24 jam dan 1 jam sebelum event (Brief 6.2 & H13).
-  /// ID: event.id * 10 + 1 (24 jam), event.id * 10 + 2 (1 jam).
+  // Jadwalkan pengingat event (24 jam dan 1 jam sebelum event).
   static Future<bool> scheduleEventReminder(dynamic event) async {
     final granted = await init();
     if (!granted) return false;
@@ -97,8 +94,7 @@ class NotificationService {
       return false;
     }
 
-    final id =
-        (event.id is int) ? event.id as int : int.parse(event.id.toString());
+    final id = (event.id is int) ? event.id as int : int.parse(event.id.toString());
     final title = event.title.toString();
 
     const androidDetails = AndroidNotificationDetails(
@@ -111,39 +107,29 @@ class NotificationService {
 
     final durationUntilEvent = eventDate.difference(now);
 
-    // 24 jam sebelum event (hanya jika waktu event masih > 24 jam lagi)
     if (durationUntilEvent.inHours >= 24) {
-      final scheduled24h = tz.TZDateTime.from(
-        eventDate.subtract(const Duration(hours: 24)),
-        tz.local,
-      );
+      final scheduled24h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 24)), tz.local);
       if (scheduled24h.isAfter(tz.TZDateTime.now(tz.local))) {
         await _notificationsPlugin.zonedSchedule(
           id: id * 10 + 1,
           title: 'Pengingat Event: Besok!',
           body: '$title akan berlangsung dalam 24 jam.',
           scheduledDate: scheduled24h,
-          notificationDetails:
-              const NotificationDetails(android: androidDetails),
+          notificationDetails: const NotificationDetails(android: androidDetails),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
       }
     }
 
-    // 1 jam sebelum event (jika waktu event masih > 1 jam lagi)
     if (durationUntilEvent.inHours >= 1) {
-      final scheduled1h = tz.TZDateTime.from(
-        eventDate.subtract(const Duration(hours: 1)),
-        tz.local,
-      );
+      final scheduled1h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 1)), tz.local);
       if (scheduled1h.isAfter(tz.TZDateTime.now(tz.local))) {
         await _notificationsPlugin.zonedSchedule(
           id: id * 10 + 2,
           title: 'Pengingat Event: Segera Dimulai!',
           body: '$title akan dimulai dalam 1 jam.',
           scheduledDate: scheduled1h,
-          notificationDetails:
-              const NotificationDetails(android: androidDetails),
+          notificationDetails: const NotificationDetails(android: androidDetails),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
       }
@@ -152,11 +138,10 @@ class NotificationService {
     return true;
   }
 
-  /// Batalkan notifikasi reminder event (Brief 6.2 & H13).
+  // Batalkan notifikasi reminder event
   static Future<void> cancelEventReminder(int id) async {
     await init();
     await _notificationsPlugin.cancel(id: id * 10 + 1);
     await _notificationsPlugin.cancel(id: id * 10 + 2);
   }
 }
-

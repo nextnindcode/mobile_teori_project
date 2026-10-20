@@ -76,75 +76,78 @@ class _AiPageState extends State<AiPage> {
           // Area Chat
           Expanded(
             child: _messages.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = _messages[index];
-                      return _buildChatBubble(msg);
-                    },
-                  ),
+              ? _buildEmptyState()
+              : ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final msg = _messages[index];
+                    return _buildChatBubble(msg);
+                  },
+                ),
           ),
           
           // Area Input 
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppTheme.background,
-              border: Border(top: BorderSide(color: AppTheme.greyLight, width: 1)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.white,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _textController,
-                      maxLength: 300, // Persyaratan 1-300 karakter 
-                      textInputAction: TextInputAction.send,
-                      decoration: InputDecoration(
-                        hintText: 'Tanya seputar Eclipse...',
-                        counterText: '', 
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        hintStyle: AppTheme.textTheme.bodyMedium?.copyWith(color: AppTheme.grey),
+          SafeArea(
+            top: false, 
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppTheme.background,
+                border: Border(top: BorderSide(color: AppTheme.greyLight, width: 1)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      onSubmitted: (_) => _isLoading ? null : _sendMessage(),
+                      child: TextField(
+                        controller: _textController,
+                        maxLength: 300, // Syarat Brief Maksimal 300 Karakter 
+                        textInputAction: TextInputAction.send,
+                        decoration: InputDecoration(
+                          hintText: 'Tanya seputar Eclipse...',
+                          counterText: '', // Sembunyikan hitungan
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          hintStyle: AppTheme.textTheme.bodyMedium?.copyWith(color: AppTheme.grey),
+                        ),
+                        onSubmitted: (_) => _isLoading ? null : _sendMessage(),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                
-                // Tombol Kirim Bulat
-                Container(
-                  decoration: const BoxDecoration(
-                    color: AppTheme.primaryDark,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: _isLoading
+                  const SizedBox(width: 8),
+
+                  // Tombol Kirim Bulat
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: AppTheme.primaryDark,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: _isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
                         : const Icon(Icons.send_rounded, color: AppTheme.white),
-                    onPressed: _isLoading ? null : _sendMessage,
+                      onPressed: _isLoading ? null : _sendMessage,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -186,7 +189,7 @@ class _AiPageState extends State<AiPage> {
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar AI 
+          // Avatar AI (Hanya muncul di pesan AI)
           if (!isUser) ...[
             CircleAvatar(
               backgroundColor: AppTheme.primaryLight.withValues(alpha: 0.3),
@@ -202,8 +205,8 @@ class _AiPageState extends State<AiPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: isUser 
-                    ? AppTheme.primaryDark 
-                    : (isError ? Colors.red.shade50 : AppTheme.white),
+                  ? AppTheme.primaryDark 
+                  : (isError ? Colors.red.shade50 : AppTheme.white),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),
@@ -250,4 +253,4 @@ class _AiPageState extends State<AiPage> {
       ),
     );
   }
-}
+} 

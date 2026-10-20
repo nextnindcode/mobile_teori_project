@@ -6,11 +6,10 @@ import '../profile/profile_page.dart';
 import 'home_page.dart';
 
 // Kerangka utama dari aplikasi EclipseVerse.
-// Berisi 5 tab: Home, Fandom Hub, Saran & Kesan, Profil, serta Logout.
-// Tab Logout bukan halaman, tetapi untuk memicu dialog + callback onLogout.
+// Berisi 4 tab. Logout tersedia di halaman Profil, bukan tab navigasi.
 class MainShell extends StatefulWidget {
   /// Callback untuk Logout.
-  final VoidCallback? onLogout;
+  final Future<void> Function()? onLogout;
 
   const MainShell({super.key, this.onLogout});
 
@@ -21,45 +20,16 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  // Tab 0 = Home (C), 1 = Fandom (B), 2 = Saran & Kesan (B), 3 = Profil (B).
-  static const List<Widget> _pages = [
-    HomePage(),
-    FandomPage(),
-    FeedbackPage(),
-    ProfilePage(),
-  ];
+  // Tab 0 = Home, 1 = Fandom, 2 = Saran & Kesan, 3 = Profil.
+  List<Widget> get _pages => [
+        const HomePage(),
+        const FandomPage(),
+        const FeedbackPage(),
+        ProfilePage(onLogout: widget.onLogout),
+      ];
 
   void _onTabTapped(int index) {
-    // Tab index 4 = Logout untuk memunculkan dialog, bukan berpindah halaman.
-    if (index == 4) {
-      _showLogoutDialog();
-      return;
-    }
     setState(() => _currentIndex = index);
-  }
-
-  Future<void> _showLogoutDialog() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Apakah Anda Yakin Ingin Keluar?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Ya'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      // Panggil callback.
-      widget.onLogout?.call();
-    }
   }
 
   @override
@@ -75,7 +45,6 @@ class _MainShellState extends State<MainShell> {
           BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Fandom'),
           BottomNavigationBarItem(icon: Icon(Icons.feedback), label: 'Saran'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-          BottomNavigationBarItem(icon: Icon(Icons.logout), label: 'Logout'),
         ],
       ),
     );
