@@ -13,5 +13,5 @@ return [
     'port' => 3306,
     'db_name' => 'if0_431944419_eclipse',
     'username' => 'if0_431944419',
-    'password' => 'GANTI_DENGAN_PASSWORD_MYSQL',
+    'password' => 'mobilebagus101',
 ];
