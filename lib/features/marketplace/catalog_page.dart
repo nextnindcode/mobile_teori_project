@@ -7,7 +7,9 @@ import '../../theme/app_theme.dart';
 import 'product_detail_sheet.dart';
 
 class CatalogPage extends StatefulWidget {
-  const CatalogPage({super.key});
+  final bool previewMode;
+
+  const CatalogPage({super.key, this.previewMode = false});
 
   @override
   State<CatalogPage> createState() => _CatalogPageState();
@@ -54,6 +56,26 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   Future<void> _loadProducts() async {
+    if (widget.previewMode) {
+      setState(() {
+        _products = [
+          Product(id: 101, name: 'Eclipse: First Light Album', category: 'album',
+              description: 'Album debut EclipseVerse dengan photobook dan collectible card.',
+              price: 189000, stock: 25),
+          Product(id: 102, name: 'Lunar Wave Hoodie', category: 'apparel',
+              description: 'Hoodie nyaman dengan desain Lunar Wave.',
+              price: 325000, stock: 12),
+          Product(id: 103, name: 'Moonlight Photocard Set', category: 'collectible',
+              description: 'Satu set photocard edisi Moonlight.',
+              price: 79000, stock: 50),
+          Product(id: 104, name: 'EclipseVerse Light Keyring', category: 'accessory',
+              description: 'Aksesori keyring dengan logo EclipseVerse.',
+              price: 45000, stock: 40),
+        ];
+        _isLoading = false;
+      });
+      return;
+    }
     try {
       final response = await ApiService.get('/products');
       if (response['success'] != true) {
