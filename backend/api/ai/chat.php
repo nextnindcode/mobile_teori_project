@@ -36,7 +36,7 @@ if (empty($message) || mb_strlen($message) > 300) {
 
 // Ambil Konteks dari Database
 try {
-    $database = Database::getInstance();
+    $database = new Database();
     $pdo = $database->getConnection();
 
     $stmt = $pdo->query("SELECT stage_name, position, fun_fact FROM members");
