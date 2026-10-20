@@ -17,10 +17,8 @@ class ProductDetailSheet extends StatefulWidget {
 class _ProductDetailSheetState extends State<ProductDetailSheet> {
   String _selectedCurrency = 'IDR';
   double _convertedPrice = 0;
-  bool _isConverting = false;
 
-  // Default rate kalau API gagal (biar aplikasi ga crash)
-  Map<String, double> _rates = {
+  final Map<String, double> _rates = {
     'IDR': 1.0,
     'USD': 0.000064,
     'KRW': 0.088,
@@ -155,7 +153,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                 Text(
                   _selectedCurrency == 'IDR'
                       ? 'Rp ${_convertedPrice.toStringAsFixed(0)}'
-                      : '${_selectedCurrency} ${_convertedPrice.toStringAsFixed(2)}',
+                      : '$_selectedCurrency ${_convertedPrice.toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

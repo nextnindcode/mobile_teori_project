@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/local_db.dart';
+import '../../core/routes.dart';
 import '../../core/api_service.dart';
 import '../../core/local_db.dart';
 
@@ -24,6 +26,9 @@ class _CartPageState extends State<CartPage> {
   Future<void> _loadCart() async {
     final items = await LocalDb.getCart();
     int total = 0;
+    for (var item in items) {
+      total += (item['price'] as int) * (item['quantity'] as int);
+    }
     for (final item in items) {
       total += (item['price'] as int) * (item['quantity'] as int);
     }
@@ -35,6 +40,15 @@ class _CartPageState extends State<CartPage> {
   }
 
   Future<void> _checkout() async {
+    await LocalDb.clearCart();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Pesanan berhasil dibuat!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    Navigator.pushReplacementNamed(context, Routes.orders);
     if (_cartItems.isEmpty || _isCheckingOut) return;
     setState(() => _isCheckingOut = true);
 
@@ -127,6 +141,11 @@ class _CartPageState extends State<CartPage> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
+                          onPressed: _checkout,
+                          child: const Text(
+                            'Bayar Sekarang',
+                            style: TextStyle(fontSize: 16),
+                          ),
                           onPressed: _isCheckingOut ? null : _checkout,
                           child: _isCheckingOut
                               ? const SizedBox(
