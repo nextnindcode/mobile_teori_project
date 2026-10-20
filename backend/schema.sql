@@ -1,5 +1,5 @@
 -- =========================================================
--- EclipseVerse - SCHEMA (12 tabel). Pemilik: A (perubahan lewat PR + catat di CHANGELOG_DB.md)
+-- EclipseVerse - SCHEMA (14 tabel). Pemilik: A (perubahan lewat PR + catat di CHANGELOG_DB.md)
 -- Tanpa CREATE DATABASE / USE: pilih database dulu di phpMyAdmin, lalu Import.
 -- Aman diimpor ulang (DROP TABLE IF EXISTS). Kompatibel MySQL 5.7+/MariaDB 10.x.
 -- =========================================================
@@ -7,6 +7,8 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `user_cards`;
+DROP TABLE IF EXISTS `user_points`;
 DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `game_scores`;
 DROP TABLE IF EXISTS `feedback`;
@@ -20,13 +22,14 @@ DROP TABLE IF EXISTS `products`;
 DROP TABLE IF EXISTS `user_tokens`;
 DROP TABLE IF EXISTS `users`;
 
--- ===================== SCHEMA (12 tabel) =====================
+-- ===================== SCHEMA =====================
 
 CREATE TABLE `users` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(100) NOT NULL,
   `email` VARCHAR(150) NOT NULL,
   `password_hash` VARCHAR(255) NOT NULL,
+  `role` ENUM('admin', 'user') DEFAULT 'user',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`)
@@ -49,6 +52,7 @@ CREATE TABLE `products` (
   `name` VARCHAR(120) NOT NULL,
   `category` ENUM('album','apparel','accessory','collectible') NOT NULL,
   `description` TEXT,
+  `image_url` VARCHAR(255) DEFAULT NULL,
   `price` INT NOT NULL,
   `stock` INT NOT NULL DEFAULT 0,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -144,7 +148,7 @@ CREATE TABLE `game_scores` (
   `played_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_scores_user` (`user_id`),
-  CONSTRAINT `fk_scores_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+  CONSTRAINT `fk_scores_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `notifications` (
@@ -157,24 +161,23 @@ CREATE TABLE `notifications` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_user_created` (`user_id`,`created_at`),
-  CONSTRAINT `fk_notif_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+  CONSTRAINT `fk_notif_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `user_points` (
-  `user_id` int UNSIGNED NOT NULL,
-  `total_points` int NOT NULL DEFAULT 0,
+  `user_id` INT UNSIGNED NOT NULL,
+  `total_points` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`user_id`),
   CONSTRAINT `user_points_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `user_cards` (
-  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
-  `user_id` int UNSIGNED NOT NULL,
-  `card_id` int NOT NULL,
-  `redeemed_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` INT UNSIGNED NOT NULL,
+  `card_id` INT NOT NULL,
+  `redeemed_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   CONSTRAINT `user_cards_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;
-
