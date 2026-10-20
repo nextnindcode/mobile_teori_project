@@ -1,5 +1,5 @@
 -- =========================================================
--- EclipseVerse - SCHEMA (12 tabel). Pemilik: A (perubahan lewat PR + catat di CHANGELOG_DB.md)
+-- EclipseVerse - SCHEMA (14 tabel). Pemilik: A (perubahan lewat PR + catat di CHANGELOG_DB.md)
 -- Tanpa CREATE DATABASE / USE: pilih database dulu di phpMyAdmin, lalu Import.
 -- Aman diimpor ulang (DROP TABLE IF EXISTS). Kompatibel MySQL 5.7+/MariaDB 10.x.
 -- =========================================================
@@ -7,6 +7,8 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `user_cards`;
+DROP TABLE IF EXISTS `user_points`;
 DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `game_scores`;
 DROP TABLE IF EXISTS `feedback`;
@@ -20,13 +22,14 @@ DROP TABLE IF EXISTS `products`;
 DROP TABLE IF EXISTS `user_tokens`;
 DROP TABLE IF EXISTS `users`;
 
--- ===================== SCHEMA (12 tabel) =====================
+-- ===================== SCHEMA =====================
 
 CREATE TABLE `users` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(100) NOT NULL,
   `email` VARCHAR(150) NOT NULL,
   `password_hash` VARCHAR(255) NOT NULL,
+  `role` ENUM('admin', 'user') DEFAULT 'user', -- 👈 TAMBAHAN ROLE
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`)
@@ -49,6 +52,7 @@ CREATE TABLE `products` (
   `name` VARCHAR(120) NOT NULL,
   `category` ENUM('album','apparel','accessory','collectible') NOT NULL,
   `description` TEXT,
+  `image_url` VARCHAR(255) DEFAULT NULL, -- 👈 TAMBAHAN GAMBAR
   `price` INT NOT NULL,
   `stock` INT NOT NULL DEFAULT 0,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -177,4 +181,3 @@ CREATE TABLE `user_cards` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;
-
