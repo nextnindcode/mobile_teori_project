@@ -1,6 +1,6 @@
 -- =========================================================
 -- EclipseVerse - SEED. Pemilik: B. Impor SETELAH schema.sql.
--- Isi: 3 user uji + 1 token uji + 12 produk (dengan gambar) + 13 member + 6 event + 4 kurs
+-- Isi: 3 user uji + 12 produk (dengan gambar) + 13 member + 6 event + 4 kurs
 -- =========================================================
 
 -- ===================== SEED =====================
@@ -12,12 +12,9 @@ INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `created_at
 (2, 'uji1', 'uji1@eclipseverse.test', '$2y$10$eSNHZMR.heQwJHCrPoJtfuyDWkNtbi.TFmtwx08.rvwMWyFyPXgbu', 'user', NOW()),
 (3, 'user', 'user@gmail.com', '$2y$10$3hPr7o0rq.KriI0NGabkruzOE.r6WxcZDV9LOGzSvDBH3rd2sOCC.', 'user', NOW());
 
--- 2. USER TOKENS (Token Uji)
--- Token asli: DEV-TOKEN-ECLIPSE (SHA-256), berlaku sampai 2099
-INSERT INTO `user_tokens` (`id`, `user_id`, `token_hash`, `expires_at`, `created_at`) VALUES
-(1, 1, '74e39b4cb39297cc864c975cea22e8f66609e27a427a2a4b0b0d8c3ddbb7c7e9', '2099-12-31 23:59:59', NOW());
+-- Token sesi tidak di-seed. Semua sesi harus dibuat lewat endpoint login.
 
--- 3. 12 PRODUK (Dengan Gambar)
+-- 2. 12 PRODUK (Dengan Gambar)
 INSERT INTO `products` (`id`, `name`, `category`, `description`, `image_url`, `price`, `stock`, `created_at`) VALUES
 (1, 'Album Penumbra (Standard)', 'album', 'Album studio pertama Eclipse dengan 10 lagu original.', 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=500&auto=format&fit=crop', 185000, 50, NOW()),
 (2, 'Album Penumbra (Deluxe)', 'album', 'Album edisi deluxe dengan photobook 60 halaman dan poster eksklusif.', 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=500&auto=format&fit=crop', 275000, 30, NOW()),

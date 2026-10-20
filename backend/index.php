@@ -63,6 +63,8 @@ switch (true) {
         require_once __DIR__ . '/controllers/EventController.php'; (new EventController())->list(); break;
     case ($path === '/events/detail' || preg_match('#^/events/(\d+)$#', $path, $matches) === 1) && $method === 'GET':
         require_once __DIR__ . '/controllers/EventController.php'; (new EventController())->detail(isset($matches[1]) ? (int) $matches[1] : null); break;
+    case $path === '/orders' && $method === 'GET':
+        require_once __DIR__ . '/controllers/OrderController.php'; (new OrderController())->list(); break;
     case $path === '/orders' && $method === 'POST':
         require_once __DIR__ . '/controllers/OrderController.php'; (new OrderController())->create(); break;
     case $path === '/feedback' && $method === 'POST':

@@ -10,39 +10,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../../lib/Database.php';
-require_once __DIR__ . '/../../lib/Response.php'; 
+require_once __DIR__ . '/../../lib/Response.php';
 require_once __DIR__ . '/../../lib/auth_guard.php';
+require_once __DIR__ . '/../../lib/blockchain.php';
 
-// Cek token
-$userId = require_auth(); 
-
+$userId = require_auth();
 $input = json_decode(file_get_contents('php://input'), true);
-$score = isset($input['score']) ? (int)$input['score'] : -1;
-$correctCount = isset($input['correct_count']) ? (int)$input['correct_count'] : -1;
-
-if ($score < 0 || $score > 100) {
-    Response::error("Skor tidak valid", "VALIDATION_ERROR", 422);
+if (!is_array($input)) {
+    Response::error('Body JSON tidak valid.', 'VALIDATION_ERROR', 422);
 }
 
-if ($correctCount < 0 || $correctCount > 10) {
-    Response::error("Jumlah benar tidak valid", "VALIDATION_ERROR", 422);
+$score = filter_var($input['score'] ?? null, FILTER_VALIDATE_INT);
+$correctCount = filter_var($input['correct_count'] ?? null, FILTER_VALIDATE_INT);
+
+if ($score === false || $score < 0 || $score > 100) {
+    Response::error('Skor harus berada pada rentang 0–100.', 'VALIDATION_ERROR', 422);
+}
+if ($correctCount === false || $correctCount < 0 || $correctCount > 10) {
+    Response::error('Jumlah jawaban benar harus berada pada rentang 0–10.', 'VALIDATION_ERROR', 422);
+}
+if ($score !== $correctCount * 10) {
+    Response::error('Skor tidak sesuai dengan jumlah jawaban benar.', 'VALIDATION_ERROR', 422);
 }
 
 try {
     $db = (new Database())->getConnection();
-    
-    $stmt = $db->prepare("INSERT INTO game_scores (user_id, score, correct_count) VALUES (?, ?, ?)");
-    $stmt->execute([$userId, $score, $correctCount]);
+    $db->beginTransaction();
 
-    $bestStmt = $db->prepare("SELECT MAX(score) as best FROM game_scores WHERE user_id = ?");
+    $stmt = $db->prepare(
+        'INSERT INTO game_scores (user_id, score, correct_count) VALUES (?, ?, ?)'
+    );
+    $stmt->execute([$userId, $score, $correctCount]);
+    $scoreId = (int) $db->lastInsertId();
+
+    // Poin diberikan hanya melalui hasil permainan yang dicatat server,
+    // bukan melalui endpoint terpisah yang menerima jumlah poin bebas.
+    $pointsStmt = $db->prepare(
+        'INSERT INTO user_points (user_id, total_points) VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE total_points = total_points + ?'
+    );
+    $pointsStmt->execute([$userId, $score, $score]);
+
+    append_blockchain_entry($db, $userId, 'game_score', [
+        'score' => $score,
+        'correct_count' => $correctCount,
+        'points_earned' => $score,
+    ]);
+
+    $bestStmt = $db->prepare('SELECT MAX(score) FROM game_scores WHERE user_id = ?');
     $bestStmt->execute([$userId]);
-    $bestScore = (int)$bestStmt->fetchColumn();
+    $bestScore = (int) $bestStmt->fetchColumn();
+
+    $db->commit();
 
     Response::success([
-        'id' => $db->lastInsertId(),
-        'best_score' => $bestScore
-    ], "Skor berhasil disimpan");
-
-} catch (Exception $e) {
-    Response::error("Gagal menyimpan skor.", "DATABASE_ERROR", 500);
+        'id' => $scoreId,
+        'best_score' => $bestScore,
+        'points_earned' => $score,
+    ], 'Skor dan poin berhasil disimpan');
+} catch (Throwable $e) {
+    if (isset($db) && $db->inTransaction()) {
+        $db->rollBack();
+    }
+    Response::error('Gagal menyimpan skor permainan.', 'DATABASE_ERROR', 500);
 }

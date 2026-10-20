@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/secure_store.dart';
+import '../../core/api_service.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../core/local_db.dart';
@@ -29,6 +30,27 @@ class _SplashPageState extends State<SplashPage> {
     if (!mounted) return;
 
     if (token != null) {
+      // Validasi sesi di server setiap aplikasi dibuka. Jika server offline,
+      // token lokal tetap dipakai agar pengguna bisa membuka cache yang tersedia.
+      try {
+        final session = await ApiService.get('/auth/me');
+        if (session['success'] != true) {
+          await SecureStore.deleteToken();
+          if (mounted) Navigator.pushReplacementNamed(context, Routes.login);
+          return;
+        }
+      } on ApiException catch (e) {
+        if (e.code == 'TOKEN_EXPIRED' || e.code == 'INVALID_SESSION') {
+          await SecureStore.deleteToken();
+          if (mounted) Navigator.pushReplacementNamed(context, Routes.login);
+          return;
+        }
+        // Error server selain token kadaluarsa: lanjut dengan sesi/cache lokal.
+      } catch (_) {
+        // Koneksi offline/timeout: lanjut dengan sesi/cache lokal.
+      }
+
+      if (!mounted) return;
       final biometricEnabled = await LocalDb.getPref('biometric_enabled');
 
       if (biometricEnabled == '1' || biometricEnabled == 'true') {
