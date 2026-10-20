@@ -41,14 +41,15 @@ try {
         'INSERT INTO game_scores (user_id, score, correct_count) VALUES (?, ?, ?)'
     );
     $stmt->execute([$userId, $score, $correctCount]);
+    $scoreId = (int) $db->lastInsertId();
 
     // Poin diberikan hanya melalui hasil permainan yang dicatat server,
     // bukan melalui endpoint terpisah yang menerima jumlah poin bebas.
     $pointsStmt = $db->prepare(
         'INSERT INTO user_points (user_id, total_points) VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE total_points = total_points + VALUES(total_points)'
+         ON DUPLICATE KEY UPDATE total_points = total_points + ?'
     );
-    $pointsStmt->execute([$userId, $score]);
+    $pointsStmt->execute([$userId, $score, $score]);
 
     append_blockchain_entry($db, $userId, 'game_score', [
         'score' => $score,
@@ -63,7 +64,7 @@ try {
     $db->commit();
 
     Response::success([
-        'id' => (int) $db->lastInsertId(),
+        'id' => $scoreId,
         'best_score' => $bestScore,
         'points_earned' => $score,
     ], 'Skor dan poin berhasil disimpan');
