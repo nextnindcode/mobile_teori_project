@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
+import '../../core/api_service.dart';
+import '../../core/local_db.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -13,6 +15,7 @@ class CartPage extends StatefulWidget {
 class _CartPageState extends State<CartPage> {
   List<Map<String, dynamic>> _cartItems = [];
   int _totalPrice = 0;
+  bool _isCheckingOut = false;
 
   @override
   void initState() {
@@ -26,6 +29,10 @@ class _CartPageState extends State<CartPage> {
     for (var item in items) {
       total += (item['price'] as int) * (item['quantity'] as int);
     }
+    for (final item in items) {
+      total += (item['price'] as int) * (item['quantity'] as int);
+    }
+    if (!mounted) return;
     setState(() {
       _cartItems = items;
       _totalPrice = total;
@@ -43,6 +50,41 @@ class _CartPageState extends State<CartPage> {
       ),
     );
     Navigator.pushReplacementNamed(context, Routes.orders);
+    if (_cartItems.isEmpty || _isCheckingOut) return;
+    setState(() => _isCheckingOut = true);
+
+    try {
+      final response = await ApiService.post('/orders', {
+        'items': _cartItems
+            .map((item) => {
+                  'product_id': item['product_id'],
+                  'quantity': item['quantity'],
+                })
+            .toList(),
+      });
+
+      if (response['success'] != true) {
+        throw Exception(response['message'] ?? 'Checkout gagal.');
+      }
+
+      await LocalDb.clearCart();
+      if (!mounted) return;
+      await _loadCart();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Checkout berhasil! Pesanan #${response['data']?['order_id'] ?? '-'} tersimpan.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Checkout gagal: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isCheckingOut = false);
+    }
   }
 
   @override
@@ -105,6 +147,17 @@ class _CartPageState extends State<CartPage> {
                             'Bayar Sekarang',
                             style: TextStyle(fontSize: 16),
                           ),
+                          onPressed: _isCheckingOut ? null : _checkout,
+                          child: _isCheckingOut
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text(
+                                  'Bayar Sekarang',
+                                  style: TextStyle(fontSize: 16),
+                                ),
                         ),
                       ),
                     ],
