@@ -11,7 +11,7 @@
 return [
     'host' => 'sql200.infinityfree.com',
     'port' => 3306,
-    'db_name' => 'if0_431944419_eclipse',
-    'username' => 'if0_431944419',
+    'db_name' => 'if0_43194419_eclipse',
+    'username' => 'if0_43194419',
     'password' => 'mobilebagus101',
 ];
