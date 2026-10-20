@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS `feedback`;
 DROP TABLE IF EXISTS `currency_rates`;
 DROP TABLE IF EXISTS `events`;
 DROP TABLE IF EXISTS `members`;
+DROP TABLE IF EXISTS `blockchain_transactions`; -- Legacy table from the earlier schema
 DROP TABLE IF EXISTS `blockchain_ledger`;
 DROP TABLE IF EXISTS `order_items`;
 DROP TABLE IF EXISTS `orders`;
