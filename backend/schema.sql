@@ -15,7 +15,7 @@ DROP TABLE IF EXISTS `feedback`;
 DROP TABLE IF EXISTS `currency_rates`;
 DROP TABLE IF EXISTS `events`;
 DROP TABLE IF EXISTS `members`;
-DROP TABLE IF EXISTS `blockchain_transactions`;
+DROP TABLE IF EXISTS `blockchain_ledger`;
 DROP TABLE IF EXISTS `order_items`;
 DROP TABLE IF EXISTS `orders`;
 DROP TABLE IF EXISTS `products`;
@@ -84,16 +84,17 @@ CREATE TABLE `order_items` (
   CONSTRAINT `fk_items_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `blockchain_transactions` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `order_id` INT UNSIGNED NOT NULL,
-  `transaction_data` TEXT NOT NULL,
-  `previous_hash` CHAR(64) NOT NULL,
-  `current_hash` CHAR(64) NOT NULL,
-  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_chain_order` (`order_id`),
-  CONSTRAINT `fk_chain_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`)
+CREATE TABLE \`blockchain_ledger\` (
+  \`id\` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  \`user_id\` INT UNSIGNED NOT NULL,
+  \`action_type\` VARCHAR(50) NOT NULL,
+  \`transaction_data\` TEXT NOT NULL,
+  \`previous_hash\` CHAR(64) NOT NULL,
+  \`current_hash\` CHAR(64) NOT NULL,
+  \`created_at\` DATETIME NOT NULL,
+  PRIMARY KEY (\`id\`),
+  KEY \`idx_ledger_user_created\` (\`user_id\`, \`created_at\`),
+  CONSTRAINT \`fk_ledger_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `members` (
