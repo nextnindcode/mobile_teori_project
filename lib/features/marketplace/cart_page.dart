@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
 import '../../core/api_service.dart';
-import '../../core/local_db.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -71,6 +70,7 @@ class _CartPageState extends State<CartPage> {
       await LocalDb.clearCart();
       if (!mounted) return;
       await _loadCart();
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
