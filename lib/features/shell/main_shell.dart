@@ -5,10 +5,8 @@ import '../feedback/feedback_page.dart';
 import '../profile/profile_page.dart';
 import 'home_page.dart';
 
-// Kerangka utama dari aplikasi EclipseVerse.
-// Berisi 4 tab. Logout tersedia di halaman Profil, bukan tab navigasi.
+// Kerangka utama EclipseVerse dengan tab logout yang meminta konfirmasi.
 class MainShell extends StatefulWidget {
-  /// Callback untuk Logout.
   final Future<void> Function()? onLogout;
 
   const MainShell({super.key, this.onLogout});
@@ -20,7 +18,6 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  // Tab 0 = Home, 1 = Fandom, 2 = Saran & Kesan, 3 = Profil.
   List<Widget> get _pages => [
         const HomePage(),
         const FandomPage(),
@@ -28,7 +25,39 @@ class _MainShellState extends State<MainShell> {
         ProfilePage(onLogout: widget.onLogout),
       ];
 
+  Future<void> _confirmLogout() async {
+    if (widget.onLogout == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.nightlight_round),
+        title: const Text('Keluar dari EclipseVerse?'),
+        content: const Text('Kamu perlu login kembali untuk mengakses akun.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.logout),
+            label: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await widget.onLogout!.call();
+    }
+  }
+
   void _onTabTapped(int index) {
+    // Logout adalah aksi, bukan halaman; indeks aktif tetap pada tab sebelumnya.
+    if (index == 4) {
+      _confirmLogout();
+      return;
+    }
     setState(() => _currentIndex = index);
   }
 
@@ -41,10 +70,11 @@ class _MainShellState extends State<MainShell> {
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Fandom'),
-          BottomNavigationBarItem(icon: Icon(Icons.feedback), label: 'Saran'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Fandom'),
+          BottomNavigationBarItem(icon: Icon(Icons.forum_outlined), activeIcon: Icon(Icons.forum), label: 'Saran'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profil'),
+          BottomNavigationBarItem(icon: Icon(Icons.logout), label: 'Logout'),
         ],
       ),
     );
