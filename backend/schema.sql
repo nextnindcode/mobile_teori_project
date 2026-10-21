@@ -29,7 +29,7 @@ CREATE TABLE `users` (
   `name` VARCHAR(100) NOT NULL,
   `email` VARCHAR(150) NOT NULL,
   `password_hash` VARCHAR(255) NOT NULL,
-  `role` ENUM('admin', 'user') DEFAULT 'user', -- 👈 TAMBAHAN ROLE
+  `role` ENUM('admin', 'user') DEFAULT 'user',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`)
@@ -52,7 +52,7 @@ CREATE TABLE `products` (
   `name` VARCHAR(120) NOT NULL,
   `category` ENUM('album','apparel','accessory','collectible') NOT NULL,
   `description` TEXT,
-  `image_url` VARCHAR(255) DEFAULT NULL, -- 👈 TAMBAHAN GAMBAR
+  `image_url` VARCHAR(255) DEFAULT NULL,
   `price` INT NOT NULL,
   `stock` INT NOT NULL DEFAULT 0,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,

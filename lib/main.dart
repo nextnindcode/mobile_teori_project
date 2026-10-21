@@ -14,7 +14,7 @@ import './features/tools/tools_page.dart';
 import 'features/shell/main_shell.dart';
 import 'features/ai/ai_page.dart';
 import 'features/game/game_page.dart';
-import 'features/marketplace/catalog_page.dart'; 
+import 'features/marketplace/catalog_page.dart';
 import 'features/nearby/nearby_page.dart';
 import 'features/redeem/redeem_page.dart';
 import 'features/notification/notification_page.dart';
@@ -32,9 +32,9 @@ class MyApp extends StatelessWidget {
       title: 'EclipseVerse',
       theme: AppTheme.light(),
       debugShowCheckedModeBanner: false,
-      
+
       // Splash memeriksa sesi tersimpan dan biometrik sebelum membuka shell.
-      home: const SplashPage(),
+      home: const MainShell(),
 
       routes: {
         Routes.login: (_) => const LoginPage(),
