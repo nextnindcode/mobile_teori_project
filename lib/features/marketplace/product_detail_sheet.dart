@@ -17,14 +17,12 @@ class ProductDetailSheet extends StatefulWidget {
 class _ProductDetailSheetState extends State<ProductDetailSheet> {
   String _selectedCurrency = 'IDR';
   double _convertedPrice = 0;
-  bool _isConverting = false;
 
-  // Default rate kalau API gagal (biar aplikasi ga crash)
-  Map<String, double> _rates = {
-    'IDR': 1.0,
-    'USD': 0.000064,
-    'KRW': 0.088,
-    'JPY': 0.0095,
+  final Map<String, double> _rates = {
+    'IDR': 16250.0,
+    'USD': 1.0,
+    'KRW': 1380.0,
+    'JPY': 155.0,
   };
 
   @override
@@ -37,10 +35,11 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   // Ambil kurs dari API
   Future<void> _fetchRates() async {
     try {
-      final res = await ApiService.get('/currency/rates?base=IDR');
+      final res = await ApiService.get('/currency/rates?base=USD');
       if (res['success'] == true && res['data']['rates'] != null) {
         setState(() {
           final apiRates = res['data']['rates'];
+          _rates['IDR'] = (apiRates['IDR'] as num).toDouble();
           _rates['USD'] = (apiRates['USD'] as num).toDouble();
           _rates['KRW'] = (apiRates['KRW'] as num).toDouble();
           _rates['JPY'] = (apiRates['JPY'] as num).toDouble();
@@ -55,7 +54,8 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   void _convert() {
     setState(() {
       _convertedPrice =
-          widget.product.price * (_rates[_selectedCurrency] ?? 1.0);
+          (widget.product.price / (_rates['IDR'] ?? 16250.0)) *
+          (_rates[_selectedCurrency] ?? 1.0);
     });
   }
 
@@ -155,7 +155,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                 Text(
                   _selectedCurrency == 'IDR'
                       ? 'Rp ${_convertedPrice.toStringAsFixed(0)}'
-                      : '${_selectedCurrency} ${_convertedPrice.toStringAsFixed(2)}',
+                      : '$_selectedCurrency ${_convertedPrice.toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

@@ -21,36 +21,9 @@ $db = (new Database())->getConnection();
 $input = json_decode(file_get_contents('php://input'), true);
 $action = $input['action'] ?? '';
 
-// 1. Menambahkan Poin (Dipanggil saat Game Selesai)
-if ($action === 'add_points') {
-    $points = (int)($input['points'] ?? 0);
-    
-    if ($points <= 0) {
-        Response::error("Poin tidak valid", "VALIDATION_ERROR", 422);
-    }
+// Poin hanya dapat diperoleh melalui hasil permainan di /game/score.
 
-    // Perubahan poin dan catatan hash harus berhasil sebagai satu transaksi.
-    try {
-        $db->beginTransaction();
-        $stmt = $db->prepare(
-            "INSERT INTO user_points (user_id, total_points) VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE total_points = total_points + ?"
-        );
-        $stmt->execute([$userId, $points, $points]);
-        append_blockchain_entry($db, $userId, 'points_added', [
-            'points' => $points,
-        ]);
-        $db->commit();
-        Response::success(null, "Poin sebesar $points berhasil ditambahkan");
-    } catch (Throwable $e) {
-        if ($db->inTransaction()) {
-            $db->rollBack();
-        }
-        Response::error("Gagal menambahkan poin", "DATABASE_ERROR", 500);
-    }
-}
-
-// 2. Mengambil Total Poin & Daftar Kartu (Dipanggil saat buka halaman Redeem)
+// 1. Mengambil Total Poin & Daftar Kartu (Dipanggil saat buka halaman Redeem)
 if ($action === 'get_points') {
     $stmt = $db->prepare("SELECT total_points FROM user_points WHERE user_id = ?");
     $stmt->execute([$userId]);
@@ -67,46 +40,71 @@ if ($action === 'get_points') {
     ], "Data poin berhasil diambil");
 }
 
-// 3. Tukar Poin dengan Kartu (Redeem)
+// 2. Tukar Poin dengan Kartu (Redeem)
 if ($action === 'redeem') {
-    $cardId = (int)($input['card_id'] ?? 0);
-    $cost = (int)($input['cost'] ?? 0);
-    
-    if ($cardId <= 0 || $cost <= 0) {
-        Response::error("Data kartu tidak valid", "VALIDATION_ERROR", 422);
+    $cardId = filter_var($input['card_id'] ?? null, FILTER_VALIDATE_INT);
+    $clientCost = filter_var($input['cost'] ?? null, FILTER_VALIDATE_INT);
+    $cardCosts = [
+        1 => 100, 2 => 150, 3 => 200, 4 => 300, 5 => 350,
+        6 => 400, 7 => 500, 8 => 550, 9 => 600, 10 => 700,
+        11 => 850, 12 => 950, 13 => 1000,
+    ];
+
+    if ($cardId === false || !isset($cardCosts[$cardId])) {
+        Response::error('Kartu tidak valid.', 'VALIDATION_ERROR', 422);
     }
 
-    // Cek poin user saat ini
-    $stmt = $db->prepare("SELECT total_points FROM user_points WHERE user_id = ?");
-    $stmt->execute([$userId]);
-    $currentPoints = (int)$stmt->fetchColumn();
-    
-    if ($currentPoints < $cost) {
-        Response::error("Poin tidak cukup", "INSUFFICIENT_POINTS", 400);
+    // Harga resmi ditentukan server, bukan nilai yang dikirim aplikasi.
+    $cost = $cardCosts[$cardId];
+    if ($clientCost !== false && $clientCost !== $cost) {
+        Response::error('Harga kartu tidak sesuai.', 'VALIDATION_ERROR', 422);
     }
-    
-    // Mulai transaksi (jika satu gagal, semua dibatalkan)
-    $db->beginTransaction();
+
     try {
-        // 1. Kurangi poin
-        $stmt1 = $db->prepare("UPDATE user_points SET total_points = total_points - ? WHERE user_id = ?");
-        $stmt1->execute([$cost, $userId]);
-        
-        // 2. Simpan kartu ke koleksi user
-        $stmt2 = $db->prepare("INSERT INTO user_cards (user_id, card_id) VALUES (?, ?)");
-        $stmt2->execute([$userId, $cardId]);
+        $db->beginTransaction();
 
-        // Catat redeem dalam hash chain sebelum transaksi database di-commit.
+        $ownedStmt = $db->prepare(
+            'SELECT id FROM user_cards WHERE user_id = ? AND card_id = ? LIMIT 1'
+        );
+        $ownedStmt->execute([$userId, $cardId]);
+        if ($ownedStmt->fetchColumn()) {
+            $db->rollBack();
+            Response::error('Kartu ini sudah dimiliki.', 'ALREADY_OWNED', 409);
+        }
+
+        $pointsStmt = $db->prepare(
+            'SELECT total_points FROM user_points WHERE user_id = ? FOR UPDATE'
+        );
+        $pointsStmt->execute([$userId]);
+        $currentPoints = (int) ($pointsStmt->fetchColumn() ?: 0);
+
+        if ($currentPoints < $cost) {
+            $db->rollBack();
+            Response::error('Poin tidak cukup.', 'INSUFFICIENT_POINTS', 400);
+        }
+
+        $update = $db->prepare(
+            'UPDATE user_points SET total_points = total_points - ? WHERE user_id = ?'
+        );
+        $update->execute([$cost, $userId]);
+
+        $insert = $db->prepare(
+            'INSERT INTO user_cards (user_id, card_id) VALUES (?, ?)'
+        );
+        $insert->execute([$userId, $cardId]);
+
         append_blockchain_entry($db, $userId, 'card_redeemed', [
             'card_id' => $cardId,
             'cost' => $cost,
         ]);
 
         $db->commit();
-        Response::success(null, "Kartu berhasil ditukar!");
-    } catch (Exception $e) {
-        $db->rollBack();
-        Response::error("Gagal menukar kartu", "SERVER_ERROR", 500);
+        Response::success(['card_id' => $cardId, 'cost' => $cost], 'Kartu berhasil ditukar!');
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        Response::error('Gagal menukar kartu.', 'SERVER_ERROR', 500);
     }
 }
 

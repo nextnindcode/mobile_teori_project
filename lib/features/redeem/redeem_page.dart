@@ -34,7 +34,10 @@ class _RedeemPageState extends State<RedeemPage> {
       setState(() {
         _userPoints = data['points'] ?? 0;
         // Konversi list dari API ke List<int> 
-        _ownedCardIds = List<int>.from(data['owned_cards'] ?? []);
+        _ownedCardIds = (data['owned_cards'] as List? ?? [])
+            .map((value) => int.tryParse(value.toString()) ?? 0)
+            .where((id) => id > 0)
+            .toList();
         _isLoading = false;
       });
     } catch (e) {

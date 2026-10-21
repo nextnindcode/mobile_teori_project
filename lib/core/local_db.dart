@@ -68,12 +68,30 @@ class LocalDb {
     int quantity = 1,
   }) async {
     final db = await database;
+    final existing = await db.query(
+      'cart_local',
+      where: 'product_id = ?',
+      whereArgs: [productId],
+      limit: 1,
+    );
+
+    if (existing.isNotEmpty) {
+      final currentQuantity = (existing.first['quantity'] as num).toInt();
+      await db.update(
+        'cart_local',
+        {'quantity': currentQuantity + quantity},
+        where: 'product_id = ?',
+        whereArgs: [productId],
+      );
+      return;
+    }
+
     await db.insert('cart_local', {
       'product_id': productId,
       'name': name,
       'price': price,
       'quantity': quantity,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    });
   }
 
   static Future<void> updateQuantity(int productId, int quantity) async {
