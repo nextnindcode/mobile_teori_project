@@ -4,7 +4,6 @@ import 'package:eclipseverse/theme/app_theme.dart';
 import '../fandom/shared/state_views.dart';
 import 'feedback_service.dart';
 
-/// Tab 2 di /shell (Saran & Kesan).
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({super.key});
   @override
@@ -16,13 +15,46 @@ class _FeedbackPageState extends State<FeedbackPage> {
   final _suggestion = TextEditingController();
   int _rating = 0;
   bool _sending = false;
-  String? _ratingErr, _impressionErr, _suggestionErr;
+  bool _loadingReviews = true;
+  String? _ratingErr, _impressionErr, _suggestionErr, _reviewsError;
+  List<Map<String, dynamic>> _reviews = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
 
   @override
   void dispose() {
     _impression.dispose();
     _suggestion.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadReviews() async {
+    setState(() {
+      _loadingReviews = true;
+      _reviewsError = null;
+    });
+    try {
+      final reviews = await FeedbackService.fetchReviews();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _reviews = reviews;
+        _loadingReviews = false;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _reviewsError = friendlyError(e);
+        _loadingReviews = false;
+      });
+    }
   }
 
   bool _validate() {
@@ -51,15 +83,102 @@ class _FeedbackPageState extends State<FeedbackPage> {
         impression: _impression.text.trim(),
         suggestion: _suggestion.text.trim(),
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       _impression.clear();
       _suggestion.clear();
       setState(() => _rating = 0);
-      showSnack(context, 'Terima kasih');
+      showSnack(context, 'Terima kasih! Feedback berhasil dikirim.');
+      await _loadReviews();
     } catch (e) {
-      if (mounted) showSnack(context, friendlyError(e));
+      if (mounted) {
+        showSnack(context, friendlyError(e));
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
     }
-    if (mounted) setState(() => _sending = false);
+  }
+
+  Widget _buildReviews() {
+    if (_loadingReviews) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_reviewsError != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_reviewsError!, style: const TextStyle(color: AppTheme.error)),
+          TextButton.icon(
+            onPressed: _loadReviews,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Coba lagi'),
+          ),
+        ],
+      );
+    }
+
+    if (_reviews.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          'Belum ada review. Jadilah yang pertama memberikan saran dan kesan!',
+        ),
+      );
+    }
+
+    return Column(
+      children: _reviews.map((review) {
+        final name = (review['user_name'] ?? 'Pengguna').toString();
+        final rating = int.tryParse(review['rating'].toString()) ?? 0;
+        final impression = (review['impression'] ?? '').toString();
+        final suggestion = (review['suggestion'] ?? '').toString();
+        final createdAt = (review['created_at'] ?? '').toString();
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    Text('⭐ $rating/5'),
+                  ],
+                ),
+                if (createdAt.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      createdAt,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                const SizedBox(height: 10),
+                Text('Kesan', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 4),
+                Text(impression),
+                const SizedBox(height: 10),
+                Text('Saran', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 4),
+                Text(suggestion),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   @override
@@ -126,6 +245,25 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   )
                 : const Text('Kirim'),
           ),
+          const SizedBox(height: 28),
+          const Divider(),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Review yang sudah masuk',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Muat ulang review',
+                onPressed: _loadReviews,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildReviews(),
         ],
       ),
     );

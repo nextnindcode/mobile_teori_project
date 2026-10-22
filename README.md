@@ -69,6 +69,39 @@ flutter run -t lib/main_full.dart
 
 Entry point uji memakai token/profil dummy. Jangan menggunakannya sebagai bukti bahwa login produksi berhasil atau untuk build final.
 
+## Menjalankan backend lokal (disarankan untuk debugging)
+
+Mulai dari XAMPP agar request GET/POST dapat diuji tanpa lapisan anti-bot hosting gratis.
+
+1. Jalankan Apache dan MySQL dari XAMPP.
+2. Buat folder `C:\\xampp\\htdocs\\eclipseverse\\api\\`, lalu salin **isi folder `backend/`** ke dalam folder `api/`. Pastikan ada `C:\\xampp\\htdocs\\eclipseverse\\api\\index.php`.
+3. Di phpMyAdmin, buat database bernama `eclipseverse`, pilih database itu, lalu impor `backend/schema.sql`. Jika membutuhkan data contoh, impor `backend/seed.sql` sesudah schema. Schema berisi `DROP TABLE IF EXISTS`; jangan impor ulang jika data perlu dipertahankan.
+4. Salin `backend/config/db.php.example` menjadi `C:\\xampp\\htdocs\\eclipseverse\\api\\config\\db.php`, lalu isi sesuai MySQL lokal. Contoh standar XAMPP (hanya jika cocok dengan instalasimu):
+
+   ```php
+   <?php
+   return [
+       'host' => '127.0.0.1',
+       'port' => 3306,
+       'db_name' => 'eclipseverse',
+       'username' => 'root',
+       'password' => '',
+   ];
+   ```
+
+5. Buka `http://localhost/eclipseverse/api/health`. Hasil yang diharapkan adalah JSON dengan `success: true` dan `data.database: "connected"`.
+6. Jalankan Flutter di Android Emulator dengan base URL lokal bawaan:
+
+   ```bash
+   flutter pub get
+   flutter run
+   ```
+
+   `10.0.2.2` adalah alamat khusus emulator untuk mengakses localhost laptop. Untuk HP fisik, gunakan IP LAN laptop dan jalankan dengan `--dart-define=API_BASE_URL=http://IP-LAPTOP/eclipseverse/api`; HP dan laptop harus satu Wi-Fi, Apache harus bisa diakses dari jaringan, dan firewall mengizinkan koneksi.
+7. Uji register/login dahulu, karena endpoint feedback dan AI memerlukan token login. Selanjutnya uji GET members/events/products/currency, POST feedback/orders, lalu fitur lain satu per satu.
+
+Konfigurasi database hanya berada di `backend/config/db.php` dan tidak boleh masuk Git. Jika password database pernah terunggah atau dibagikan, ganti/rotasi password tersebut dari panel database terlebih dahulu.
+
 ## Backend online dengan InfinityFree
 
 Jika backend PHP sudah diunggah dan seluruh endpoint berfungsi di InfinityFree, XAMPP maupun Cloudflare Tunnel tidak diperlukan untuk penggunaan normal.

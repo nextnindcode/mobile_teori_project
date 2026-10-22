@@ -67,6 +67,8 @@ switch (true) {
         require_once __DIR__ . '/controllers/OrderController.php'; (new OrderController())->list(); break;
     case $path === '/orders' && $method === 'POST':
         require_once __DIR__ . '/controllers/OrderController.php'; (new OrderController())->create(); break;
+    case $path === '/feedback' && $method === 'GET':
+        require_once __DIR__ . '/controllers/FeedbackController.php'; (new FeedbackController())->list(); break;
     case $path === '/feedback' && $method === 'POST':
         require_once __DIR__ . '/controllers/FeedbackController.php'; (new FeedbackController())->submit(); break;
     case $path === '/currency/rates' && $method === 'GET':
@@ -75,7 +77,7 @@ switch (true) {
         require_once __DIR__ . '/api/ai/chat.php'; exit;
     case $path === '/game/score' && $method === 'POST':
         require_once __DIR__ . '/api/game/score.php'; exit;
-    case $path === '/game/redeem.php' && $method === 'POST':
+    case ($path === '/game/redeem.php' || $path === '/game/redeem') && $method === 'POST':
         require_once __DIR__ . '/api/game/redeem.php'; exit;
     case $path === '/blockchain/verify' && $method === 'GET':
         require_once __DIR__ . '/controllers/BlockchainController.php'; (new BlockchainController())->verify(); break;

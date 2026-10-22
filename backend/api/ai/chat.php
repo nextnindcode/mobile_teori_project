@@ -89,13 +89,25 @@ curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_TIMEOUT, 25);
 
+
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$curlErrorNo = curl_errno($ch);
+$curlError = curl_error($ch);
+
 curl_close($ch);
 
 if ($response === false || $httpCode !== 200) {
+    error_log(
+        '[EclipseVerse Gemini] HTTP=' . $httpCode .
+        ' cURL errno=' . $curlErrorNo .
+        ' error=' . $curlError .
+        ' response=' . substr((string)$response, 0, 1500)
+    );
+
     Response::error("AI sedang tidak tersedia.", "UPSTREAM_ERROR", 502);
 }
+
 
 $responseData = json_decode($response, true);
 $reply = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? "Maaf, aku tidak bisa menjawab itu.";
