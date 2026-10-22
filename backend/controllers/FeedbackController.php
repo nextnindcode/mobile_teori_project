@@ -14,13 +14,22 @@ class FeedbackController
         $this->tokenModel = new TokenModel();
     }
 
+    // GET /feedback
+    public function list()
+    {
+        $this->requireAuth();
+        Response::success(
+            $this->feedbackModel->listLatest(),
+            'Daftar feedback berhasil dimuat'
+        );
+    }
+
     // POST /feedback
     public function submit()
     {
         $userId = $this->requireAuth();
 
-        $rawInput = file_get_contents('php://input');
-        $body = json_decode($rawInput, true);
+        $body = json_decode(file_get_contents('php://input'), true);
         if (!is_array($body)) {
             $body = $_POST;
         }
@@ -30,39 +39,34 @@ class FeedbackController
         $suggestion = trim($body['suggestion'] ?? '');
 
         if ($rating < 1 || $rating > 5) {
-            Response::error("Rating harus antara 1 sampai 5", "VALIDATION_ERROR", 422);
+            Response::error('Rating harus antara 1 sampai 5', 'VALIDATION_ERROR', 422);
         }
-
-        if (empty($impression) || mb_strlen($impression) > 500) {
-            Response::error("Kesan wajib diisi dan maksimal 500 karakter", "VALIDATION_ERROR", 422);
+        if ($impression === '' || mb_strlen($impression) > 500) {
+            Response::error('Kesan wajib diisi dan maksimal 500 karakter', 'VALIDATION_ERROR', 422);
         }
-
-        if (empty($suggestion) || mb_strlen($suggestion) > 500) {
-            Response::error("Saran wajib diisi dan maksimal 500 karakter", "VALIDATION_ERROR", 422);
+        if ($suggestion === '' || mb_strlen($suggestion) > 500) {
+            Response::error('Saran wajib diisi dan maksimal 500 karakter', 'VALIDATION_ERROR', 422);
         }
 
         $id = $this->feedbackModel->create($userId, $rating, $impression, $suggestion);
-
-        Response::success(['id' => (int)$id], "Terima kasih", 201);
+        Response::success(['id' => (int)$id], 'Terima kasih', 201);
     }
 
     private function requireAuth()
     {
         $headers = function_exists('getallheaders') ? getallheaders() : [];
-        $auth = $headers['Authorization'] ?? $headers['authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+        $auth = $headers['Authorization'] ?? $headers['authorization'] ??
+            $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
 
         if (!preg_match('/Bearer\s+(\S+)/i', $auth, $matches)) {
-            Response::error("Token tidak ditemukan", "TOKEN_EXPIRED", 401);
+            Response::error('Token tidak ditemukan', 'TOKEN_EXPIRED', 401);
         }
 
-        $tokenHash = hash('sha256', $matches[1]);
-        $tokenData = $this->tokenModel->findValidByHash($tokenHash);
-
+        $tokenData = $this->tokenModel->findValidByHash(hash('sha256', $matches[1]));
         if (!$tokenData) {
-            Response::error("Token tidak valid atau kedaluwarsa", "TOKEN_EXPIRED", 401);
+            Response::error('Token tidak valid atau kedaluwarsa', 'TOKEN_EXPIRED', 401);
         }
 
         return (int)$tokenData['user_id'];
     }
 }
-

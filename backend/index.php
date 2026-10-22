@@ -67,6 +67,8 @@ switch (true) {
         require_once __DIR__ . '/controllers/OrderController.php'; (new OrderController())->list(); break;
     case $path === '/orders' && $method === 'POST':
         require_once __DIR__ . '/controllers/OrderController.php'; (new OrderController())->create(); break;
+    case $path === '/feedback' && $method === 'GET':
+        require_once __DIR__ . '/controllers/FeedbackController.php'; (new FeedbackController())->list(); break;
     case $path === '/feedback' && $method === 'POST':
         require_once __DIR__ . '/controllers/FeedbackController.php'; (new FeedbackController())->submit(); break;
     case $path === '/currency/rates' && $method === 'GET':
