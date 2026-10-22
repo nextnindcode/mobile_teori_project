@@ -510,6 +510,7 @@ grant select on public.categories, public.products, public.product_images, publi
   public.events, public.event_media, public.currency_rates to anon, authenticated;
 grant select on public.quiz_questions_public to authenticated;
 grant select on public.cards to anon, authenticated;
+grant select on public.quiz_questions_public to authenticated;
 grant select on public.profiles, public.game_scores, public.user_points, public.point_transactions,
   public.user_cards, public.redemption_transactions, public.orders, public.order_items,
   public.feedback, public.notifications, public.blockchain_ledger to authenticated;
