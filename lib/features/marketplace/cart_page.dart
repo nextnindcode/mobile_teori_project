@@ -82,6 +82,7 @@ class _CartPageState extends State<CartPage> {
       await LocalDb.clearCart();
       if (!mounted) return;
       await _loadCart();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -157,7 +158,7 @@ class _CartPageState extends State<CartPage> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: _cartItems.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final item = _cartItems[index];
                       final id = (item['product_id'] as num).toInt();
