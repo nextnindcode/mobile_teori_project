@@ -31,7 +31,7 @@ class _LoginPageState extends State<LoginPage> {
       );
       final user = response.user;
       if (user == null) {
-        throw const AuthException('Login gagal. Silakan coba lagi.');
+        throw Exception('Login gagal. Silakan coba lagi.');
       }
 
       await AuthService.cacheUserLocally(user);

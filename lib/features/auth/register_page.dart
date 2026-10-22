@@ -34,7 +34,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       final user = response.user;
       if (user == null) {
-        throw const AuthException('Registrasi gagal. Silakan coba lagi.');
+        throw Exception('Registrasi gagal. Silakan coba lagi.');
       }
 
       if (response.session != null) {

@@ -59,7 +59,7 @@ class AuthService {
 
     await LocalDb.saveProfile(
       // The legacy local cache uses an integer key; the real UUID stays in Supabase.
-      userId: user.id.hashCode & 0x7fffffff,
+      userId: 1,
       name: name,
       email: email,
     );
