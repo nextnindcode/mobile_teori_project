@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'theme/app_theme.dart';
 import 'core/routes.dart';
@@ -12,7 +13,6 @@ import 'features/event/event_page.dart';
 import 'features/event/event_detail_page.dart';
 import 'features/fandom/member_detail_page.dart';
 import 'features/tools/tools_page.dart';
-
 import 'features/shell/main_shell.dart';
 import 'features/ai/ai_page.dart';
 import 'features/game/game_page.dart';
@@ -23,7 +23,14 @@ import 'features/nearby/nearby_page.dart';
 import 'features/redeem/redeem_page.dart';
 import 'features/notification/notification_page.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://swnnzsqwudezuvromgfm.supabase.co',
+    publishableKey: 'sb_publishable_vyYETtO5DqB0R0bv6H0qfA_mtiExTSp',
+  );
+
   runApp(const MyApp());
 }
 
@@ -36,10 +43,7 @@ class MyApp extends StatelessWidget {
       title: 'EclipseVerse',
       theme: AppTheme.cosmicTheme(),
       debugShowCheckedModeBanner: false,
-
-      // Splash memeriksa sesi tersimpan dan biometrik sebelum membuka shell.
       home: const SplashPage(),
-
       routes: {
         Routes.login: (_) => const LoginPage(),
         Routes.register: (_) => const RegisterPage(),
@@ -51,8 +55,10 @@ class MyApp extends StatelessWidget {
             } catch (_) {
               // Token lokal tetap dihapus meskipun server tidak dapat dihubungi.
             }
+
             await SecureStore.deleteToken();
             await LocalDb.clearAll();
+
             if (context.mounted) {
               Navigator.pushNamedAndRemoveUntil(
                 context,
