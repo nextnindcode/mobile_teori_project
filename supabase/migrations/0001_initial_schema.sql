@@ -137,8 +137,7 @@ create table public.quiz_questions (
   check (options ? correct_option)
 );
 
-create view public.quiz_questions_public
-with (security_invoker = true) as
+create view public.quiz_questions_public as
 select id, question_text, options, explanation, difficulty, points
 from public.quiz_questions
 where is_active = true;
@@ -463,8 +462,6 @@ create policy event_media_read_public on public.event_media
 for select to anon, authenticated using (
   exists (select 1 from public.events e where e.id = event_id and e.status <> 'draft')
 );
-create policy quiz_public_view_read on public.quiz_questions
-for select to authenticated using (is_active = true);
 create policy cards_read_available on public.cards
 for select to anon, authenticated using (is_available = true);
 
@@ -499,6 +496,8 @@ for select to anon, authenticated using (true);
 create policy ledger_read_own on public.blockchain_ledger
 for select to authenticated using (user_id = (select auth.uid()));
 
+-- Do not let clients read the quiz answer key directly; the public view exposes only safe columns.
+revoke all on public.quiz_questions from anon, authenticated;
 -- Never grant direct client writes to orders, stock, points, scores, cards, redemptions, or ledger.
 -- These operations must go through trusted functions / Edge Functions.
 revoke all on function public.submit_quiz_attempt(jsonb) from public, anon;
