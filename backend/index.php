@@ -77,7 +77,7 @@ switch (true) {
         require_once __DIR__ . '/api/ai/chat.php'; exit;
     case $path === '/game/score' && $method === 'POST':
         require_once __DIR__ . '/api/game/score.php'; exit;
-    case $path === '/game/redeem.php' && $method === 'POST':
+    case ($path === '/game/redeem.php' || $path === '/game/redeem') && $method === 'POST':
         require_once __DIR__ . '/api/game/redeem.php'; exit;
     case $path === '/blockchain/verify' && $method === 'GET':
         require_once __DIR__ . '/controllers/BlockchainController.php'; (new BlockchainController())->verify(); break;

@@ -1,250 +1,270 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// =========================================================
-// AppTheme — EclipseOps
-// Palet warna:
-//   - #FFFBF5 (krem terang)  → background utama
-//   - #F7EFE5 (krem)         → card, input, surface
-//   - #C3ACD0 (lavender)     → aksen sekunder
-//   - #674188 (ungu tua)     → warna utama (primary)
-//   - Hitam / Abu-abu        → teks
-// =========================================================
-
-// ================== Cara Pakai Tema ======================
-
-// # Di main.dart
-// MaterialApp(
-//   theme: AppTheme.light(),
-//   // ...
-// )
-
-// # Warna
-// Container(
-//   color: AppTheme.primaryDark,  // Ungu tua
-// ),
-// Text(
-//   'Hello',
-//   style: TextStyle(color: AppTheme.grey),  // Abu-abu
-// ),
-
-// #Spacing
-// SizedBox(height: AppTheme.spacingMedium),  // 16
-// Padding(padding: EdgeInsets.all(AppTheme.spacingLarge)),  // 24
-
-// # Ukuran Font
-// Text(
-//   'Judul',
-//   style: TextStyle(fontSize: AppTheme.fontSizeHeadline),  // 24
-// ),
-
-// # Tombol
-// ElevatedButton(
-//   style: AppTheme.primaryButtonStyle,   // Ungu tua
-//   onPressed: () {},
-//   child: Text('Simpan'),
-// ),
-
-// ElevatedButton(
-//   style: AppTheme.secondaryButtonStyle,  // Lavender
-//   onPressed: () {},
-//   child: Text('Batal'),
-// ),
-
+/// AppTheme — Premium Cosmic EclipseVerse Design System
+/// Inspired by deep space, celestial eclipses, and connected fandom universes.
 class AppTheme {
-  // ===== Warna Utama (Primary) =====
-  static const Color primaryDark = Color(0xFF211B35); // Midnight plum
-  static const Color primaryLight = Color(0xFFD8C9FF); // Lunar lavender
+  // ===== Core Cosmic Palette =====
+  static const Color deepSpace = Color(0xFF080B16); // Deep space background
+  static const Color surfaceElevated = Color(0xFF11182A); // Primary elevated surface
+  static const Color surfaceSecondary = Color(0xFF19223A); // Secondary card surface
+  static const Color surfaceGlass = Color(0x3319223A); // Subtle glassmorphic surface
 
-  // ===== Warna Background & Surface =====
-  static const Color background = Color(0xFFF6F3FA); // Cloud white
-  static const Color surface = Color(0xFFFFFFFF); // Clean surface
+  // ===== Semantic Accents =====
+  static const Color eclipseViolet = Color(0xFF8B5CF6); // Eclipse violet
+  static const Color nebulaIndigo = Color(0xFF536DFE); // Nebula indigo
+  static const Color coronaGold = Color(0xFFF3C969); // Corona gold
+  static const Color coolCyan = Color(0xFF67DDF5); // Cool cyan accent
 
-  // ===== Warna Teks =====
-  static const Color black = Color(0xFF212121); // Hitam
-  static const Color blackSoft = Colors.black87;
-  static const Color grey = Color(0xFF9E9E9E); // Abu-abu
-  static const Color greyLight = Color(0xFFE0E0E0); // Abu-abu terang
-  static const Color white = Colors.white;
+  // ===== Text & Neutral Colors =====
+  static const Color textPrimary = Color(0xFFF4F5FC); // Crisp primary text
+  static const Color textSecondary = Color(0xFFA6ADC5); // Muted secondary text
+  static const Color textMuted = Color(0xFF6B7280); // Subtle tertiary text
+  static const Color borderSubtle = Color(0x2A67DDF5); // Subtle cosmic border
+  static const Color borderLight = Color(0x1FFFFFFF); // Subtle white divider
 
-  // ===== Warna Status =====
-  static const Color error = Color(0xFFB00020);
-  static const Color success = Color(0xFF4CAF50);
+  // ===== Backward Compatibility Aliases =====
+  static const Color primaryDark = eclipseViolet;
+  static const Color primaryLight = nebulaIndigo;
+  static const Color background = deepSpace;
+  static const Color surface = surfaceElevated;
+  static const Color white = textPrimary;
+  static const Color black = deepSpace;
+  static const Color blackSoft = surfaceElevated;
+  static const Color grey = textSecondary;
+  static const Color greyLight = borderSubtle;
 
-  // ===== Aksen Tombol =====
-  static const Color accentYellow = Color(0xFFFFC107); // Aksi utama (opsional)
-  static const Color accentGrey = Color(0xFF9E9E9E); // Aksi sekunder
+  // ===== Status Colors =====
+  static const Color error = Color(0xFFEF4444);
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color accentYellow = coronaGold;
+  static const Color accentGrey = textMuted;
 
-  // ===== Gradient (opsional) =====
+  // ===== Cosmic Gradients =====
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF211B35), Color(0xFF6D5A92), Color(0xFFD8A9C8)],
+    colors: [eclipseViolet, nebulaIndigo],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  // ===== Spacing =====
+  static const LinearGradient cosmicHeroGradient = LinearGradient(
+    colors: [Color(0xFF2E1065), Color(0xFF1E1B4B), Color(0xFF0F172A)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient cardGradient = LinearGradient(
+    colors: [surfaceSecondary, surfaceElevated],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient coronaGradient = LinearGradient(
+    colors: [coronaGold, Color(0xFFF59E0B)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient cyanGradient = LinearGradient(
+    colors: [coolCyan, nebulaIndigo],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // ===== Spacing Constants =====
   static const double spacingXSmall = 4.0;
   static const double spacingSmall = 8.0;
   static const double spacingMedium = 16.0;
   static const double spacingLarge = 24.0;
   static const double spacingXLarge = 32.0;
 
-  // ===== Radius =====
+  // ===== Corner Radii =====
   static const double radiusSmall = 8.0;
-  static const double radius = 12.0;
-  static const double radiusLarge = 16.0;
+  static const double radius = 16.0;
+  static const double radiusLarge = 24.0;
+  static const double radiusFull = 999.0;
 
-  // ===== Ukuran Font =====
+  // ===== Font Sizes =====
   static const double fontSizeDisplay = 32.0;
   static const double fontSizeHeadline = 24.0;
   static const double fontSizeTitle = 20.0;
-  static const double fontSizeSubtitle = 18.0;
-  static const double fontSizeBody = 16.0;
-  static const double fontSizeBodySmall = 14.0;
-  static const double fontSizeCaption = 12.0;
+  static const double fontSizeSubtitle = 16.0;
+  static const double fontSizeBody = 14.0;
+  static const double fontSizeBodySmall = 12.0;
+  static const double fontSizeCaption = 10.0;
 
   // ===== Text Theme =====
   static TextTheme get textTheme => TextTheme(
-    // Display — untuk judul besar
-    displayLarge: GoogleFonts.poppins(
-      fontSize: fontSizeDisplay,
-      fontWeight: FontWeight.bold,
-      color: black,
-    ),
-    // Headline — untuk judul halaman
-    headlineMedium: GoogleFonts.poppins(
-      fontSize: fontSizeHeadline,
-      fontWeight: FontWeight.bold,
-      color: black,
-    ),
-    // Title — untuk judul card/section
-    titleLarge: GoogleFonts.poppins(
-      fontSize: fontSizeTitle,
-      fontWeight: FontWeight.w600,
-      color: black,
-    ),
-    // Subtitle — untuk sub-judul
-    titleMedium: GoogleFonts.poppins(
-      fontSize: fontSizeSubtitle,
-      fontWeight: FontWeight.w500,
-      color: black,
-    ),
-    // Body — untuk teks isi
-    bodyLarge: GoogleFonts.inter(fontSize: fontSizeBody, color: black),
-    bodyMedium: GoogleFonts.inter(fontSize: fontSizeBodySmall, color: black),
-    // Caption — untuk teks kecil
-    bodySmall: GoogleFonts.inter(
-      fontSize: fontSizeCaption,
-      color: black.withValues(alpha: 0.6),
-    ),
-  );
+        displayLarge: GoogleFonts.outfit(
+          fontSize: fontSizeDisplay,
+          fontWeight: FontWeight.bold,
+          color: textPrimary,
+          letterSpacing: -0.5,
+        ),
+        headlineMedium: GoogleFonts.outfit(
+          fontSize: fontSizeHeadline,
+          fontWeight: FontWeight.bold,
+          color: textPrimary,
+          letterSpacing: -0.3,
+        ),
+        titleLarge: GoogleFonts.outfit(
+          fontSize: fontSizeTitle,
+          fontWeight: FontWeight.w700,
+          color: textPrimary,
+        ),
+        titleMedium: GoogleFonts.outfit(
+          fontSize: fontSizeSubtitle,
+          fontWeight: FontWeight.w600,
+          color: textPrimary,
+        ),
+        bodyLarge: GoogleFonts.plusJakartaSans(
+          fontSize: fontSizeBody,
+          fontWeight: FontWeight.w500,
+          color: textPrimary,
+          height: 1.5,
+        ),
+        bodyMedium: GoogleFonts.plusJakartaSans(
+          fontSize: fontSizeBodySmall,
+          fontWeight: FontWeight.w400,
+          color: textSecondary,
+          height: 1.4,
+        ),
+        bodySmall: GoogleFonts.plusJakartaSans(
+          fontSize: fontSizeCaption,
+          fontWeight: FontWeight.w400,
+          color: textMuted,
+        ),
+      );
 
+  // ===== Button Styles =====
   static ButtonStyle get primaryButtonStyle => ElevatedButton.styleFrom(
-    backgroundColor: primaryDark,
-    foregroundColor: white,
-    textStyle: GoogleFonts.poppins(
-      fontWeight: FontWeight.w600,
-      fontSize: fontSizeBody,
-    ),
-    minimumSize: const Size(double.infinity, 50),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-    elevation: 0,
-    padding: const EdgeInsets.symmetric(
-      horizontal: spacingMedium,
-      vertical: spacingSmall,
-    ),
-  );
+        backgroundColor: eclipseViolet,
+        foregroundColor: textPrimary,
+        textStyle: GoogleFonts.outfit(
+          fontWeight: FontWeight.w700,
+          fontSize: fontSizeBody,
+          letterSpacing: 0.5,
+        ),
+        minimumSize: const Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius),
+        ),
+        elevation: 4,
+        shadowColor: eclipseViolet.withValues(alpha: 0.4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: spacingMedium,
+          vertical: 14,
+        ),
+      );
 
-  // ===== Style Tombol Sekunder (Lavender) =====
-  static ButtonStyle get secondaryButtonStyle => ElevatedButton.styleFrom(
-    backgroundColor: primaryLight,
-    foregroundColor: white,
-    textStyle: GoogleFonts.poppins(
-      fontWeight: FontWeight.w600,
-      fontSize: fontSizeBody,
-    ),
-    minimumSize: const Size(double.infinity, 50),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-    elevation: 0,
-    padding: const EdgeInsets.symmetric(
-      horizontal: spacingMedium,
-      vertical: spacingSmall,
-    ),
-  );
+  static ButtonStyle get secondaryButtonStyle => OutlinedButton.styleFrom(
+        foregroundColor: coolCyan,
+        side: const BorderSide(color: coolCyan, width: 1.2),
+        textStyle: GoogleFonts.outfit(
+          fontWeight: FontWeight.w600,
+          fontSize: fontSizeBody,
+        ),
+        minimumSize: const Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: spacingMedium,
+          vertical: 14,
+        ),
+      );
 
-  // ===== Theme Data =====
-  static ThemeData light() {
+  // ===== Main Cosmic Theme =====
+  static ThemeData cosmicTheme() {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.light,
-      scaffoldBackgroundColor: background,
-      primaryColor: primaryDark,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: deepSpace,
+      primaryColor: eclipseViolet,
 
-      // Color Scheme
-      colorScheme: const ColorScheme.light(
-        primary: primaryDark,
-        onPrimary: white,
-        secondary: primaryLight,
-        onSecondary: black,
-        surface: surface,
-        onSurface: black,
+      colorScheme: const ColorScheme.dark(
+        primary: eclipseViolet,
+        onPrimary: textPrimary,
+        secondary: nebulaIndigo,
+        onSecondary: textPrimary,
+        tertiary: coolCyan,
+        surface: surfaceElevated,
+        onSurface: textPrimary,
         error: error,
-        onError: white,
+        onError: textPrimary,
       ),
 
-      // AppBar
       appBarTheme: AppBarTheme(
-        backgroundColor: primaryDark,
-        foregroundColor: white,
+        backgroundColor: deepSpace,
+        foregroundColor: textPrimary,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: GoogleFonts.outfit(
           fontSize: fontSizeTitle,
           fontWeight: FontWeight.bold,
-          color: white,
+          color: textPrimary,
+          letterSpacing: 0.3,
         ),
+        iconTheme: const IconThemeData(color: textPrimary),
       ),
 
-      // Elevated Button
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: surfaceElevated,
+        selectedItemColor: eclipseViolet,
+        unselectedItemColor: textSecondary,
+        elevation: 8,
+        type: BottomNavigationBarType.fixed,
+      ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(style: primaryButtonStyle),
 
-      // Input Decoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
+        fillColor: surfaceSecondary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: borderSubtle),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radius),
+          borderSide: const BorderSide(color: borderSubtle),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius),
-          borderSide: const BorderSide(color: primaryDark, width: 2),
+          borderSide: const BorderSide(color: coolCyan, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: spacingMedium,
           vertical: 14,
         ),
-        hintStyle: GoogleFonts.inter(fontSize: fontSizeBody, color: grey),
-        labelStyle: GoogleFonts.inter(fontSize: fontSizeBody, color: black),
-      ),
-
-      // Card
-      cardTheme: CardThemeData(
-        elevation: 2,
-        color: surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radius),
+        hintStyle: GoogleFonts.plusJakartaSans(
+          fontSize: fontSizeBody,
+          color: textMuted,
+        ),
+        labelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: fontSizeBody,
+          color: textSecondary,
         ),
       ),
 
-      // Text
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius),
+          side: const BorderSide(color: borderSubtle, width: 1),
+        ),
+      ),
+
       textTheme: textTheme,
-
-      // Divider
-      dividerTheme: const DividerThemeData(color: greyLight, thickness: 1),
-
-      // Icon
-      iconTheme: const IconThemeData(color: black, size: 24),
+      dividerTheme: const DividerThemeData(color: borderLight, thickness: 1),
+      iconTheme: const IconThemeData(color: textPrimary, size: 22),
     );
   }
+
+  // Alias for backward compatibility
+  static ThemeData light() => cosmicTheme();
+  static ThemeData dark() => cosmicTheme();
 }
