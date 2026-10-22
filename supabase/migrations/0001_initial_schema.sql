@@ -234,3 +234,12 @@ for select to authenticated using (user_id = (select auth.uid()));
 
 -- Admin write policies and secure RPCs are deliberately not enabled in this first schema.
 -- They will be added alongside the corresponding feature migration and tested before use.
+
+-- Explicit API grants. RLS still restricts which rows each role can access.
+grant usage on schema public to anon, authenticated;
+grant select on public.products, public.members, public.events, public.currency_rates to anon, authenticated;
+grant select on public.profiles, public.orders, public.order_items, public.feedback,
+  public.game_scores, public.user_points, public.user_cards, public.notifications,
+  public.blockchain_ledger to authenticated;
+grant insert on public.feedback to authenticated;
+grant update (is_read) on public.notifications to authenticated;
