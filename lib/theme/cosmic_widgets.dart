@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/constants.dart';
 import 'app_theme.dart';
 
@@ -84,7 +85,8 @@ class CosmicBadge extends StatelessWidget {
     final fg = textColor ?? AppTheme.textPrimary;
 
     return Container(
-      padding: padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bg.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(AppTheme.radiusFull),
@@ -142,7 +144,7 @@ class CosmicNetworkImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (_, __, ___) => _buildFallback(),
+        errorBuilder: (_, _, _) => _buildFallback(),
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
           return Container(
@@ -157,7 +159,7 @@ class CosmicNetworkImage extends StatelessWidget {
                   strokeWidth: 2,
                   value: progress.expectedTotalBytes != null
                       ? progress.cumulativeBytesLoaded /
-                          (progress.expectedTotalBytes ?? 1)
+                            (progress.expectedTotalBytes ?? 1)
                       : null,
                   color: AppTheme.eclipseViolet,
                 ),
@@ -266,16 +268,17 @@ class CosmicErrorView extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppTheme.error.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppTheme.error.withValues(alpha: 0.3),
+                ),
               ),
               child: Icon(icon, size: 48, color: AppTheme.error),
             ),
             const SizedBox(height: 16),
             Text(
               'Terjadi Kendala',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.textPrimary,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
@@ -296,7 +299,10 @@ class CosmicErrorView extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
@@ -360,14 +366,10 @@ class CosmicEmptyView extends StatelessWidget {
                 ),
               ),
             ],
-            if (action != null) ...[
-              const SizedBox(height: 20),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(height: 20), action!],
           ],
         ),
       ),
     );
   }
 }
-

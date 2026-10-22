@@ -74,14 +74,6 @@ class MyApp extends StatelessWidget {
         Routes.nearby: (_) => const NearbyPage(),
         Routes.redeem: (_) => const RedeemPage(),
         Routes.notifications: (_) => const NotificationPage(),
-        // String aliases for backward compatibility
-        '/event-detail': (_) => const EventDetailPage(),
-        '/member-detail': (_) => const MemberDetailPage(),
-        '/ai': (_) => const AiPage(),
-        '/game': (_) => const GamePage(),
-        '/nearby': (_) => const NearbyPage(),
-        '/redeem': (_) => const RedeemPage(),
-        '/notifications': (_) => const NotificationPage(),
       },
     );
   }

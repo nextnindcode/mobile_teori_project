@@ -35,12 +35,14 @@ class _CatalogPageState extends State<CatalogPage> {
   List<Product> get _filteredProducts {
     final query = _search.trim().toLowerCase();
     return _products.where((product) {
-      final matchesSearch = query.isEmpty ||
+      final matchesSearch =
+          query.isEmpty ||
           product.name.toLowerCase().contains(query) ||
           product.description.toLowerCase().contains(query);
       final selectedCategory = _categories[_category] ?? '';
       final matchesCategory =
-          selectedCategory.isEmpty || product.category.toLowerCase() == selectedCategory;
+          selectedCategory.isEmpty ||
+          product.category.toLowerCase() == selectedCategory;
       return matchesSearch && matchesCategory;
     }).toList();
   }
@@ -112,7 +114,8 @@ class _CatalogPageState extends State<CatalogPage> {
       final response = await ApiService.get('/products');
       if (response['success'] != true) {
         throw ApiException(
-          response['message']?.toString() ?? 'Gagal memuat daftar produk dari server.',
+          response['message']?.toString() ??
+              'Gagal memuat daftar produk dari server.',
           'API_ERROR',
         );
       }
@@ -187,7 +190,11 @@ class _CatalogPageState extends State<CatalogPage> {
                           _searchController.clear();
                           setState(() => _search = '');
                         },
-                        icon: const Icon(Icons.close, color: AppTheme.textSecondary, size: 18),
+                        icon: const Icon(
+                          Icons.close,
+                          color: AppTheme.textSecondary,
+                          size: 18,
+                        ),
                       ),
               ),
             ),
@@ -200,7 +207,7 @@ class _CatalogPageState extends State<CatalogPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               itemCount: _categories.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final label = _categories.keys.elementAt(index);
                 final selected = label == _category;
@@ -216,7 +223,9 @@ class _CatalogPageState extends State<CatalogPage> {
                     fontSize: 12,
                   ),
                   side: BorderSide(
-                    color: selected ? AppTheme.eclipseViolet : AppTheme.borderSubtle,
+                    color: selected
+                        ? AppTheme.eclipseViolet
+                        : AppTheme.borderSubtle,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusFull),
@@ -237,7 +246,10 @@ class _CatalogPageState extends State<CatalogPage> {
                   _isLoading
                       ? 'Memuat katalog merchandise...'
                       : '${visibleProducts.length} produk ditemukan',
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
                 const Spacer(),
                 if (!_isLoading)
@@ -247,7 +259,13 @@ class _CatalogPageState extends State<CatalogPage> {
                       children: [
                         Icon(Icons.refresh, size: 14, color: AppTheme.coolCyan),
                         SizedBox(width: 4),
-                        Text('Refresh', style: TextStyle(color: AppTheme.coolCyan, fontSize: 11)),
+                        Text(
+                          'Refresh',
+                          style: TextStyle(
+                            color: AppTheme.coolCyan,
+                            fontSize: 11,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -258,9 +276,7 @@ class _CatalogPageState extends State<CatalogPage> {
           const SizedBox(height: 6),
 
           // 4. Products Grid or Explicit Error/Empty State
-          Expanded(
-            child: _buildContent(visibleProducts),
-          ),
+          Expanded(child: _buildContent(visibleProducts)),
         ],
       ),
     );
@@ -350,7 +366,10 @@ class _CatalogPageState extends State<CatalogPage> {
                     top: 8,
                     left: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.deepSpace.withValues(alpha: 0.85),
                         borderRadius: BorderRadius.circular(12),
@@ -372,13 +391,18 @@ class _CatalogPageState extends State<CatalogPage> {
                       top: 8,
                       right: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.warning.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          product.stock == 0 ? 'HABIS' : 'Sisa ${product.stock}',
+                          product.stock == 0
+                              ? 'HABIS'
+                              : 'Sisa ${product.stock}',
                           style: const TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
@@ -421,16 +445,24 @@ class _CatalogPageState extends State<CatalogPage> {
                   Row(
                     children: [
                       Icon(
-                        product.stock > 0 ? Icons.check_circle_outline : Icons.cancel_outlined,
+                        product.stock > 0
+                            ? Icons.check_circle_outline
+                            : Icons.cancel_outlined,
                         size: 12,
-                        color: product.stock > 0 ? AppTheme.success : AppTheme.error,
+                        color: product.stock > 0
+                            ? AppTheme.success
+                            : AppTheme.error,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        product.stock > 0 ? 'Stok: ${product.stock}' : 'Stok habis',
+                        product.stock > 0
+                            ? 'Stok: ${product.stock}'
+                            : 'Stok habis',
                         style: TextStyle(
                           fontSize: 11,
-                          color: product.stock > 0 ? AppTheme.textSecondary : AppTheme.error,
+                          color: product.stock > 0
+                              ? AppTheme.textSecondary
+                              : AppTheme.error,
                         ),
                       ),
                     ],

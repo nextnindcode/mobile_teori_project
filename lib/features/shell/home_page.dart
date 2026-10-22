@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
 import '../../core/api_service.dart';
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
@@ -51,7 +52,9 @@ class _HomePageState extends State<HomePage> {
       final avatar = await LocalDb.getPref('avatar_path');
       if (mounted) {
         setState(() {
-          if (profile != null && profile['name'] != null && profile['name'].toString().isNotEmpty) {
+          if (profile != null &&
+              profile['name'] != null &&
+              profile['name'].toString().isNotEmpty) {
             _userName = profile['name'].toString();
           }
           _avatarPath = avatar;
@@ -137,7 +140,11 @@ class _HomePageState extends State<HomePage> {
                 shape: BoxShape.circle,
                 gradient: AppTheme.primaryGradient,
               ),
-              child: const Icon(Icons.nightlight_round, size: 18, color: Colors.white),
+              child: const Icon(
+                Icons.nightlight_round,
+                size: 18,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(width: 10),
             const Text(
@@ -184,14 +191,17 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Text(
                     'Jelajahi Universe',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppTheme.textPrimary,
-                        ),
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(color: AppTheme.textPrimary),
                   ),
                   const Spacer(),
                   const Text(
                     'Fitur Utama',
-                    style: TextStyle(color: AppTheme.coolCyan, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: AppTheme.coolCyan,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -268,7 +278,9 @@ class _HomePageState extends State<HomePage> {
                     backgroundImage: _avatarImage,
                     child: _avatarImage == null
                         ? Text(
-                            _userName.isNotEmpty ? _userName[0].toUpperCase() : 'E',
+                            _userName.isNotEmpty
+                                ? _userName[0].toUpperCase()
+                                : 'E',
                             style: const TextStyle(
                               color: AppTheme.coolCyan,
                               fontSize: 18,
@@ -307,7 +319,10 @@ class _HomePageState extends State<HomePage> {
                   GestureDetector(
                     onTap: () => _open(Routes.redeem),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         gradient: AppTheme.coronaGradient,
                         borderRadius: BorderRadius.circular(20),
@@ -321,7 +336,11 @@ class _HomePageState extends State<HomePage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.stars_rounded, size: 14, color: AppTheme.deepSpace),
+                          const Icon(
+                            Icons.stars_rounded,
+                            size: 14,
+                            color: AppTheme.deepSpace,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             _isLoadingPoints ? '...' : '$_userPoints PTS',
@@ -370,7 +389,10 @@ class _HomePageState extends State<HomePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.eclipseViolet,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -378,21 +400,36 @@ class _HomePageState extends State<HomePage> {
                     ),
                     onPressed: () => _open(Routes.catalog),
                     icon: const Icon(Icons.storefront_rounded, size: 16),
-                    label: const Text('Beli Merch', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      'Beli Merch',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.coolCyan,
                       side: const BorderSide(color: AppTheme.borderSubtle),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     onPressed: () => _open(Routes.ai),
                     icon: const Icon(Icons.auto_awesome, size: 16),
-                    label: const Text('Tanya AI', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    label: const Text(
+                      'Tanya AI',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -405,14 +442,54 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildQuickActionGrid() {
     final actions = [
-      {'label': 'Store', 'icon': Icons.storefront_outlined, 'color': AppTheme.eclipseViolet, 'route': Routes.catalog},
-      {'label': 'Events', 'icon': Icons.calendar_month_outlined, 'color': AppTheme.nebulaIndigo, 'route': Routes.events},
-      {'label': 'Fandom', 'icon': Icons.people_alt_outlined, 'color': AppTheme.coolCyan, 'route': Routes.shell},
-      {'label': 'Nearby', 'icon': Icons.near_me_outlined, 'color': AppTheme.coronaGold, 'route': Routes.nearby},
-      {'label': 'Eclipse AI', 'icon': Icons.auto_awesome_outlined, 'color': const Color(0xFFC084FC), 'route': Routes.ai},
-      {'label': 'Tools', 'icon': Icons.currency_exchange_rounded, 'color': const Color(0xFF38BDF8), 'route': Routes.tools},
-      {'label': 'Mini Game', 'icon': Icons.sports_esports_outlined, 'color': const Color(0xFFF472B6), 'route': Routes.game},
-      {'label': 'Redeem', 'icon': Icons.card_giftcard_rounded, 'color': const Color(0xFFFBBF24), 'route': Routes.redeem},
+      {
+        'label': 'Store',
+        'icon': Icons.storefront_outlined,
+        'color': AppTheme.eclipseViolet,
+        'route': Routes.catalog,
+      },
+      {
+        'label': 'Events',
+        'icon': Icons.calendar_month_outlined,
+        'color': AppTheme.nebulaIndigo,
+        'route': Routes.events,
+      },
+      {
+        'label': 'Fandom',
+        'icon': Icons.people_alt_outlined,
+        'color': AppTheme.coolCyan,
+        'route': Routes.shell,
+      },
+      {
+        'label': 'Nearby',
+        'icon': Icons.near_me_outlined,
+        'color': AppTheme.coronaGold,
+        'route': Routes.nearby,
+      },
+      {
+        'label': 'Eclipse AI',
+        'icon': Icons.auto_awesome_outlined,
+        'color': const Color(0xFFC084FC),
+        'route': Routes.ai,
+      },
+      {
+        'label': 'Tools',
+        'icon': Icons.currency_exchange_rounded,
+        'color': const Color(0xFF38BDF8),
+        'route': Routes.tools,
+      },
+      {
+        'label': 'Mini Game',
+        'icon': Icons.sports_esports_outlined,
+        'color': const Color(0xFFF472B6),
+        'route': Routes.game,
+      },
+      {
+        'label': 'Redeem',
+        'icon': Icons.card_giftcard_rounded,
+        'color': const Color(0xFFFBBF24),
+        'route': Routes.redeem,
+      },
     ];
 
     return Padding(
@@ -450,7 +527,11 @@ class _HomePageState extends State<HomePage> {
                       color: color.withValues(alpha: 0.16),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(item['icon'] as IconData, color: color, size: 22),
+                    child: Icon(
+                      item['icon'] as IconData,
+                      color: color,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -498,7 +579,11 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.sports_esports_rounded, color: Colors.white, size: 28),
+              child: const Icon(
+                Icons.sports_esports_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -520,7 +605,10 @@ class _HomePageState extends State<HomePage> {
                         text: 'SENSOR',
                         color: AppTheme.coronaGold,
                         textColor: AppTheme.coronaGold,
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                       ),
                     ],
                   ),
@@ -536,7 +624,11 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.textSecondary),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: AppTheme.textSecondary,
+            ),
           ],
         ),
       ),
@@ -553,14 +645,16 @@ class _HomePageState extends State<HomePage> {
             children: [
               Text(
                 'Event Mendatang',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppTheme.textPrimary,
-                    ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(color: AppTheme.textPrimary),
               ),
               const Spacer(),
               TextButton(
                 onPressed: () => _open(Routes.events),
-                child: const Text('Semua →', style: TextStyle(color: AppTheme.coolCyan)),
+                child: const Text(
+                  'Semua →',
+                  style: TextStyle(color: AppTheme.coolCyan),
+                ),
               ),
             ],
           ),
@@ -575,7 +669,10 @@ class _HomePageState extends State<HomePage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: CosmicCard(
-              child: const Text('Belum ada jadwal event terdekat.', style: TextStyle(color: AppTheme.textSecondary)),
+              child: const Text(
+                'Belum ada jadwal event terdekat.',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
             ),
           )
         else
@@ -585,7 +682,7 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               scrollDirection: Axis.horizontal,
               itemCount: _upcomingEvents.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final e = _upcomingEvents[index];
                 return InkWell(
@@ -610,7 +707,11 @@ class _HomePageState extends State<HomePage> {
                               textColor: AppTheme.coolCyan,
                             ),
                             const Spacer(),
-                            const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textSecondary),
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 14,
+                              color: AppTheme.textSecondary,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -627,14 +728,21 @@ class _HomePageState extends State<HomePage> {
                         const Spacer(),
                         Row(
                           children: [
-                            const Icon(Icons.place_outlined, size: 13, color: AppTheme.textSecondary),
+                            const Icon(
+                              Icons.place_outlined,
+                              size: 13,
+                              color: AppTheme.textSecondary,
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 e.venue,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                style: const TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 11,
+                                ),
                               ),
                             ),
                           ],
@@ -669,14 +777,16 @@ class _HomePageState extends State<HomePage> {
             children: [
               Text(
                 'Merchandise Pilihan',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppTheme.textPrimary,
-                    ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(color: AppTheme.textPrimary),
               ),
               const Spacer(),
               TextButton(
                 onPressed: () => _open(Routes.catalog),
-                child: const Text('Katalog →', style: TextStyle(color: AppTheme.coolCyan)),
+                child: const Text(
+                  'Katalog →',
+                  style: TextStyle(color: AppTheme.coolCyan),
+                ),
               ),
             ],
           ),
@@ -691,7 +801,10 @@ class _HomePageState extends State<HomePage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: CosmicCard(
-              child: const Text('Belum ada produk merchandise.', style: TextStyle(color: AppTheme.textSecondary)),
+              child: const Text(
+                'Belum ada produk merchandise.',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
             ),
           )
         else
@@ -701,7 +814,7 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               scrollDirection: Axis.horizontal,
               itemCount: _featuredProducts.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final p = _featuredProducts[index];
                 return InkWell(
