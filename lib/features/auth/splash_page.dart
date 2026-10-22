@@ -45,8 +45,12 @@ class _SplashPageState extends State<SplashPage> {
     if (!mounted) return;
 
     final biometricEnabled = await LocalDb.getPref('biometric_enabled');
+    if (!mounted) return;
+
     if (biometricEnabled == '1' || biometricEnabled == 'true') {
       final isSupported = await BiometricService.isSupported();
+      if (!mounted) return;
+
       if (isSupported) {
         final authSuccess = await BiometricService.authenticate();
         if (!mounted) return;
@@ -62,7 +66,6 @@ class _SplashPageState extends State<SplashPage> {
 
     Navigator.pushReplacementNamed(context, Routes.shell);
   }
-
 
   @override
   Widget build(BuildContext context) {
