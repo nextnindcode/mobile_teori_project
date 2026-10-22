@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
 import '../../models/products.dart';
@@ -12,7 +12,6 @@ import '../event/event_model.dart';
 import '../event/event_page.dart' show formatEventDate;
 import '../event/event_service.dart';
 import '../marketplace/product_detail_sheet.dart';
-import '../redeem/redeem_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -48,27 +47,50 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadProfile() async {
     try {
-      final profile = await LocalDb.getUserProfile();
+      // Render local cache immediately, then refresh the name from Supabase.
+      final cached = await LocalDb.getUserProfile();
       final avatar = await LocalDb.getPref('avatar_path');
       if (mounted) {
         setState(() {
-          if (profile != null &&
-              profile['name'] != null &&
-              profile['name'].toString().isNotEmpty) {
-            _userName = profile['name'].toString();
+          if (cached?['name'] != null &&
+              cached!['name'].toString().trim().isNotEmpty) {
+            _userName = cached['name'].toString();
           }
           _avatarPath = avatar;
         });
       }
-    } catch (_) {}
+
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
+      final name = profile?['display_name']?.toString().trim() ?? '';
+      if (mounted && name.isNotEmpty) setState(() => _userName = name);
+    } catch (_) {
+      // Home remains usable when the profile row is unavailable.
+    }
   }
 
   Future<void> _loadPoints() async {
     try {
-      final stats = await RedeemService.getUserStats();
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        if (mounted) setState(() => _isLoadingPoints = false);
+        return;
+      }
+      final stats = await Supabase.instance.client
+          .from('user_points')
+          .select('total_points')
+          .eq('user_id', user.id)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
       if (mounted) {
         setState(() {
-          _userPoints = (stats['points'] as num?)?.toInt() ?? 0;
+          _userPoints = (stats?['total_points'] as num?)?.toInt() ?? 0;
           _isLoadingPoints = false;
         });
       }
@@ -79,11 +101,20 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadEvents() async {
     try {
-      final events = await EventService.fetchEvents();
+      // Read directly from Supabase; the old implementation called the PHP API.
+      final rows = await Supabase.instance.client
+          .from('events')
+          .select('id, title, description, event_date, venue, city, latitude, longitude')
+          .eq('status', 'scheduled')
+          .order('event_date')
+          .limit(3)
+          .timeout(const Duration(seconds: 8));
+      final events = (rows as List)
+          .map((row) => Event.fromJson(Map<String, dynamic>.from(row)))
+          .toList();
       if (mounted) {
         setState(() {
-          // Take first 3 upcoming events
-          _upcomingEvents = events.take(3).toList();
+          _upcomingEvents = events;
           _isLoadingEvents = false;
         });
       }
@@ -94,20 +125,46 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadProducts() async {
     try {
-      final response = await ApiService.get('/products');
-      if (response['success'] == true && response['data'] is List) {
-        final list = (response['data'] as List)
-            .map((item) => Product.fromJson(Map<String, dynamic>.from(item)))
-            .take(6)
-            .toList();
-        if (mounted) {
-          setState(() {
-            _featuredProducts = list;
-            _isLoadingProducts = false;
-          });
+      // Products and categories come from the Supabase public catalogue.
+      final rows = await Supabase.instance.client
+          .from('products')
+          .select('id, name, description, price_idr, stock, cover_image_path, categories(name)')
+          .eq('is_published', true)
+          .order('created_at', ascending: false)
+          .limit(6)
+          .timeout(const Duration(seconds: 8));
+
+      final list = (rows as List).map((item) {
+        final row = Map<String, dynamic>.from(item);
+        final rawCategory = row['categories'];
+        final category = rawCategory is Map
+            ? (rawCategory['name']?.toString() ?? 'Merchandise')
+            : 'Merchandise';
+        final imagePath = row['cover_image_path']?.toString();
+        String? imageUrl;
+        if (imagePath != null && imagePath.trim().isNotEmpty) {
+          imageUrl = imagePath.startsWith('http')
+              ? imagePath
+              : Supabase.instance.client.storage
+                  .from('eclipseverse-media')
+                  .getPublicUrl(imagePath);
         }
-      } else {
-        if (mounted) setState(() => _isLoadingProducts = false);
+        return Product(
+          id: (row['id'] as num).toInt(),
+          name: row['name']?.toString() ?? 'Produk',
+          category: category,
+          description: row['description']?.toString() ?? '',
+          price: (row['price_idr'] as num?)?.toInt() ?? 0,
+          stock: (row['stock'] as num?)?.toInt() ?? 0,
+          imageUrl: imageUrl,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _featuredProducts = list;
+          _isLoadingProducts = false;
+        });
       }
     } catch (_) {
       if (mounted) setState(() => _isLoadingProducts = false);
