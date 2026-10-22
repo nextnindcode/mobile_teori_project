@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
-import '../../core/secure_store.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/auth_service.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
-import '../../core/local_db.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -25,31 +25,42 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await ApiService.post('/auth/login', {
-        'email': _emailController.text.trim(),
-        'password': _passwordController.text,
-      });
-
-      if (response['success'] == true) {
-        await SecureStore.saveToken(response['data']['token']);
-        final user = Map<String, dynamic>.from(response['data']['user'] as Map);
-        await LocalDb.saveProfile(
-          userId: int.tryParse('${user['id']}') ?? 0,
-          name: '${user['name'] ?? ''}',
-          email: '${user['email'] ?? _emailController.text.trim()}',
-        );
-        await LocalDb.setPref('user_role', '${user['role'] ?? 'user'}');
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, Routes.shell);
+      final response = await AuthService.login(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      final user = response.user;
+      if (user == null) {
+        throw const AuthException('Login gagal. Silakan coba lagi.');
       }
+
+      await AuthService.cacheUserLocally(user);
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Login gagal: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override

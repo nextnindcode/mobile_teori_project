@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/auth_service.dart';
 import '../../core/secure_store.dart';
-import '../../core/api_service.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../core/local_db.dart';
@@ -22,62 +22,47 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkSession() async {
-    // Delay 3 detik biar animasi gerhana selesai
+    // Keep the existing eclipse animation while Supabase restores its session.
     await Future.delayed(const Duration(seconds: 3));
-
-    final token = await SecureStore.getToken();
-
     if (!mounted) return;
 
-    if (token != null) {
-      // Validasi sesi di server setiap aplikasi dibuka. Jika server offline,
-      // token lokal tetap dipakai agar pengguna bisa membuka cache yang tersedia.
-      try {
-        final session = await ApiService.get('/auth/me');
-        if (session['success'] != true) {
-          await SecureStore.deleteToken();
-          if (mounted) Navigator.pushReplacementNamed(context, Routes.login);
-          return;
-        }
-      } on ApiException catch (e) {
-        if (e.code == 'TOKEN_EXPIRED' || e.code == 'INVALID_SESSION') {
-          await SecureStore.deleteToken();
-          if (mounted) Navigator.pushReplacementNamed(context, Routes.login);
-          return;
-        }
-        // Error server selain token kadaluarsa: lanjut dengan sesi/cache lokal.
-      } catch (_) {
-        // Koneksi offline/timeout: lanjut dengan sesi/cache lokal.
-      }
+    final user = AuthService.currentUser;
+    final session = AuthService.currentSession;
 
+    if (user == null || session == null) {
+      await SecureStore.deleteToken();
       if (!mounted) return;
-      final biometricEnabled = await LocalDb.getPref('biometric_enabled');
-
-      if (biometricEnabled == '1' || biometricEnabled == 'true') {
-        final isSupported = await BiometricService.isSupported();
-
-        if (isSupported) {
-          final authSuccess = await BiometricService.authenticate();
-
-          if (!mounted) return;
-
-          if (authSuccess) {
-            Navigator.pushReplacementNamed(context, Routes.shell);
-          } else {
-            Navigator.pushReplacementNamed(context, Routes.login);
-          }
-          return;
-        }
-      }
-
-      // Kalau biometrik mati / ga support, tapi token ada -> Langsung ke Home!
-      // ignore: use_build_context_synchronously
-      Navigator.pushReplacementNamed(context, Routes.shell);
-    } else {
-      // Kalau token ga ada -> ke Login
       Navigator.pushReplacementNamed(context, Routes.login);
+      return;
     }
+
+    // Refresh local display cache when possible; offline cache must not block entry.
+    try {
+      await AuthService.cacheUserLocally(user);
+    } catch (_) {
+      // The persisted Supabase session remains authoritative.
+    }
+    if (!mounted) return;
+
+    final biometricEnabled = await LocalDb.getPref('biometric_enabled');
+    if (biometricEnabled == '1' || biometricEnabled == 'true') {
+      final isSupported = await BiometricService.isSupported();
+      if (isSupported) {
+        final authSuccess = await BiometricService.authenticate();
+        if (!mounted) return;
+
+        if (authSuccess) {
+          Navigator.pushReplacementNamed(context, Routes.shell);
+        } else {
+          Navigator.pushReplacementNamed(context, Routes.login);
+        }
+        return;
+      }
+    }
+
+    Navigator.pushReplacementNamed(context, Routes.shell);
   }
+
 
   @override
   Widget build(BuildContext context) {

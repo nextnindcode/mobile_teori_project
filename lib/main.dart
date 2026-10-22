@@ -7,8 +7,7 @@ import 'features/auth/login_page.dart';
 import 'features/auth/register_page.dart';
 import 'features/auth/splash_page.dart';
 import 'core/local_db.dart';
-import 'core/secure_store.dart';
-import 'core/api_service.dart';
+import 'core/auth_service.dart';
 import 'features/event/event_page.dart';
 import 'features/event/event_detail_page.dart';
 import 'features/fandom/member_detail_page.dart';
@@ -51,13 +50,10 @@ class MyApp extends StatelessWidget {
         Routes.shell: (context) => MainShell(
           onLogout: () async {
             try {
-              await ApiService.post('/auth/logout', {});
-            } catch (_) {
-              // Token lokal tetap dihapus meskipun server tidak dapat dihubungi.
+              await AuthService.logout();
+            } finally {
+              await LocalDb.clearAll();
             }
-
-            await SecureStore.deleteToken();
-            await LocalDb.clearAll();
 
             if (context.mounted) {
               Navigator.pushNamedAndRemoveUntil(
