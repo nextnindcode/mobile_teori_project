@@ -25,6 +25,7 @@ class GameController extends ChangeNotifier {
   int _score = 0;
   int _correctCount = 0;
   int _timeLeft = 15;
+  int _roundDuration = 15;
   int _bestScore = 0; 
   Timer? _timer;
 
@@ -37,7 +38,7 @@ class GameController extends ChangeNotifier {
   bool get isGameOver => _currentRound >= 10;
   GameQuestion get currentQuestion => _questions[_currentRound];
 
-  void startGame() async {
+  void startGame({bool memberChallenge = false}) async {
     try {
       _bestScore = await GameService.getBestScore();
     } catch (e) {
@@ -45,6 +46,7 @@ class GameController extends ChangeNotifier {
       debugPrint('SQLite tidak didukung di Web, best score di-reset.');
     }
     
+    _roundDuration = memberChallenge ? 10 : 15;
     _generateQuestions();
     _currentRound = 0;
     _score = 0;
@@ -72,7 +74,7 @@ class GameController extends ChangeNotifier {
 
   void _startTimer() {
     _timer?.cancel();
-    _timeLeft = 15;
+    _timeLeft = _roundDuration;
     notifyListeners();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {

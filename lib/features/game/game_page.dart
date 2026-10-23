@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import 'game_controller.dart';
-import 'sensor_service.dart'; 
+import 'sensor_service.dart';
+import '../membership/membership_service.dart';
+import '../../core/routes.dart'; 
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
@@ -16,7 +18,8 @@ class _GamePageState extends State<GamePage> {
   final SensorService _sensorService = SensorService();
   String? _selectedOption; 
   bool _isAnswered = false; 
-  int _highlightedIndex = 0; 
+  int _highlightedIndex = 0;
+  bool _memberChallenge = false; 
 
   @override
   void dispose() {
@@ -69,7 +72,7 @@ class _GamePageState extends State<GamePage> {
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const Text('Guess the Member'),
+          title: Text(_memberChallenge ? 'Tantangan Member' : 'Guess the Member'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context),
@@ -141,10 +144,36 @@ class _GamePageState extends State<GamePage> {
               child: ElevatedButton(
                 style: AppTheme.primaryButtonStyle,
                 onPressed: () {
+                  setState(() => _memberChallenge = false);
                   controller.startGame();
-                  _startSensors(controller); 
+                  _startSensors(controller);
                 },
                 child: const Text('Mulai Bermain'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.workspace_premium),
+                label: const Text('Tantangan Member · 10 detik/ronde'),
+                onPressed: () async {
+                  try {
+                    final active = await MembershipService.isActive();
+                    if (!mounted) return;
+                    if (!active) {
+                      Navigator.pushNamed(context, Routes.membership);
+                      return;
+                    }
+                    setState(() => _memberChallenge = true);
+                    controller.startGame(memberChallenge: true);
+                    _startSensors(controller);
+                  } catch (e) {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Status membership gagal diperiksa: $e')),
+                    );
+                  }
+                },
               ),
             ),
           ],

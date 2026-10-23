@@ -10,6 +10,8 @@ import 'package:eclipseverse/core/local_db.dart';
 import '../notification/notification_service.dart';
 import '../fandom/shared/state_views.dart';
 import 'biometric_service.dart';
+import '../membership/membership_service.dart';
+import '../../core/routes.dart';
 
 class ProfilePage extends StatefulWidget {
   final Future<void> Function()? onLogout;
@@ -205,6 +207,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: AppTheme.spacingLarge),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, Routes.membership),
+                  icon: const Icon(Icons.workspace_premium),
+                  label: const Text('Membership EclipseVerse'),
+                ),
+                const SizedBox(height: AppTheme.spacingMedium),
                 Card(
                   child: Column(
                     children: [

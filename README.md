@@ -1,3 +1,24 @@
+## Menjalankan EclipseVerse (Supabase)
+
+Aplikasi Flutter menggunakan Supabase sebagai backend online: Supabase Auth untuk sesi login, Postgres untuk data, Storage untuk media, dan Edge Function untuk Eclipse AI. PHP/XAMPP tidak diperlukan untuk menjalankan versi aplikasi ini.
+
+1. Jalankan migrasi SQL secara berurutan di Supabase SQL Editor:
+   - `supabase/migrations/0001_initial_schema.sql`
+   - `supabase/migrations/0002_demo_seed.sql`
+   - `supabase/migrations/0003_supabase_only_membership_checkout.sql`
+2. Atur konfirmasi email di Supabase Authentication sesuai kebutuhan demonstrasi.
+3. Deploy Edge Function `eclipse-ai` dan set secret `GEMINI_API_KEY` di Supabase Functions. Jangan menaruh kunci Gemini di Flutter.
+4. Setiap anggota dapat menjalankan aplikasi dari laptop masing-masing tanpa XAMPP:
+
+```bash
+flutter pub get
+flutter run --dart-define=SUPABASE_URL=https://PROJECT-REF.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+```
+
+Ganti URL dan publishable key dengan kredensial project Supabase tim. Publishable key digunakan pada aplikasi client; jangan pernah memasukkan service-role key atau secret Gemini ke aplikasi Flutter. Semua anggota memakai database online yang sama.
+
+Catatan: layanan yang sudah dipindahkan memakai Supabase langsung. Uji setiap alur pada project yang telah menjalankan migrasi. Edge Function AI perlu dideploy terpisah. Build dan sensor tetap harus diuji pada HP Android fisik.
+
 # EclipseVerse
 
 Aplikasi Flutter untuk project akhir Pemrograman Aplikasi Mobile. EclipseVerse menggabungkan fandom, event, marketplace, konversi mata uang/waktu, profil, mini-game, lokasi, notifikasi, dan redeem.
