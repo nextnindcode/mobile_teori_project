@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -27,12 +27,18 @@ class _NotificationPageState extends State<NotificationPage> {
     });
 
     try {
-      // Panggil API/notifications
-      final response = await ApiService.get('/notifications');
-      final data = response['data'] as List<dynamic>;
-      
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) throw Exception('Silakan login kembali.');
+      final rows = await client.from('notifications')
+          .select('id,title,message,type,is_read,created_at')
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false)
+          .limit(100)
+          .timeout(const Duration(seconds: 8));
+      if (!mounted) return;
       setState(() {
-        _notifications = data;
+        _notifications = rows;
         _isLoading = false;
       });
     } catch (e) {

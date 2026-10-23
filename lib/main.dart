@@ -18,6 +18,7 @@ import 'features/game/game_page.dart';
 import 'features/marketplace/catalog_page.dart';
 import 'features/marketplace/cart_page.dart';
 import 'features/marketplace/orders_page.dart';
+import 'features/membership/membership_page.dart';
 import 'features/nearby/nearby_page.dart';
 import 'features/redeem/redeem_page.dart';
 import 'features/notification/notification_page.dart';
@@ -25,10 +26,15 @@ import 'features/notification/notification_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: 'https://swnnzsqwudezuvromgfm.supabase.co',
-    publishableKey: 'sb_publishable_vyYETtO5DqB0R0bv6H0qfA_mtiExTSp',
+  const supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://swnnzsqwudezuvromgfm.supabase.co',
   );
+  const supabaseKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+    defaultValue: 'sb_publishable_vyYETtO5DqB0R0bv6H0qfA_mtiExTSp',
+  );
+  await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
 
   runApp(const MyApp());
 }
@@ -71,6 +77,7 @@ class MyApp extends StatelessWidget {
         Routes.catalog: (_) => const CatalogPage(),
         Routes.cart: (_) => const CartPage(),
         Routes.orders: (_) => const OrdersPage(),
+        Routes.membership: (_) => const MembershipPage(),
         Routes.ai: (_) => const AiPage(),
         Routes.game: (_) => const GamePage(),
         Routes.nearby: (_) => const NearbyPage(),

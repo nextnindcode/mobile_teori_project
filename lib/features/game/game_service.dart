@@ -1,30 +1,47 @@
-import '../../core/api_service.dart';
-import '../../core/local_db.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/local_db.dart';
 
 class GameService {
-  // 1. Ambil skor terbaik dari SQLite lokal
+  static final _client = Supabase.instance.client;
+
   static Future<int> getBestScore() async {
-    final bestScoreStr = await LocalDb.getPreference('best_score');
-    return int.tryParse(bestScoreStr ?? '0') ?? 0;
+    final local = int.tryParse(await LocalDb.getPreference('best_score') ?? '0') ?? 0;
+    final user = _client.auth.currentUser;
+    if (user == null) return local;
+    try {
+      final row = await _client
+          .from('game_scores')
+          .select('score')
+          .eq('user_id', user.id)
+          .order('score', ascending: false)
+          .limit(1)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
+      final remote = (row?['score'] as num?)?.toInt() ?? 0;
+      return remote > local ? remote : local;
+    } catch (_) {
+      return local;
+    }
   }
 
-  // 2. Simpan skor terbaik baru ke SQLite
   static Future<void> saveBestScore(int score) async {
     await LocalDb.setPreference('best_score', score.toString());
   }
 
-  // 3. Kirim skor ke server backend (PHP)
   static Future<void> kirimSkorKeServer(int score, int correctCount) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
     try {
-      await ApiService.post('/game/score', {
+      // Store the result for history/leaderboard. Points are awarded only by trusted RPCs.
+      await _client.from('game_scores').insert({
+        'user_id': user.id,
         'score': score,
-        'correct_count': correctCount,
-      });
+        'correct_count': correctCount.clamp(0, 10),
+        'question_count': 10,
+      }).timeout(const Duration(seconds: 8));
     } catch (e) {
-      // Skor tetap tersimpan di SQLite lokal.
-      debugPrint('Gagal mengirim skor ke server: $e');
+      debugPrint('Gagal menyimpan skor ke Supabase: $e');
     }
   }
-
 }

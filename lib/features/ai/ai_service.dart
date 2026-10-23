@@ -1,30 +1,32 @@
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AiService {
-  // Mengirim pesan ke endpoint/ai/chat
+  static final _client = Supabase.instance.client;
+
   static Future<String> kirimPesan(String pesan) async {
+    final prompt = pesan.trim();
+    if (prompt.isEmpty) throw Exception('Pesan tidak boleh kosong.');
     try {
-      // Memakai ApiService.post 
-      final response = await ApiService.post(
-        '/ai/chat',
-        {'message': pesan},
-        timeout: const Duration(seconds: 28),
-      );
-      
-      // Response API dibungkus dalam key `data` oleh Response::success.
-      final payload = response['data'];
-      if (payload is Map && payload['reply'] is String) {
-        return (payload['reply'] as String).trim();
+      final response = await _client.functions
+          .invoke('eclipse-ai', body: {'message': prompt})
+          .timeout(const Duration(seconds: 28));
+      if (response.status < 200 || response.status >= 300) {
+        throw Exception('Eclipse AI belum dapat menjawab. Coba lagi nanti.');
       }
-      // Fallback untuk kompatibilitas jika server mengirim format lama.
-      return response['reply']?.toString() ??
-          'Maaf, AI tidak memberikan jawaban.';
-      
-    } on ApiException catch (e) {
-      // Lempar error agar ditangkap oleh UI
-      throw Exception(e.message);
+      final body = response.data;
+      if (body is Map && body['reply'] is String) {
+        return (body['reply'] as String).trim();
+      }
+      throw Exception('Format jawaban Eclipse AI tidak valid.');
+    } on FunctionException catch (e) {
+      throw Exception(e.details?.toString() ?? 'Eclipse AI sementara tidak tersedia.');
+    } on AuthException {
+      throw Exception('Sesi login tidak valid. Silakan login kembali.');
     } catch (e) {
-      throw Exception('Gagal menghubungi server. Periksa koneksi internet anda!.');
+      if (e.toString().contains('TimeoutException')) {
+        throw Exception('Eclipse AI terlalu lama merespons. Coba lagi.');
+      }
+      rethrow;
     }
   }
 }
