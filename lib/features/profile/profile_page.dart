@@ -10,7 +10,6 @@ import 'package:eclipseverse/core/local_db.dart';
 import '../notification/notification_service.dart';
 import '../fandom/shared/state_views.dart';
 import 'biometric_service.dart';
-import '../membership/membership_service.dart';
 import '../../core/routes.dart';
 
 class ProfilePage extends StatefulWidget {

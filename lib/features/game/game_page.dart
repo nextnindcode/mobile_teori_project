@@ -143,9 +143,9 @@ class _GamePageState extends State<GamePage> {
               width: double.infinity,
               child: ElevatedButton(
                 style: AppTheme.primaryButtonStyle,
-                onPressed: () {
+                onPressed: () async {
                   setState(() => _memberChallenge = false);
-                  controller.startGame();
+                  await controller.startGame();
                   _startSensors(controller);
                 },
                 child: const Text('Mulai Bermain'),
@@ -166,7 +166,7 @@ class _GamePageState extends State<GamePage> {
                       return;
                     }
                     setState(() => _memberChallenge = true);
-                    controller.startGame(memberChallenge: true);
+                    await controller.startGame(memberChallenge: true);
                     _startSensors(controller);
                   } catch (e) {
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(
@@ -295,7 +295,7 @@ class _GamePageState extends State<GamePage> {
             child: Row(
               children: List.generate(question.options.length, (index) {
                 final option = question.options[index];
-                bool isCorrectAnswer = option == question.correctAnswer;
+                bool isCorrectAnswer = false;
                 bool isSelected = option == _selectedOption;
                 bool isHighlighted = index == _highlightedIndex;
 
@@ -311,16 +311,10 @@ class _GamePageState extends State<GamePage> {
                 }
 
                 // Feedback Jawaban Benar/Salah
-                if (_isAnswered) {
-                  if (isCorrectAnswer) {
-                    buttonColor = Colors.green;
-                    textColor = Colors.white;
-                    borderColor = Colors.green;
-                  } else if (isSelected && !isCorrectAnswer) {
-                    buttonColor = Colors.red;
-                    textColor = Colors.white;
-                    borderColor = Colors.red;
-                  }
+                if (_isAnswered && isSelected) {
+                  buttonColor = AppTheme.eclipseViolet;
+                  textColor = Colors.white;
+                  borderColor = AppTheme.eclipseViolet;
                 }
 
                 return Expanded(

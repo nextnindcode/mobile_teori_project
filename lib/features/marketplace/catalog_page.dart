@@ -232,7 +232,13 @@ class _CatalogPageState extends State<CatalogPage> {
                 return ChoiceChip(
                   label: Text(label),
                   selected: selected,
-                  onSelected: (_) async {\n                    if (label == 'Koleksi' && !await MembershipService.isActive()) {\n                      if (mounted) Navigator.pushNamed(context, Routes.membership);\n                      return;\n                    }\n                    if (mounted) setState(() => _category = label);\n                  },
+                  onSelected: (_) async {
+                    if (label == 'Koleksi' && !await MembershipService.isActive()) {
+                      if (mounted) Navigator.pushNamed(context, Routes.membership);
+                      return;
+                    }
+                    if (mounted) setState(() => _category = label);
+                  },
                   backgroundColor: AppTheme.surfaceElevated,
                   selectedColor: AppTheme.eclipseViolet,
                   labelStyle: TextStyle(
