@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart' show getDatabasesPath;
@@ -38,6 +39,22 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _load() async {
     final profile = await LocalDb.getUserProfile();
     final avatar = await LocalDb.getPref('avatar_path');
+    String? remoteAvatarUrl;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      try {
+        final row = await Supabase.instance.client.from('profiles')
+            .select('avatar_path').eq('id', user.id).maybeSingle()
+            .timeout(const Duration(seconds: 6));
+        final storagePath = row?['avatar_path']?.toString();
+        if (storagePath != null && storagePath.isNotEmpty) {
+          remoteAvatarUrl = Supabase.instance.client.storage
+              .from('eclipseverse-media').getPublicUrl(storagePath);
+        }
+      } catch (_) {
+        // Keep local avatar cache if the network is temporarily unavailable.
+      }
+    }
     final bio = await LocalDb.getPref('biometric_enabled');
     final notif = await LocalDb.getPref('notification_enabled');
     final supported = await BiometricService.isSupported();
@@ -45,7 +62,7 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       _name = '${profile?['name'] ?? ''}';
       _email = '${profile?['email'] ?? ''}';
-      _avatarPath = (avatar != null && avatar.isNotEmpty) ? avatar : null;
+      _avatarPath = remoteAvatarUrl ?? ((avatar != null && avatar.isNotEmpty) ? avatar : null);
       _bioSupported = supported;
       _bioEnabled = supported && bio == '1';
       _notifEnabled = notif == '1';
@@ -67,8 +84,26 @@ class _ProfilePageState extends State<ProfilePage> {
       final savedPath = path.join(directory, 'eclipseverse_avatar$extension');
       final savedFile = await File(x.path).copy(savedPath);
       await LocalDb.setPref('avatar_path', savedFile.path);
+      var displayedPath = savedFile.path;
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        try {
+          final storagePath = 'avatars/${user.id}/profile${path.extension(savedFile.path)}';
+          await Supabase.instance.client.storage.from('eclipseverse-media').upload(
+            storagePath, savedFile,
+            fileOptions: const FileOptions(upsert: true, contentType: 'image/jpeg'),
+          ).timeout(const Duration(seconds: 12));
+          await Supabase.instance.client.from('profiles').update({
+            'avatar_path': storagePath,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          }).eq('id', user.id).timeout(const Duration(seconds: 8));
+          displayedPath = Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(storagePath);
+        } catch (_) {
+          // Keep the persistent local copy if Storage is unavailable or the user is offline.
+        }
+      }
       if (!mounted) return;
-      setState(() => _avatarPath = savedFile.path);
+      setState(() => _avatarPath = displayedPath);
     } catch (_) {
       if (mounted) showSnack(context, 'Gagal memilih foto');
     }
@@ -146,6 +181,7 @@ class _ProfilePageState extends State<ProfilePage> {
   ImageProvider? get _avatarImage {
     final p = _avatarPath;
     if (p == null) return null;
+    if (p.startsWith('https://') || p.startsWith('http://')) return NetworkImage(p);
     final f = File(p);
     return f.existsSync() ? FileImage(f) : null;
   }
