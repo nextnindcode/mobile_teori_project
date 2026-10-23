@@ -448,49 +448,54 @@ class _HomePageState extends State<HomePage> {
               // Action buttons row
               Row(
                 children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.eclipseViolet,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+                  SizedBox(
+                    width: 145,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.eclipseViolet,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: () => _open(Routes.catalog),
-                    icon: const Icon(Icons.storefront_rounded, size: 16),
-                    label: const Text(
-                      'Beli Merch',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                      onPressed: () => _open(Routes.catalog),
+                      icon: const Icon(Icons.storefront_rounded, size: 16),
+                      label: const Text(
+                        'Beli Merch',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.coolCyan,
-                      side: const BorderSide(color: AppTheme.borderSubtle),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
+                  SizedBox(
+                    width: 125,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.coolCyan,
+                        side: const BorderSide(color: AppTheme.borderSubtle),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: () => _open(Routes.ai),
-                    icon: const Icon(Icons.auto_awesome, size: 16),
-                    label: const Text(
-                      'Tanya AI',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                      onPressed: () => _open(Routes.ai),
+                      icon: const Icon(Icons.auto_awesome, size: 16),
+                      label: const Text(
+                        'Tanya AI',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
