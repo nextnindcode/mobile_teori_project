@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api_service.dart';
-import '../../theme/app_theme.dart';
 import '../../core/local_db.dart';
 import '../../models/products.dart';
+import '../../theme/app_theme.dart';
+import '../../theme/cosmic_widgets.dart';
 
 class ProductDetailSheet extends StatefulWidget {
   final Product product;
@@ -17,6 +18,7 @@ class ProductDetailSheet extends StatefulWidget {
 class _ProductDetailSheetState extends State<ProductDetailSheet> {
   String _selectedCurrency = 'IDR';
   double _convertedPrice = 0;
+  bool _isAdding = false;
 
   final Map<String, double> _rates = {
     'IDR': 16250.0,
@@ -32,46 +34,55 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     _fetchRates();
   }
 
-  // Ambil kurs dari API
   Future<void> _fetchRates() async {
     try {
       final res = await ApiService.get('/currency/rates?base=USD');
-      if (res['success'] == true && res['data']['rates'] != null) {
+      if (res['success'] == true && res['data'] is Map && res['data']['rates'] != null) {
+        if (!mounted) return;
         setState(() {
           final apiRates = res['data']['rates'];
-          _rates['IDR'] = (apiRates['IDR'] as num).toDouble();
-          _rates['USD'] = (apiRates['USD'] as num).toDouble();
-          _rates['KRW'] = (apiRates['KRW'] as num).toDouble();
-          _rates['JPY'] = (apiRates['JPY'] as num).toDouble();
+          if (apiRates['IDR'] != null) _rates['IDR'] = (apiRates['IDR'] as num).toDouble();
+          if (apiRates['USD'] != null) _rates['USD'] = (apiRates['USD'] as num).toDouble();
+          if (apiRates['KRW'] != null) _rates['KRW'] = (apiRates['KRW'] as num).toDouble();
+          if (apiRates['JPY'] != null) _rates['JPY'] = (apiRates['JPY'] as num).toDouble();
         });
       }
-    } catch (e) {
-      // Kalau API error, biarin pakai rate default
-    }
+    } catch (_) {}
   }
 
-  // Hitung harga konversi
-  void _convert() {
+  void _convert(String currency) {
     setState(() {
+      _selectedCurrency = currency;
       _convertedPrice =
           (widget.product.price / (_rates['IDR'] ?? 16250.0)) *
           (_rates[_selectedCurrency] ?? 1.0);
     });
   }
 
-  // Simpan ke Cart
   Future<void> _addToCart() async {
+    if (widget.product.stock <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maaf, stok produk ini sedang habis.'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isAdding = true);
     await LocalDb.addToCart(
       productId: widget.product.id,
       name: widget.product.name,
       price: widget.product.price,
     );
     if (!mounted) return;
+    setState(() => _isAdding = false);
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Berhasil ditambahkan ke keranjang!'),
-        backgroundColor: Colors.green,
+      SnackBar(
+        content: Text('${widget.product.name} ditambahkan ke keranjang!'),
+        backgroundColor: AppTheme.success,
       ),
     );
   }
@@ -79,104 +90,172 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceElevated,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border.all(color: AppTheme.borderSubtle),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(22, 12, 22, 28),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. GAMBAR PRODUK
+          // Drag Handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 18),
+              decoration: BoxDecoration(
+                color: AppTheme.borderSubtle,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+
+          // 1. Gambar Produk
           Center(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child:
-                  widget.product.imageUrl != null &&
-                      widget.product.imageUrl!.isNotEmpty
-                  ? Image.network(
-                      widget.product.imageUrl!,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      height: 200,
-                      width: 200,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.image, size: 80),
-                    ),
+              borderRadius: BorderRadius.circular(20),
+              child: CosmicNetworkImage(
+                imageUrl: widget.product.imageUrl,
+                height: 190,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
 
-          // 2. NAMA & HARGA
+          // 2. Kategori & Stok
+          Row(
+            children: [
+              CosmicBadge(
+                text: widget.product.category.toUpperCase(),
+                color: AppTheme.coolCyan,
+                textColor: AppTheme.coolCyan,
+              ),
+              const Spacer(),
+              Icon(
+                widget.product.stock > 0 ? Icons.check_circle_outline : Icons.cancel_outlined,
+                size: 14,
+                color: widget.product.stock > 0 ? AppTheme.success : AppTheme.error,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                widget.product.stock > 0 ? 'Tersedia: ${widget.product.stock} pcs' : 'Stok habis',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: widget.product.stock > 0 ? AppTheme.success : AppTheme.error,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // 3. Nama Produk
           Text(
             widget.product.name,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Rp ${widget.product.price}',
             style: const TextStyle(
               fontSize: 18,
-              color: AppTheme.primaryDark,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 6),
 
-          // 3. KOTAK KONVERSI
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.background,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
+          // 4. Harga Terpilih
+          Text(
+            _selectedCurrency == 'IDR'
+                ? 'Rp ${widget.product.price}'
+                : '$_selectedCurrency ${_convertedPrice.toStringAsFixed(2)}',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: AppTheme.coronaGold,
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedCurrency,
-                      isExpanded: true,
-                      items: ['IDR', 'USD', 'KRW', 'JPY'].map((c) {
-                        return DropdownMenuItem(value: c, child: Text('Ke $c'));
-                      }).toList(),
-                      onChanged: (val) {
-                        setState(() => _selectedCurrency = val!);
-                        _convert();
-                      },
+          ),
+          const SizedBox(height: 10),
+
+          // 5. Konversi Mata Uang Cepat
+          Row(
+            children: [
+              const Text('Konversi:', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+              const SizedBox(width: 8),
+              ...['IDR', 'USD', 'KRW', 'JPY'].map((c) {
+                final isSelected = _selectedCurrency == c;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: InkWell(
+                    onTap: () => _convert(c),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppTheme.eclipseViolet : AppTheme.surfaceSecondary,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected ? AppTheme.eclipseViolet : AppTheme.borderSubtle,
+                        ),
+                      ),
+                      child: Text(
+                        c,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : AppTheme.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  _selectedCurrency == 'IDR'
-                      ? 'Rp ${_convertedPrice.toStringAsFixed(0)}'
-                      : '$_selectedCurrency ${_convertedPrice.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+                );
+              }),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // 6. Deskripsi
+          const Text(
+            'Deskripsi',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 4),
+          Text(
+            widget.product.description.isEmpty ? 'Tidak ada deskripsi.' : widget.product.description,
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
 
-          // 4. TOMBOL TAMBAH KE KERANJANG
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: _addToCart,
-              icon: const Icon(Icons.shopping_cart),
-              label: const Text(
-                'Tambah ke Keranjang',
-                style: TextStyle(fontSize: 16),
+          // 7. Tombol Masukkan Keranjang
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.product.stock > 0 ? AppTheme.eclipseViolet : AppTheme.surfaceSecondary,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radius),
               ),
+            ),
+            onPressed: widget.product.stock > 0 && !_isAdding ? _addToCart : null,
+            icon: _isAdding
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.add_shopping_cart, size: 20),
+            label: Text(
+              widget.product.stock > 0 ? 'Tambah ke Keranjang' : 'Stok Tidak Tersedia',
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],
