@@ -509,73 +509,27 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildQuickActionGrid() {
+    // Event dan katalog sudah tampil pada section khusus di Home.
+    // Shortcut disisakan untuk fitur pendukung agar tidak berulang.
     final actions = [
-      {
-        'label': 'Store',
-        'icon': Icons.storefront_outlined,
-        'color': AppTheme.eclipseViolet,
-        'route': Routes.catalog,
-      },
-      {
-        'label': 'Events',
-        'icon': Icons.calendar_month_outlined,
-        'color': AppTheme.nebulaIndigo,
-        'route': Routes.events,
-      },
-      {
-        'label': 'Fandom',
-        'icon': Icons.people_alt_outlined,
-        'color': AppTheme.coolCyan,
-        'route': Routes.shell,
-      },
-      {
-        'label': 'Nearby',
-        'icon': Icons.near_me_outlined,
-        'color': AppTheme.coronaGold,
-        'route': Routes.nearby,
-      },
-      {
-        'label': 'Eclipse AI',
-        'icon': Icons.auto_awesome_outlined,
-        'color': const Color(0xFFC084FC),
-        'route': Routes.ai,
-      },
-      {
-        'label': 'Tools',
-        'icon': Icons.currency_exchange_rounded,
-        'color': const Color(0xFF38BDF8),
-        'route': Routes.tools,
-      },
-      {
-        'label': 'Mini Game',
-        'icon': Icons.sports_esports_outlined,
-        'color': const Color(0xFFF472B6),
-        'route': Routes.game,
-      },
-      {
-        'label': 'Redeem',
-        'icon': Icons.card_giftcard_rounded,
-        'color': const Color(0xFFFBBF24),
-        'route': Routes.redeem,
-      },
+      {'label': 'Nearby', 'icon': Icons.near_me_outlined, 'color': AppTheme.coronaGold, 'route': Routes.nearby},
+      {'label': 'Eclipse AI', 'icon': Icons.auto_awesome_outlined, 'color': AppTheme.eclipseViolet, 'route': Routes.ai},
+      {'label': 'Kurs & Waktu', 'icon': Icons.currency_exchange_rounded, 'color': AppTheme.coolCyan, 'route': Routes.tools},
+      {'label': 'Redeem Poin', 'icon': Icons.card_giftcard_rounded, 'color': AppTheme.coronaGold, 'route': Routes.redeem},
     ];
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          childAspectRatio: 0.88,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
+          crossAxisCount: 4, childAspectRatio: 0.88,
+          crossAxisSpacing: 10, mainAxisSpacing: 10,
         ),
         itemCount: actions.length,
         itemBuilder: (context, index) {
           final item = actions[index];
           final color = item['color'] as Color;
-
           return InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: () => _open(item['route'] as String),
@@ -589,28 +543,15 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      item['icon'] as IconData,
-                      color: color,
-                      size: 22,
-                    ),
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.16), shape: BoxShape.circle),
+                    child: Icon(item['icon'] as IconData, color: color, size: 22),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    item['label'] as String,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(item['label'] as String, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
                   ),
                 ],
               ),

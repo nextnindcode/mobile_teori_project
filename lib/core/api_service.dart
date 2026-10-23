@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,7 +8,7 @@ import 'constants.dart';
 import 'secure_store.dart';
 
 class ApiService {
-  static const _timeout = Duration(seconds: 30);
+  static const _timeout = Duration(seconds: 12);
 
   static Uri _buildUri(String endpoint, [Map<String, dynamic>? query]) {
     final base = Constants.baseUrl.endsWith('/')
@@ -43,6 +44,11 @@ class ApiService {
           )
           .timeout(_timeout);
       return _handleResponse(response);
+    } on TimeoutException catch (e) {
+      throw ApiException(
+        'Server tidak merespons dalam ${e.duration?.inSeconds ?? _timeout.inSeconds} detik. Periksa URL API dan pastikan backend aktif.',
+        'TIMEOUT',
+      );
     } on SocketException catch (e) {
       throw ApiException(
         'Tidak dapat terhubung ke server. Periksa jaringan atau URL API (${e.message}).',
@@ -59,8 +65,9 @@ class ApiService {
   // ===== POST =====
   static Future<Map<String, dynamic>> post(
     String endpoint,
-    Map<String, dynamic> body,
-  ) async {
+    Map<String, dynamic> body, {
+    Duration timeout = _timeout,
+  }) async {
     try {
       final token = await SecureStore.getToken();
       final uri = _buildUri(endpoint);
@@ -74,8 +81,13 @@ class ApiService {
             },
             body: jsonEncode(body),
           )
-          .timeout(_timeout);
+          .timeout(timeout);
       return _handleResponse(response);
+    } on TimeoutException catch (e) {
+      throw ApiException(
+        'Server tidak merespons dalam ${e.duration?.inSeconds ?? _timeout.inSeconds} detik. Periksa URL API dan pastikan backend aktif.',
+        'TIMEOUT',
+      );
     } on SocketException catch (e) {
       throw ApiException(
         'Tidak dapat terhubung ke server. Periksa jaringan atau URL API (${e.message}).',
@@ -109,6 +121,11 @@ class ApiService {
           )
           .timeout(_timeout);
       return _handleResponse(response);
+    } on TimeoutException catch (e) {
+      throw ApiException(
+        'Server tidak merespons dalam ${e.duration?.inSeconds ?? _timeout.inSeconds} detik. Periksa URL API dan pastikan backend aktif.',
+        'TIMEOUT',
+      );
     } on SocketException catch (e) {
       throw ApiException(
         'Tidak dapat terhubung ke server. Periksa jaringan atau URL API (${e.message}).',
@@ -138,6 +155,11 @@ class ApiService {
           )
           .timeout(_timeout);
       return _handleResponse(response);
+    } on TimeoutException catch (e) {
+      throw ApiException(
+        'Server tidak merespons dalam ${e.duration?.inSeconds ?? _timeout.inSeconds} detik. Periksa URL API dan pastikan backend aktif.',
+        'TIMEOUT',
+      );
     } on SocketException catch (e) {
       throw ApiException(
         'Tidak dapat terhubung ke server. Periksa jaringan atau URL API (${e.message}).',
