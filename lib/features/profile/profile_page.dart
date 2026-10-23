@@ -91,7 +91,11 @@ class _ProfilePageState extends State<ProfilePage> {
           final storagePath = 'avatars/${user.id}/profile${path.extension(savedFile.path)}';
           await Supabase.instance.client.storage.from('eclipseverse-media').upload(
             storagePath, savedFile,
-            fileOptions: const FileOptions(upsert: true, contentType: 'image/jpeg'),
+            fileOptions: FileOptions(
+              upsert: true,
+              contentType: path.extension(savedFile.path).toLowerCase() == '.png'
+                  ? 'image/png' : 'image/jpeg',
+            ),
           ).timeout(const Duration(seconds: 12));
           await Supabase.instance.client.from('profiles').update({
             'avatar_path': storagePath,

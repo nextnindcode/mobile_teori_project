@@ -163,3 +163,26 @@ for update to authenticated using (
 );
 grant insert, update on public.products to authenticated;
 grant usage, select on sequence public.products_id_seq to authenticated;
+
+-- Signed-in users may upload and update only their own profile avatar.
+drop policy if exists eclipseverse_avatar_insert on storage.objects;
+create policy eclipseverse_avatar_insert on storage.objects
+for insert to authenticated
+with check (
+  bucket_id = 'eclipseverse-media'
+  and split_part(name, '/', 1) = 'avatars'
+  and split_part(name, '/', 2) = (select auth.uid())::text
+);
+drop policy if exists eclipseverse_avatar_update on storage.objects;
+create policy eclipseverse_avatar_update on storage.objects
+for update to authenticated
+using (
+  bucket_id = 'eclipseverse-media'
+  and split_part(name, '/', 1) = 'avatars'
+  and split_part(name, '/', 2) = (select auth.uid())::text
+)
+with check (
+  bucket_id = 'eclipseverse-media'
+  and split_part(name, '/', 1) = 'avatars'
+  and split_part(name, '/', 2) = (select auth.uid())::text
+);
