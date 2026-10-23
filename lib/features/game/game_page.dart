@@ -32,8 +32,9 @@ class _GamePageState extends State<GamePage> {
       onMove: (direction) {
         setState(() {
           // Navigasi melingkar untuk 2 pilihan (0 -> 1 -> 0)
-          _highlightedIndex = (_highlightedIndex + direction) % 2;
-          if (_highlightedIndex < 0) _highlightedIndex = 1;
+          final optionCount = controller.questions.isEmpty ? 4 : controller.currentQuestion.options.length;
+          _highlightedIndex = (_highlightedIndex + direction) % optionCount;
+          if (_highlightedIndex < 0) _highlightedIndex = optionCount - 1;
         });
       },
       onConfirm: () {
@@ -116,6 +117,10 @@ class _GamePageState extends State<GamePage> {
               ),
               child: const Icon(Icons.sports_esports, size: 80, color: Colors.white),
             ),
+            if (controller.loadError != null) ...[
+              Text(controller.loadError!, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.error)),
+              const SizedBox(height: 12),
+            ],
             const SizedBox(height: 32),
             Text(
               'Guess the Member!',
@@ -290,71 +295,48 @@ class _GamePageState extends State<GamePage> {
 
           const SizedBox(height: 24),
 
-          // 2 Tombol Pilihan Jawaban Berdampingan Kiri dan Kanan 
+          // Pilihan 2x2 agar empat jawaban tetap terbaca di layar HP.
           Expanded(
-            child: Row(
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1.8,
               children: List.generate(question.options.length, (index) {
                 final option = question.options[index];
-                bool isCorrectAnswer = false;
-                bool isSelected = option == _selectedOption;
-                bool isHighlighted = index == _highlightedIndex;
-
-                Color buttonColor = AppTheme.white;
-                Color textColor = AppTheme.primaryDark;
-                Color borderColor = AppTheme.primaryLight;
-
-                // Sorotan Sensor
-                if (isHighlighted && !_isAnswered) {
-                  buttonColor = AppTheme.primaryDark; 
-                  textColor = Colors.white;
-                  borderColor = AppTheme.primaryDark;
-                }
-
-                // Feedback Jawaban Benar/Salah
-                if (_isAnswered && isSelected) {
-                  buttonColor = AppTheme.eclipseViolet;
-                  textColor = Colors.white;
-                  borderColor = AppTheme.eclipseViolet;
-                }
-
-                return Expanded(
-                  child: Padding(
-                    // Jarak antar tombol kiri dan kanan
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0), 
-                    child: AnimatedScale(
-                      scale: isHighlighted ? 1.02 : 1.0, 
-                      duration: const Duration(milliseconds: 200),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: buttonColor,
-                            foregroundColor: textColor,
-                            elevation: isHighlighted ? 8 : 2,
-                            shadowColor: AppTheme.primaryDark.withValues(alpha: 0.3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(color: borderColor, width: 2),
-                            ),
-                          ),
-                          onPressed: () => _handleAnswer(index, option, controller),
-                          child: Text(
-                            option,
-                            textAlign: TextAlign.center,
-                            style: AppTheme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
+                final isSelected = option == _selectedOption;
+                final isHighlighted = index == _highlightedIndex;
+                final buttonColor = _isAnswered && isSelected
+                    ? AppTheme.eclipseViolet
+                    : (isHighlighted ? AppTheme.primaryDark : AppTheme.white);
+                final textColor = buttonColor == AppTheme.white
+                    ? AppTheme.primaryDark
+                    : Colors.white;
+                return AnimatedScale(
+                  scale: isHighlighted ? 1.02 : 1.0,
+                  duration: const Duration(milliseconds: 180),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: buttonColor,
+                      foregroundColor: textColor,
+                      elevation: isHighlighted ? 5 : 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: isHighlighted ? AppTheme.primaryDark : AppTheme.primaryLight,
+                          width: 2,
                         ),
                       ),
                     ),
+                    onPressed: _isAnswered ? null : () => _handleAnswer(index, option, controller),
+                    child: Text(option, textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
                   ),
                 );
               }),
             ),
           ),
-          
+
           // Teks Petunjuk
           Padding(
             padding: const EdgeInsets.only(top: 10),

@@ -14,6 +14,7 @@ class GameController extends ChangeNotifier {
   int _roundDuration = 15;
   String? _loadError;
   final Map<int, String> _answers = {};
+  bool _memberChallenge = false;
   int _bestScore = 0; 
   Timer? _timer;
 
@@ -45,6 +46,7 @@ class GameController extends ChangeNotifier {
           options: labels,
         );
       }));
+      _memberChallenge = memberChallenge;
       _roundDuration = memberChallenge ? 10 : 15;
       _currentRound = 0;
       _score = 0;
@@ -56,10 +58,6 @@ class GameController extends ChangeNotifier {
       _questions.clear();
       notifyListeners();
     }
-  }
-
-  void _generateQuestions() {
-    // Soal diambil dari quiz_questions_public; kunci jawaban hanya berada di database.
   }
 
   void _startTimer() {
@@ -101,7 +99,7 @@ class GameController extends ChangeNotifier {
         'question_id': question.id,
         'answer': _answers[question.id] ?? '',
       }).toList();
-      final result = await GameService.submitAnswers(answers);
+      final result = await GameService.submitAnswers(answers, memberChallenge: _memberChallenge);
       _score = (result['score'] as num?)?.toInt() ?? 0;
       _correctCount = (result['correct_count'] as num?)?.toInt() ?? 0;
       if (_score > _bestScore) {

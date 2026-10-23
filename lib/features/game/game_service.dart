@@ -31,8 +31,11 @@ class GameService {
     return list.take(10).toList();
   }
 
-  static Future<Map<String, dynamic>> submitAnswers(List<Map<String, dynamic>> answers) async {
-    final result = await _client.rpc('submit_quiz_attempt', params: {'p_answers': answers})
+  static Future<Map<String, dynamic>> submitAnswers(List<Map<String, dynamic>> answers, {bool memberChallenge = false}) async {
+    final result = await _client.rpc(
+      memberChallenge ? 'submit_member_quiz_attempt' : 'submit_quiz_attempt',
+      params: {'p_answers': answers},
+    )
         .timeout(const Duration(seconds: 10));
     return Map<String, dynamic>.from(result as Map);
   }
