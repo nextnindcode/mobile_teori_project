@@ -3,8 +3,8 @@ create or replace function public.append_blockchain_entry(p_action_type text, p_
 returns bigint
 language plpgsql
 security definer
-set search_path = ''
-as $$
+set search_path = public, extensions, pg_temp
+as $
 declare
   v_previous text;
   v_current text;
@@ -25,8 +25,8 @@ create or replace function public.record_business_ledger_entry()
 returns trigger
 language plpgsql
 security definer
-set search_path = ''
-as $$
+set search_path = public, extensions, pg_temp
+as $
 declare
   v_user uuid;
   v_action text;
@@ -66,8 +66,8 @@ create or replace function public.verify_blockchain_ledger()
 returns jsonb
 language plpgsql
 security definer
-set search_path = ''
-as $$
+set search_path = public, extensions, pg_temp
+as $
 declare
   v_row record;
   v_previous text := 'GENESIS';
