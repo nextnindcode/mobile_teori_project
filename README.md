@@ -2,14 +2,15 @@
 
 Aplikasi Flutter untuk project akhir Pemrograman Aplikasi Mobile. EclipseVerse menggabungkan fandom, event, marketplace, konversi mata uang/waktu, profil, mini-game, lokasi, notifikasi, dan redeem.
 
-## Stack utama
+## Stack yang saat ini ada di kode
 
 - Flutter / Dart
-- Supabase Auth untuk login dan registrasi
-- Supabase Database (PostgreSQL) untuk data online
-- Supabase Storage untuk media
+- Supabase Auth dan sebagian data Home
+- PHP REST API + MySQL untuk fitur yang masih memakai `ApiService`
 - SQLite (sqflite) untuk cache dan keranjang lokal
 - Fitur perangkat: biometrik, lokasi, sensor, dan notifikasi lokal
+
+**Catatan integrasi:** repo saat ini masih mencampur Supabase dan PHP/MySQL. Project Brief final menyebut arsitektur PHP REST API + MySQL sebagai backend aplikasi. Jangan menganggap seluruh fitur sudah memakai satu backend sampai tiap modul dipindahkan dan diuji dengan kontrak API yang sama.
 
 ## Entry point — gunakan yang ini
 
@@ -50,6 +51,38 @@ lib/
 supabase/
   migrations/               # skema dan data demo Supabase
 ```
+
+## Menjalankan aplikasi dan backend XAMPP
+
+1. Salin/clone repository ini sebagai `C:\\xampp\\htdocs\\eclipseverse`.
+2. Jalankan **Apache** dan **MySQL** di XAMPP.
+3. Buat database `eclipseverse` di phpMyAdmin, lalu import `backend/schema.sql` dan `backend/seed.sql`.
+4. Salin `backend/config/db.php.example` menjadi `backend/config/db.php`, lalu isi host, nama database, username, dan password MySQL lokal. File `db.php` jangan di-commit.
+5. Uji dari browser laptop: `http://localhost/eclipseverse/backend/health`. Pastikan respons JSON menunjukkan `success: true` dan database connected.
+6. Jalankan Flutter dengan URL sesuai perangkat (jangan menghapus `/backend`):
+
+Android Emulator:
+
+```bash
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2/eclipseverse/backend
+```
+
+HP Android fisik yang tersambung ke Wi-Fi yang sama dengan laptop:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://192.168.1.10/eclipseverse/backend
+```
+
+Ganti `192.168.1.10` dengan **IPv4 laptop sebenarnya** dari `ipconfig`. Izinkan Apache melalui Windows Firewall untuk jaringan privat. HP tidak bisa memakai `10.0.2.2`; alamat itu khusus Android Emulator. Jangan memakai `localhost` dari HP karena itu menunjuk ke HP sendiri.
+
+Untuk hosting, gunakan URL HTTPS publik backend yang aktif:
+
+```bash
+flutter run --dart-define=API_BASE_URL=https://domain-kamu.example/backend
+```
+
+`API_BASE_URL` adalah alamat folder yang memiliki `index.php`, bukan alamat yang selalu berakhiran `/api`. Semua anggota tim dapat memakai server XAMPP anggota yang menjadi host dengan mengganti IP/URL tersebut; mereka tidak perlu menjalankan MySQL sendiri untuk demo bersama, tetapi laptop host harus menyala dan dapat diakses jaringan.
 
 ## Menjalankan aplikasi
 

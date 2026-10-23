@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:sqflite/sqflite.dart' show getDatabasesPath;
 import 'package:eclipseverse/theme/app_theme.dart';
 import 'package:eclipseverse/core/local_db.dart';
 
@@ -57,9 +59,15 @@ class _ProfilePageState extends State<ProfilePage> {
         imageQuality: 80,
       );
       if (x == null) return;
-      await LocalDb.setPref('avatar_path', x.path);
+      // image_picker returns a temporary/cache path; copy it to app storage
+      // so the avatar remains available after Android cleans temporary files.
+      final directory = await getDatabasesPath();
+      final extension = path.extension(x.path).isEmpty ? '.jpg' : path.extension(x.path);
+      final savedPath = path.join(directory, 'eclipseverse_avatar$extension');
+      final savedFile = await File(x.path).copy(savedPath);
+      await LocalDb.setPref('avatar_path', savedFile.path);
       if (!mounted) return;
-      setState(() => _avatarPath = x.path);
+      setState(() => _avatarPath = savedFile.path);
     } catch (_) {
       if (mounted) showSnack(context, 'Gagal memilih foto');
     }
