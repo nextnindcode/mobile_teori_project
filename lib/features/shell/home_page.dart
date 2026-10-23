@@ -10,7 +10,6 @@ import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../event/event_model.dart';
 import '../event/event_page.dart' show formatEventDate;
-import '../event/event_service.dart';
 import '../marketplace/product_detail_sheet.dart';
 
 class HomePage extends StatefulWidget {
