@@ -66,14 +66,18 @@ class _CartPageState extends State<CartPage> {
     setState(() => _isCheckingOut = true);
 
     try {
-      final response = await ApiService.post('/orders', {
-        'items': _cartItems
-            .map((item) => {
-                  'product_id': item['product_id'],
-                  'quantity': item['quantity'],
-                })
-            .toList(),
-      });
+      final response = await ApiService.post(
+        '/orders',
+        {
+          'items': _cartItems
+              .map((item) => {
+                    'product_id': item['product_id'],
+                    'quantity': item['quantity'],
+                  })
+              .toList(),
+        },
+        timeout: const Duration(seconds: 20),
+      );
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Checkout gagal.');

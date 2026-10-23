@@ -5,9 +5,11 @@ class AiService {
   static Future<String> kirimPesan(String pesan) async {
     try {
       // Memakai ApiService.post 
-      final response = await ApiService.post('/ai/chat', {
-        'message': pesan,
-      });
+      final response = await ApiService.post(
+        '/ai/chat',
+        {'message': pesan},
+        timeout: const Duration(seconds: 28),
+      );
       
       // Response API dibungkus dalam key `data` oleh Response::success.
       final payload = response['data'];
