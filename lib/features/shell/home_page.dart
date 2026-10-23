@@ -268,13 +268,13 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 28),
 
-            // 3. Mini Game Banner (Sensor + Reward points)
-            _buildGameBanner(),
-
-            const SizedBox(height: 28),
-
-            // 4. Upcoming Events from Real API
+            // 3. Upcoming events take priority as the main fandom discovery content.
             _buildUpcomingEventsSection(),
+
+            const SizedBox(height: 24),
+
+            // 4. Mini game and sensor-powered rewards.
+            _buildGameBanner(),
 
             const SizedBox(height: 28),
 
@@ -555,10 +555,10 @@ class _HomePageState extends State<HomePage> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          childAspectRatio: 0.88,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
+          crossAxisCount: 2,
+          childAspectRatio: 1.72,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
         ),
         itemCount: actions.length,
         itemBuilder: (context, index) {
@@ -574,34 +574,47 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: AppTheme.borderSubtle),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            color.withValues(alpha: 0.28),
+                            color.withValues(alpha: 0.10),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        item['icon'] as IconData,
+                        color: color,
+                        size: 24,
+                      ),
                     ),
-                    child: Icon(
-                      item['icon'] as IconData,
-                      color: color,
-                      size: 22,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        item['label'] as String,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item['label'] as String,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ],
+                    Icon(Icons.arrow_outward_rounded, size: 15,
+                        color: AppTheme.textSecondary.withValues(alpha: 0.8)),
+                  ],
+                ),
               ),
             ),
           );
@@ -758,194 +771,3 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Row(
                           children: [
-                            CosmicBadge(
-                              text: e.city.toUpperCase(),
-                              color: AppTheme.coolCyan,
-                              textColor: AppTheme.coolCyan,
-                            ),
-                            const Spacer(),
-                            const Icon(
-                              Icons.calendar_today_outlined,
-                              size: 14,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          e.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.place_outlined,
-                              size: 13,
-                              color: AppTheme.textSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                e.venue,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          formatEventDate(e.eventDate),
-                          style: const TextStyle(
-                            color: AppTheme.coronaGold,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildFeaturedProductsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              Text(
-                'Merchandise Pilihan',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(color: AppTheme.textPrimary),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () => _open(Routes.catalog),
-                child: const Text(
-                  'Katalog →',
-                  style: TextStyle(color: AppTheme.coolCyan),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (_isLoadingProducts)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: CosmicLoading(message: 'Memuat merchandise...'),
-          )
-        else if (_featuredProducts.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: CosmicCard(
-              child: const Text(
-                'Belum ada produk merchandise.',
-                style: TextStyle(color: AppTheme.textSecondary),
-              ),
-            ),
-          )
-        else
-          SizedBox(
-            height: 220,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemCount: _featuredProducts.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final p = _featuredProducts[index];
-                return InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => ProductDetailSheet(product: p),
-                    );
-                  },
-                  child: Container(
-                    width: 150,
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceElevated,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.borderSubtle),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: CosmicNetworkImage(
-                            imageUrl: p.imageUrl,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                p.category.toUpperCase(),
-                                style: const TextStyle(
-                                  color: AppTheme.coolCyan,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                p.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: AppTheme.textPrimary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Rp ${p.price}',
-                                style: const TextStyle(
-                                  color: AppTheme.coronaGold,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-}
