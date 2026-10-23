@@ -147,3 +147,19 @@ on conflict (base_code,target_code) do update set rate=excluded.rate,source='dem
 revoke insert, update, delete on public.orders, public.order_items, public.membership_transactions,
   public.user_memberships, public.user_points, public.point_transactions, public.game_scores,
   public.redemption_transactions, public.blockchain_ledger from anon, authenticated;
+
+-- Product writes are restricted to accounts whose protected profile role is admin.
+drop policy if exists products_admin_insert on public.products;
+create policy products_admin_insert on public.products
+for insert to authenticated with check (
+  exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'admin')
+);
+drop policy if exists products_admin_update on public.products;
+create policy products_admin_update on public.products
+for update to authenticated using (
+  exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'admin')
+) with check (
+  exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'admin')
+);
+grant insert, update on public.products to authenticated;
+grant usage, select on sequence public.products_id_seq to authenticated;
