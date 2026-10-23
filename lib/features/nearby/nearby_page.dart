@@ -32,16 +32,16 @@ class _NearbyPageState extends State<NearbyPage> {
     });
 
     try {
-      // 1. Ambil lokasi user
+      // Ambil lokasi user 
       Position? pos = await LocationService.getCurrentLocation();
       
       if (pos != null) {
         _userPosition = pos;
-
-        // 2. Ambil data event
+        
+        // Ambil data event 
         List<Event> events = await EventService.fetchEvents(); 
 
-        // 3. Hitung jarak
+        // Hitung jarak 
         List<Map<String, dynamic>> calculatedEvents = [];
         for (var event in events) {
           double distance = LocationService.distanceKm(
@@ -55,7 +55,7 @@ class _NearbyPageState extends State<NearbyPage> {
           });
         }
 
-        // 4. Urutkan dari jarak terdekat
+        // Urutkan dari jarak terdekat 
         calculatedEvents.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
 
         setState(() {
@@ -75,18 +75,12 @@ class _NearbyPageState extends State<NearbyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: const Text('Eclipse Nearby'),
-      ),
-      
+      appBar: AppBar(title: const Text('Eclipse Nearby')),
       body: _buildBody(),
       floatingActionButton: (_eventsWithDistance.isNotEmpty && _userPosition != null)
           ? FloatingActionButton.extended(
               onPressed: () {
-                final List<Event> eventList = _eventsWithDistance
-                    .map((e) => e['event'] as Event)
-                    .toList();
-
+                final List<Event> eventList = _eventsWithDistance.map((e) => e['event'] as Event).toList();
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -121,11 +115,7 @@ class _NearbyPageState extends State<NearbyPage> {
             children: [
               const Icon(Icons.location_off, size: 80, color: Colors.red),
               const SizedBox(height: 16),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: AppTheme.textTheme.titleMedium?.copyWith(color: Colors.red),
-              ),
+              Text(_errorMessage!, textAlign: TextAlign.center, style: AppTheme.textTheme.titleMedium?.copyWith(color: Colors.red)),
               const SizedBox(height: 24),
               SizedBox(
                 width: 200, 
@@ -148,6 +138,12 @@ class _NearbyPageState extends State<NearbyPage> {
         final data = _eventsWithDistance[index];
         final Event event = data['event'];
         final double distance = data['distance'];
+        
+        // Mengambil data arah 
+        final String direction = LocationService.getDirection(
+          _userPosition!.latitude, _userPosition!.longitude, 
+          event.latitude, event.longitude
+        );
 
         return Card(
           elevation: 2,
@@ -163,18 +159,17 @@ class _NearbyPageState extends State<NearbyPage> {
               ),
               child: const Icon(Icons.location_on, color: AppTheme.primaryDark),
             ),
-            title: Text(
-              event.title,
-              style: AppTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
+            title: Text(event.title, style: AppTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
                 Text(event.city, style: AppTheme.textTheme.bodyMedium),
                 const SizedBox(height: 8),
+                
+                // Mengambil jarak dan arah 
                 Text(
-                  '${distance.toStringAsFixed(1)} km dari lokasimu',
+                  '${distance.toStringAsFixed(1)} km ke arah $direction',
                   style: AppTheme.textTheme.bodySmall?.copyWith(
                     color: AppTheme.primaryDark,
                     fontWeight: FontWeight.bold,

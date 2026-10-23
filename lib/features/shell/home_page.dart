@@ -227,6 +227,12 @@ class HomePage extends StatelessWidget {
             subtitle: 'Jelajahi lokasi yang relevan di sekitarmu',
             onTap: () => _open(context, Routes.nearby),
           ),
+          _FeatureLink(
+            icon: Icons.card_giftcard,
+            title: 'Redeem Card',
+            subtitle: 'Tukar poin dengan kartu eksklusif member',
+            onTap: () => _open(context, Routes.redeem),
+          ),
         ],
       ),
     );
