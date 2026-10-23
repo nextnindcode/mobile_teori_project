@@ -7,6 +7,7 @@ Aplikasi Flutter menggunakan Supabase sebagai backend online: Supabase Auth untu
    - `supabase/migrations/0002_demo_seed.sql`
    - `supabase/migrations/0003_supabase_only_membership_checkout.sql`
    - `supabase/migrations/0004_member_quiz_access.sql`
+   - `supabase/migrations/0005_blockchain_integrity.sql`
 2. Atur konfirmasi email di Supabase Authentication sesuai kebutuhan demonstrasi.
 3. Deploy Edge Function `eclipse-ai` dan set secret `GEMINI_API_KEY` di Supabase Functions. Jangan menaruh kunci Gemini di Flutter.
 4. Setiap anggota dapat menjalankan aplikasi dari laptop masing-masing tanpa XAMPP:

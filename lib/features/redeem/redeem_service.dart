@@ -1,5 +1,3 @@
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RedeemService {
@@ -23,25 +21,8 @@ class RedeemService {
   }
 
   static Future<Map<String, dynamic>> verifyBlockchain() async {
-    final rows = await _client.from('blockchain_ledger')
-        .select('id,transaction_data,previous_hash,current_hash,created_at')
-        .order('id');
-    var previous = 'GENESIS';
-    var valid = true;
-    int? invalidId;
-    for (final item in rows) {
-      final row = Map<String, dynamic>.from(item);
-      final prev = row['previous_hash']?.toString() ?? '';
-      final current = row['current_hash']?.toString() ?? '';
-      final payload = jsonEncode(row['transaction_data']);
-      final expected = sha256.convert(utf8.encode('$prev|$payload')).toString();
-      if (prev != previous || current != expected) {
-        valid = false;
-        invalidId = (row['id'] as num?)?.toInt();
-        break;
-      }
-      previous = current;
-    }
-    return {'valid': valid, 'block_count': rows.length, 'invalid_block_id': invalidId};
+    final result = await _client.rpc('verify_blockchain_ledger')
+        .timeout(const Duration(seconds: 10));
+    return Map<String, dynamic>.from(result as Map);
   }
 }
