@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
 import '../../models/products.dart';
@@ -10,6 +11,8 @@ import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../event/event_model.dart';
 import '../event/event_page.dart' show formatEventDate;
+// ignore: unused_import
+import '../event/event_service.dart';
 import '../marketplace/product_detail_sheet.dart';
 
 class HomePage extends StatefulWidget {
@@ -103,7 +106,9 @@ class _HomePageState extends State<HomePage> {
       // Read directly from Supabase; the old implementation called the PHP API.
       final rows = await Supabase.instance.client
           .from('events')
-          .select('id, title, description, event_date, venue, city, latitude, longitude')
+          .select(
+            'id, title, description, event_date, venue, city, latitude, longitude',
+          )
           .eq('status', 'scheduled')
           .order('event_date')
           .limit(3)
@@ -127,7 +132,9 @@ class _HomePageState extends State<HomePage> {
       // Products and categories come from the Supabase public catalogue.
       final rows = await Supabase.instance.client
           .from('products')
-          .select('id, name, description, price_idr, stock, cover_image_path, categories(name)')
+          .select(
+            'id, name, description, price_idr, stock, cover_image_path, categories(name)',
+          )
           .eq('is_published', true)
           .order('created_at', ascending: false)
           .limit(6)
@@ -145,8 +152,8 @@ class _HomePageState extends State<HomePage> {
           imageUrl = imagePath.startsWith('http')
               ? imagePath
               : Supabase.instance.client.storage
-                  .from('eclipseverse-media')
-                  .getPublicUrl(imagePath);
+                    .from('eclipseverse-media')
+                    .getPublicUrl(imagePath);
         }
         return Product(
           id: (row['id'] as num).toInt(),
@@ -267,13 +274,13 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 28),
 
-            // 3. Upcoming Events from Real API
-            _buildUpcomingEventsSection(),
+            // 3. Mini Game Banner (Sensor + Reward points)
+            _buildGameBanner(),
 
             const SizedBox(height: 28),
 
-            // 4. Mini Game Banner (Sensor + Reward points)
-            _buildGameBanner(),
+            // 4. Upcoming Events from Real API
+            _buildUpcomingEventsSection(),
 
             const SizedBox(height: 28),
 
@@ -554,10 +561,10 @@ class _HomePageState extends State<HomePage> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 2.7,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          crossAxisCount: 4,
+          childAspectRatio: 0.88,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
         ),
         itemCount: actions.length,
         itemBuilder: (context, index) {
@@ -568,17 +575,17 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(18),
             onTap: () => _open(item['route'] as String),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: AppTheme.surfaceElevated,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: AppTheme.borderSubtle),
               ),
-              child: Row(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.16),
                       shape: BoxShape.circle,
@@ -586,26 +593,19 @@ class _HomePageState extends State<HomePage> {
                     child: Icon(
                       item['icon'] as IconData,
                       color: color,
-                      size: 21,
+                      size: 22,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      item['label'] as String,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
-                      ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item['label'] as String,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
                     ),
-                  ),
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 13,
-                    color: AppTheme.textSecondary,
                   ),
                 ],
               ),
