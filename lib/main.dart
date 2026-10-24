@@ -3,11 +3,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'theme/app_theme.dart';
 import 'core/routes.dart';
+import 'core/local_db.dart';
+import 'core/auth_service.dart';
+import 'core/supabase_config.dart';
 import 'features/auth/login_page.dart';
 import 'features/auth/register_page.dart';
 import 'features/auth/splash_page.dart';
-import 'core/local_db.dart';
-import 'core/auth_service.dart';
 import 'features/event/event_page.dart';
 import 'features/event/event_detail_page.dart';
 import 'features/fandom/member_detail_page.dart';
@@ -26,15 +27,12 @@ import 'features/notification/notification_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  const supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://swnnzsqwudezuvromgfm.supabase.co',
+  // Semua anggota menggunakan satu Supabase project yang sama.
+  // Tidak ada lagi ketergantungan pada XAMPP, localhost, atau IP laptop.
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.publishableKey,
   );
-  const supabaseKey = String.fromEnvironment(
-    'SUPABASE_PUBLISHABLE_KEY',
-    defaultValue: 'sb_publishable_vyYETtO5DqB0R0bv6H0qfA_mtiExTSp',
-  );
-  await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
 
   runApp(const MyApp());
 }
