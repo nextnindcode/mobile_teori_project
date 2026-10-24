@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../membership/membership_service.dart';
 import '../../core/routes.dart';
+import '../../core/local_db.dart';
 import '../../models/products.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
-import 'product_detail_sheet.dart';
 
 class CatalogPage extends StatefulWidget {
   final bool previewMode;
@@ -35,7 +35,7 @@ class _CatalogPageState extends State<CatalogPage> {
 
   List<Product> get _filteredProducts {
     final query = _search.trim().toLowerCase();
-    return _products.where((product) {
+    final filtered = _products.where((product) {
       final matchesSearch =
           query.isEmpty ||
           product.name.toLowerCase().contains(query) ||
@@ -46,6 +46,14 @@ class _CatalogPageState extends State<CatalogPage> {
           product.category.toLowerCase() == selectedCategory;
       return matchesSearch && matchesCategory;
     }).toList();
+
+    filtered.sort((a, b) {
+      final aOut = a.stock <= 0 ? 1 : 0;
+      final bOut = b.stock <= 0 ? 1 : 0;
+      return aOut.compareTo(bOut);
+    });
+
+    return filtered;
   }
 
   @override
@@ -87,24 +95,6 @@ class _CatalogPageState extends State<CatalogPage> {
             stock: 12,
             imageUrl: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=500',
           ),
-          Product(
-            id: 103,
-            name: 'Moonlight Photocard Set',
-            category: 'collectible',
-            description: 'Satu set photocard edisi Moonlight.',
-            price: 79000,
-            stock: 50,
-            imageUrl: 'https://images.unsplash.com/photo-1572378203089-70a1b2a2d1e1?q=80&w=500',
-          ),
-          Product(
-            id: 104,
-            name: 'EclipseVerse Light Keyring',
-            category: 'accessory',
-            description: 'Aksesori keyring dengan logo EclipseVerse.',
-            price: 45000,
-            stock: 40,
-            imageUrl: 'https://images.unsplash.com/photo-1584268868487-1df0d61c1622?q=80&w=500',
-          ),
         ];
         _isLoading = false;
       });
@@ -114,7 +104,9 @@ class _CatalogPageState extends State<CatalogPage> {
     try {
       final rows = await Supabase.instance.client
           .from('products')
-          .select('id,name,description,price_idr,stock,cover_image_path,categories!inner(slug)')
+          .select(
+            'id,name,description,price_idr,stock,cover_image_path,categories!inner(slug)',
+          )
           .eq('is_published', true)
           .order('created_at', ascending: false)
           .limit(100)
@@ -129,16 +121,20 @@ class _CatalogPageState extends State<CatalogPage> {
         final imagePath = row['cover_image_path']?.toString();
         final imageUrl = (imagePath == null || imagePath.isEmpty)
             ? null
-            : Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(imagePath);
-        products.add(Product(
-          id: (row['id'] as num).toInt(),
-          name: '${row['name']}',
-          category: slug,
-          description: '${row['description'] ?? ''}',
-          price: (row['price_idr'] as num).toInt(),
-          stock: (row['stock'] as num).toInt(),
-          imageUrl: imageUrl,
-        ));
+            : Supabase.instance.client.storage
+                  .from('eclipseverse-media')
+                  .getPublicUrl(imagePath);
+        products.add(
+          Product(
+            id: (row['id'] as num).toInt(),
+            name: '${row['name']}',
+            category: slug,
+            description: '${row['description'] ?? ''}',
+            price: (row['price_idr'] as num).toInt(),
+            stock: (row['stock'] as num).toInt(),
+            imageUrl: imageUrl,
+          ),
+        );
       }
       if (!mounted) return;
       setState(() {
@@ -163,6 +159,467 @@ class _CatalogPageState extends State<CatalogPage> {
       if (remaining > 0 && remaining % 3 == 0) buffer.write('.');
     }
     return 'Rp $buffer';
+  }
+
+  String _formatCurrency(double amount, String currency) {
+    String symbol = '';
+    int decimals = 0;
+    if (currency == 'IDR')
+      symbol = 'Rp ';
+    else if (currency == 'USD') {
+      symbol = '\$ ';
+      decimals = 2;
+    } else if (currency == 'KRW')
+      symbol = '₩ ';
+    else if (currency == 'JPY')
+      symbol = '¥ ';
+
+    final formatted = amount
+        .toStringAsFixed(decimals)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
+    return '$symbol$formatted';
+  }
+
+  // ===== FUNGSI SIMULASI BELI LANGSUNG KE SUPABASE =====
+  Future<String?> _prosesBeliLangsung(Product product, int qty) async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return "User belum login";
+
+      final totalIdr = product.price * qty;
+
+      // 1. Insert ke tabel 'orders'
+      final orderResponse = await Supabase.instance.client
+          .from('orders')
+          .insert({'user_id': user.id, 'total_idr': totalIdr, 'status': 'paid'})
+          .select('id')
+          .single();
+
+      final orderId = orderResponse['id'];
+
+      // 2. Insert ke tabel 'order_items'
+      await Supabase.instance.client.from('order_items').insert({
+        'order_id': orderId,
+        'product_id': product.id,
+        'product_name_snapshot': product.name,
+        'quantity': qty,
+        'unit_price_idr': product.price,
+      });
+
+      return null; // Kalau sukses, return null (berarti gak ada error)
+    } catch (e) {
+      debugPrint('Error saat beli langsung: $e');
+      return e.toString(); // Kembalikan pesan error aslinya
+    }
+  }
+
+  // ===== FUNGSI BOTTOM SHEET =====
+  void _showProductSheet(BuildContext context, Product product) {
+    int qty = 1;
+    String selectedCurrency = 'IDR';
+    bool isProcessing = false;
+
+    const double rateUSD = 0.000063;
+    const double rateKRW = 0.085;
+    const double rateJPY = 0.0095;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final isOutOfStock = product.stock <= 0;
+            final totalPriceIDR = product.price * qty;
+
+            double convertedPrice = totalPriceIDR.toDouble();
+            if (selectedCurrency == 'USD') convertedPrice *= rateUSD;
+            if (selectedCurrency == 'KRW') convertedPrice *= rateKRW;
+            if (selectedCurrency == 'JPY') convertedPrice *= rateJPY;
+
+            final displayPrice = selectedCurrency == 'IDR'
+                ? _formatRupiah(totalPriceIDR)
+                : _formatCurrency(convertedPrice, selectedCurrency);
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppTheme.deepSpace,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[600],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: AspectRatio(
+                                aspectRatio: 16 / 9,
+                                child: CosmicNetworkImage(
+                                  imageUrl: product.imageUrl,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.eclipseViolet.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    product.category.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: AppTheme.eclipseViolet,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  isOutOfStock
+                                      ? 'Stok habis'
+                                      : 'Tersedia: ${product.stock} pcs',
+                                  style: TextStyle(
+                                    color: isOutOfStock
+                                        ? AppTheme.error
+                                        : AppTheme.success,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              product.name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  displayPrice,
+                                  style: const TextStyle(
+                                    color: AppTheme.coronaGold,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                Row(
+                                  children: ['IDR', 'USD', 'KRW', 'JPY'].map((
+                                    curr,
+                                  ) {
+                                    final isSelected = selectedCurrency == curr;
+                                    return GestureDetector(
+                                      onTap: () => setSheetState(
+                                        () => selectedCurrency = curr,
+                                      ),
+                                      child: Container(
+                                        margin: const EdgeInsets.only(left: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppTheme.eclipseViolet
+                                              : AppTheme.surfaceElevated,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? AppTheme.eclipseViolet
+                                                : AppTheme.borderSubtle,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          curr,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Colors.grey,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Deskripsi',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              product.description.isNotEmpty
+                                  ? product.description
+                                  : 'Tidak ada deskripsi.',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceElevated,
+                          border: Border(
+                            top: BorderSide(color: AppTheme.borderSubtle),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      onPressed: (qty > 1 && !isProcessing)
+                                          ? () => setSheetState(() => qty--)
+                                          : null,
+                                      icon: const Icon(
+                                        Icons.remove_circle_outline,
+                                      ),
+                                      color: Colors.white,
+                                    ),
+                                    Text(
+                                      '$qty',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed:
+                                          (qty < product.stock && !isProcessing)
+                                          ? () => setSheetState(() => qty++)
+                                          : null,
+                                      icon: const Icon(
+                                        Icons.add_circle_outline,
+                                      ),
+                                      color: Colors.white,
+                                    ),
+                                  ],
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    const Text(
+                                      'Subtotal',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    Text(
+                                      displayPrice,
+                                      style: const TextStyle(
+                                        color: AppTheme.coronaGold,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: (isOutOfStock || isProcessing)
+                                        ? null
+                                        : () async {
+                                            await LocalDb.addToCart(
+                                              productId: product.id,
+                                              name: product.name,
+                                              price: product.price,
+                                              quantity: qty,
+                                            );
+                                            if (sheetContext.mounted) {
+                                              Navigator.pop(sheetContext);
+                                              ScaffoldMessenger.of(this.context)
+                                                  .showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Berhasil ditambahkan ke keranjang!',
+                                                      ),
+                                                    ),
+                                                  );
+                                            }
+                                          },
+                                    icon: const Icon(
+                                      Icons.shopping_bag_outlined,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Keranjang'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppTheme.eclipseViolet,
+                                      side: const BorderSide(
+                                        color: AppTheme.eclipseViolet,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: (isOutOfStock || isProcessing)
+                                        ? null
+                                        : () async {
+                                            setSheetState(
+                                              () => isProcessing = true,
+                                            );
+
+                                            // Panggil fungsi insert ke Supabase
+                                            // Ubah 'success' jadi 'errorMessage'
+                                            final errorMessage =
+                                                await _prosesBeliLangsung(
+                                                  product,
+                                                  qty,
+                                                );
+
+                                            if (sheetContext.mounted) {
+                                              setSheetState(
+                                                () => isProcessing = false,
+                                              );
+
+                                              // Cek apakah errorMessage kosong (null) = SUKSES
+                                              if (errorMessage == null) {
+                                                Navigator.pop(
+                                                  sheetContext,
+                                                ); // Tutup bottom sheet
+                                                ScaffoldMessenger.of(
+                                                  this.context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Transaksi Berhasil! Pesanan sedang diproses.',
+                                                    ),
+                                                    backgroundColor:
+                                                        AppTheme.success,
+                                                  ),
+                                                );
+                                              } else {
+                                                // Kalau ada error, tampilkan pesan error dari database
+                                                ScaffoldMessenger.of(
+                                                  this.context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Error: $errorMessage',
+                                                    ),
+                                                    backgroundColor:
+                                                        AppTheme.error,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.eclipseViolet,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: isProcessing
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Beli Langsung',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -190,7 +647,6 @@ class _CatalogPageState extends State<CatalogPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Search Bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
             child: TextField(
@@ -217,8 +673,6 @@ class _CatalogPageState extends State<CatalogPage> {
               ),
             ),
           ),
-
-          // 2. Category Filter Chips
           SizedBox(
             height: 38,
             child: ListView.separated(
@@ -233,8 +687,10 @@ class _CatalogPageState extends State<CatalogPage> {
                   label: Text(label),
                   selected: selected,
                   onSelected: (_) async {
-                    if (label == 'Koleksi' && !await MembershipService.isActive()) {
-                      if (mounted) Navigator.pushNamed(context, Routes.membership);
+                    if (label == 'Koleksi' &&
+                        !await MembershipService.isActive()) {
+                      if (mounted)
+                        Navigator.pushNamed(context, Routes.membership);
                       return;
                     }
                     if (mounted) setState(() => _category = label);
@@ -258,10 +714,7 @@ class _CatalogPageState extends State<CatalogPage> {
               },
             ),
           ),
-
           const SizedBox(height: 10),
-
-          // 3. Status Bar (Count)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 2),
             child: Row(
@@ -296,10 +749,7 @@ class _CatalogPageState extends State<CatalogPage> {
               ],
             ),
           ),
-
           const SizedBox(height: 6),
-
-          // 4. Products Grid or Explicit Error/Empty State
           Expanded(child: _buildContent(visibleProducts)),
         ],
       ),
@@ -307,11 +757,8 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   Widget _buildContent(List<Product> visibleProducts) {
-    if (_isLoading) {
+    if (_isLoading)
       return const CosmicLoading(message: 'Menghubungkan ke Eclipse Store...');
-    }
-
-    // Notice: if API actually failed, show ErrorView with Retry, NEVER show a fake successful empty state!
     if (_errorMessage != null) {
       return CosmicErrorView(
         message: _errorMessage!,
@@ -319,7 +766,6 @@ class _CatalogPageState extends State<CatalogPage> {
         icon: Icons.cloud_off_rounded,
       );
     }
-
     if (visibleProducts.isEmpty) {
       return CosmicEmptyView(
         title: 'Tidak Ada Produk Ditemukan',
@@ -352,14 +798,15 @@ class _CatalogPageState extends State<CatalogPage> {
         ),
         itemCount: visibleProducts.length,
         itemBuilder: (context, index) {
-          final product = visibleProducts[index];
-          return _buildProductCard(product);
+          return _buildProductCard(visibleProducts[index]);
         },
       ),
     );
   }
 
   Widget _buildProductCard(Product product) {
+    final isOutOfStock = product.stock <= 0;
+
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surfaceElevated,
@@ -368,16 +815,20 @@ class _CatalogPageState extends State<CatalogPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => ProductDetailSheet(product: product),
-        ),
+        onTap: () {
+          if (isOutOfStock) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Maaf, stok produk ini sedang habis.'),
+              ),
+            );
+            return;
+          }
+          _showProductSheet(context, product);
+        },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image with resolved URL & Category Badge
             Expanded(
               child: Stack(
                 fit: StackFit.expand,
@@ -386,31 +837,58 @@ class _CatalogPageState extends State<CatalogPage> {
                     imageUrl: product.imageUrl,
                     fit: BoxFit.cover,
                   ),
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.deepSpace.withValues(alpha: 0.85),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.borderSubtle),
-                      ),
-                      child: Text(
-                        product.category.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.coolCyan,
-                          letterSpacing: 0.5,
+                  if (isOutOfStock)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: const Text(
+                            'HABIS',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  if (product.stock <= 5)
+                  if (!isOutOfStock)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.deepSpace.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.borderSubtle),
+                        ),
+                        child: Text(
+                          product.category.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.coolCyan,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (!isOutOfStock && product.stock <= 5)
                     Positioned(
                       top: 8,
                       right: 8,
@@ -424,9 +902,7 @@ class _CatalogPageState extends State<CatalogPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          product.stock == 0
-                              ? 'HABIS'
-                              : 'Sisa ${product.stock}',
+                          'Sisa ${product.stock}',
                           style: const TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
@@ -438,8 +914,6 @@ class _CatalogPageState extends State<CatalogPage> {
                 ],
               ),
             ),
-
-            // Product Details
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -449,9 +923,11 @@ class _CatalogPageState extends State<CatalogPage> {
                     product.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: isOutOfStock
+                          ? AppTheme.textSecondary
+                          : AppTheme.textPrimary,
                       fontSize: 13,
                       height: 1.25,
                     ),
@@ -459,34 +935,35 @@ class _CatalogPageState extends State<CatalogPage> {
                   const SizedBox(height: 6),
                   Text(
                     _formatRupiah(product.price),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
-                      color: AppTheme.coronaGold,
+                      color: isOutOfStock
+                          ? AppTheme.textSecondary
+                          : AppTheme.coronaGold,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
                       Icon(
-                        product.stock > 0
-                            ? Icons.check_circle_outline
-                            : Icons.cancel_outlined,
+                        isOutOfStock
+                            ? Icons.cancel_outlined
+                            : Icons.check_circle_outline,
                         size: 12,
-                        color: product.stock > 0
-                            ? AppTheme.success
-                            : AppTheme.error,
+                        color: isOutOfStock ? AppTheme.error : AppTheme.success,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        product.stock > 0
-                            ? 'Stok: ${product.stock}'
-                            : 'Stok habis',
+                        isOutOfStock ? 'Stok habis' : 'Stok: ${product.stock}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: product.stock > 0
-                              ? AppTheme.textSecondary
-                              : AppTheme.error,
+                          fontWeight: isOutOfStock
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: isOutOfStock
+                              ? AppTheme.error
+                              : AppTheme.textSecondary,
                         ),
                       ),
                     ],
