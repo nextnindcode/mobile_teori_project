@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth_service.dart';
-import '../../core/secure_store.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../core/local_db.dart';
@@ -22,25 +22,25 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkSession() async {
-    // Keep the existing eclipse animation while Supabase restores its session.
-    await Future.delayed(const Duration(seconds: 3));
+    // Supabase.initialize() sudah memulihkan session tersimpan.
+    // Splash hanya memberi waktu singkat untuk transisi UI, bukan menunggu 3 detik.
+    await Future<void>.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
 
-    final user = AuthService.currentUser;
-    final session = AuthService.currentSession;
+    final session = Supabase.instance.client.auth.currentSession;
+    final user = session?.user;
 
-    if (user == null || session == null) {
-      await SecureStore.deleteToken();
+    if (session == null || user == null) {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, Routes.login);
       return;
     }
 
-    // Refresh local display cache when possible; offline cache must not block entry.
+    // Supabase Auth adalah sumber kebenaran session. Cache lokal hanya untuk UI.
     try {
       await AuthService.cacheUserLocally(user);
     } catch (_) {
-      // The persisted Supabase session remains authoritative.
+      // Session tetap valid meskipun cache profile gagal diperbarui.
     }
     if (!mounted) return;
 
@@ -58,6 +58,7 @@ class _SplashPageState extends State<SplashPage> {
         if (authSuccess) {
           Navigator.pushReplacementNamed(context, Routes.shell);
         } else {
+          // Gagal/cancel biometric tidak menghapus session Supabase.
           Navigator.pushReplacementNamed(context, Routes.login);
         }
         return;
@@ -77,7 +78,7 @@ class _SplashPageState extends State<SplashPage> {
           children: [
             TweenAnimationBuilder<double>(
               tween: Tween(begin: -100.0, end: 0.0),
-              duration: const Duration(seconds: 3),
+              duration: const Duration(milliseconds: 700),
               curve: Curves.easeInOut,
               builder: (context, value, child) {
                 return Stack(
@@ -98,7 +99,6 @@ class _SplashPageState extends State<SplashPage> {
                         ],
                       ),
                     ),
-                    // Bulan geser nutupin matahari
                     Transform.translate(
                       offset: Offset(value, 0),
                       child: Container(
