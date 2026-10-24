@@ -4,8 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth_service.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
-import '../../core/local_db.dart';
-import '../profile/biometric_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -22,9 +20,8 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkSession() async {
-    // Supabase.initialize() sudah memulihkan session tersimpan.
-    // Splash hanya memberi waktu singkat untuk transisi UI, bukan menunggu 3 detik.
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+    // Delay 2 detik biar animasinya puas dulu dilihat
+    await Future<void>.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
 
     final session = Supabase.instance.client.auth.currentSession;
@@ -36,35 +33,11 @@ class _SplashPageState extends State<SplashPage> {
       return;
     }
 
-    // Supabase Auth adalah sumber kebenaran session. Cache lokal hanya untuk UI.
     try {
       await AuthService.cacheUserLocally(user);
-    } catch (_) {
-      // Session tetap valid meskipun cache profile gagal diperbarui.
-    }
+    } catch (_) {}
+
     if (!mounted) return;
-
-    final biometricEnabled = await LocalDb.getPref('biometric_enabled');
-    if (!mounted) return;
-
-    if (biometricEnabled == '1' || biometricEnabled == 'true') {
-      final isSupported = await BiometricService.isSupported();
-      if (!mounted) return;
-
-      if (isSupported) {
-        final authSuccess = await BiometricService.authenticate();
-        if (!mounted) return;
-
-        if (authSuccess) {
-          Navigator.pushReplacementNamed(context, Routes.shell);
-        } else {
-          // Gagal/cancel biometric tidak menghapus session Supabase.
-          Navigator.pushReplacementNamed(context, Routes.login);
-        }
-        return;
-      }
-    }
-
     Navigator.pushReplacementNamed(context, Routes.shell);
   }
 
@@ -76,49 +49,60 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: -100.0, end: 0.0),
-              duration: const Duration(milliseconds: 700),
-              curve: Curves.easeInOut,
-              builder: (context, value, child) {
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
+            // ===== ANIMASI GERHANA =====
+            SizedBox(
+              width: 120,
+              height: 120,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 1. Lingkaran Matahari (Kuning)
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.accentYellow,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orangeAccent,
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 2. Lingkaran Bulan (Bergerak dari Kiri ke Kanan)
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: -120.0, end: 0.0),
+                    duration: const Duration(milliseconds: 1500),
+                    curve: Curves.easeInOut,
+                    builder: (context, value, child) {
+                      return Transform.translate(
+                        offset: Offset(value, 0),
+                        child: child,
+                      );
+                    },
+                    child: Container(
                       width: 100,
                       height: 100,
                       decoration: const BoxDecoration(
-                        color: AppTheme.background,
+                        // Warnanya sama dengan background biar kelihatan seperti bayangan
+                        color: AppTheme.primaryDark, 
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.orangeAccent,
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
                       ),
                     ),
-                    Transform.translate(
-                      offset: Offset(value, 0),
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.primaryDark,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               'EclipseVerse',
               style: AppTheme.textTheme.headlineMedium?.copyWith(
                 color: Colors.white,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
               ),
             ),
             const SizedBox(height: 24),

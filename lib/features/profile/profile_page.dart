@@ -12,6 +12,7 @@ import '../notification/notification_service.dart';
 import '../fandom/shared/state_views.dart';
 import 'biometric_service.dart';
 import '../../core/routes.dart';
+import '../../core/secure_store.dart';
 import '../membership/membership_service.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -153,6 +154,8 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Pastikan import '../../core/secure_store.dart'; ada di paling atas file
+
   Future<void> _toggleBiometric(bool on) async {
     if (on) {
       final ok = await BiometricService.authenticate();
@@ -161,7 +164,16 @@ class _ProfilePageState extends State<ProfilePage> {
         showSnack(context, 'Verifikasi biometric gagal atau dibatalkan');
         return;
       }
+
+      // Ambil email & password dari session Supabase
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null && user.email != null) {
+      }
+    } else {
+      // Jika dimatikan, hapus kredensial
+      await SecureStore.deleteCredentials();
     }
+
     await LocalDb.setPref('biometric_enabled', on ? '1' : '0');
     if (mounted) setState(() => _bioEnabled = on);
   }
@@ -294,7 +306,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         title: const Text('Login biometric'),
                         subtitle: Text(
                           _bioSupported
-                              ? 'Gunakan sidik jari/wajah saat membuka aplikasi'
+                              ? 'Gunakan sidik jari saat membuka aplikasi'
                               : 'Perangkat tidak mendukung',
                         ),
                         value: _bioEnabled,

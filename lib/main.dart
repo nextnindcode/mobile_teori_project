@@ -55,8 +55,8 @@ class MyApp extends StatelessWidget {
           onLogout: () async {
             try {
               await AuthService.logout();
-            } finally {
-              await LocalDb.clearAll();
+            } catch (e) {
+              debugPrint('Logout error: $e');
             }
 
             if (context.mounted) {

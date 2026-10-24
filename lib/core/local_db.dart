@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -196,7 +197,6 @@ class LocalDb {
   static Future<void> clearAll() async {
     final db = await database;
     await db.delete('cart_local');
-    await db.delete('preferences');
     await db.delete('members_cache');
     await db.delete('user_profile');
   }
