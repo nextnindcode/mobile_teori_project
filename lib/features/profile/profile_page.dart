@@ -12,6 +12,7 @@ import '../notification/notification_service.dart';
 import '../fandom/shared/state_views.dart';
 import 'biometric_service.dart';
 import '../../core/routes.dart';
+import '../membership/membership_service.dart';
 
 class ProfilePage extends StatefulWidget {
   final Future<void> Function()? onLogout;
@@ -29,11 +30,29 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _bioEnabled = false;
   bool _notifEnabled = false;
   bool _loading = true;
+  bool _isMember = false;
+  Map<String, dynamic>? _membershipData;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _checkMembership();
+  }
+
+  Future<void> _checkMembership() async {
+    try {
+      final isActive = await MembershipService.isActive();
+      final data = await MembershipService.currentMembership();
+      if (mounted) {
+        setState(() {
+          _isMember = isActive;
+          _membershipData = data;
+        });
+      }
+    } catch (e) {
+      debugPrint('Gagal memuat status membership: $e');
+    }
   }
 
   Future<void> _load() async {
@@ -43,13 +62,17 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
       try {
-        final row = await Supabase.instance.client.from('profiles')
-            .select('avatar_path').eq('id', user.id).maybeSingle()
+        final row = await Supabase.instance.client
+            .from('profiles')
+            .select('avatar_path')
+            .eq('id', user.id)
+            .maybeSingle()
             .timeout(const Duration(seconds: 6));
         final storagePath = row?['avatar_path']?.toString();
         if (storagePath != null && storagePath.isNotEmpty) {
           remoteAvatarUrl = Supabase.instance.client.storage
-              .from('eclipseverse-media').getPublicUrl(storagePath);
+              .from('eclipseverse-media')
+              .getPublicUrl(storagePath);
         }
       } catch (_) {
         // Keep local avatar cache if the network is temporarily unavailable.
@@ -62,7 +85,9 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       _name = '${profile?['name'] ?? ''}';
       _email = '${profile?['email'] ?? ''}';
-      _avatarPath = remoteAvatarUrl ?? ((avatar != null && avatar.isNotEmpty) ? avatar : null);
+      _avatarPath =
+          remoteAvatarUrl ??
+          ((avatar != null && avatar.isNotEmpty) ? avatar : null);
       _bioSupported = supported;
       _bioEnabled = supported && bio == '1';
       _notifEnabled = notif == '1';
@@ -80,7 +105,9 @@ class _ProfilePageState extends State<ProfilePage> {
       // image_picker returns a temporary/cache path; copy it to app storage
       // so the avatar remains available after Android cleans temporary files.
       final directory = await getDatabasesPath();
-      final extension = path.extension(x.path).isEmpty ? '.jpg' : path.extension(x.path);
+      final extension = path.extension(x.path).isEmpty
+          ? '.jpg'
+          : path.extension(x.path);
       final savedPath = path.join(directory, 'eclipseverse_avatar$extension');
       final savedFile = await File(x.path).copy(savedPath);
       await LocalDb.setPref('avatar_path', savedFile.path);
@@ -88,20 +115,33 @@ class _ProfilePageState extends State<ProfilePage> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         try {
-          final storagePath = 'avatars/${user.id}/profile${path.extension(savedFile.path)}';
-          await Supabase.instance.client.storage.from('eclipseverse-media').upload(
-            storagePath, savedFile,
-            fileOptions: FileOptions(
-              upsert: true,
-              contentType: path.extension(savedFile.path).toLowerCase() == '.png'
-                  ? 'image/png' : 'image/jpeg',
-            ),
-          ).timeout(const Duration(seconds: 12));
-          await Supabase.instance.client.from('profiles').update({
-            'avatar_path': storagePath,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          }).eq('id', user.id).timeout(const Duration(seconds: 8));
-          displayedPath = Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(storagePath);
+          final storagePath =
+              'avatars/${user.id}/profile${path.extension(savedFile.path)}';
+          await Supabase.instance.client.storage
+              .from('eclipseverse-media')
+              .upload(
+                storagePath,
+                savedFile,
+                fileOptions: FileOptions(
+                  upsert: true,
+                  contentType:
+                      path.extension(savedFile.path).toLowerCase() == '.png'
+                      ? 'image/png'
+                      : 'image/jpeg',
+                ),
+              )
+              .timeout(const Duration(seconds: 12));
+          await Supabase.instance.client
+              .from('profiles')
+              .update({
+                'avatar_path': storagePath,
+                'updated_at': DateTime.now().toUtc().toIso8601String(),
+              })
+              .eq('id', user.id)
+              .timeout(const Duration(seconds: 8));
+          displayedPath = Supabase.instance.client.storage
+              .from('eclipseverse-media')
+              .getPublicUrl(storagePath);
         } catch (_) {
           // Keep the persistent local copy if Storage is unavailable or the user is offline.
         }
@@ -185,7 +225,8 @@ class _ProfilePageState extends State<ProfilePage> {
   ImageProvider? get _avatarImage {
     final p = _avatarPath;
     if (p == null) return null;
-    if (p.startsWith('https://') || p.startsWith('http://')) return NetworkImage(p);
+    if (p.startsWith('https://') || p.startsWith('http://'))
+      return NetworkImage(p);
     final f = File(p);
     return f.existsSync() ? FileImage(f) : null;
   }
@@ -245,12 +286,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                const SizedBox(height: AppTheme.spacingLarge),
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.pushNamed(context, Routes.membership),
-                  icon: const Icon(Icons.workspace_premium),
-                  label: const Text('Membership EclipseVerse'),
-                ),
                 const SizedBox(height: AppTheme.spacingMedium),
                 Card(
                   child: Column(
@@ -275,6 +310,32 @@ class _ProfilePageState extends State<ProfilePage> {
                         onChanged: _toggleNotification,
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMedium),
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.workspace_premium,
+                      color: _isMember ? Colors.amber : AppTheme.primaryLight,
+                    ),
+                    title: Text(
+                      _isMember
+                          ? 'VIP Member Aktif'
+                          : 'Membership EclipseVerse',
+                    ),
+                    subtitle: Text(
+                      _isMember
+                          ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali'
+                          : 'Akses fitur redeem kartu',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () async {
+                      // Pindah ke halaman Membership
+                      await Navigator.pushNamed(context, Routes.membership);
+                      // Pas balik dari halaman membership, cek ulang statusnya
+                      _checkMembership();
+                    },
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacingMedium),
