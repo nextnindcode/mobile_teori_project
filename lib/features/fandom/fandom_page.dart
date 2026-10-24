@@ -59,7 +59,7 @@ class _FandomPageState extends State<FandomPage> {
     return Scaffold(
       backgroundColor: AppTheme.deepSpace,
       appBar: AppBar(
-        title: const Text('Direktori Member Eclipse'),
+        title: const Text('Direktori Member EclipseVerse'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -129,7 +129,7 @@ class _FandomPageState extends State<FandomPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.88,
+          childAspectRatio: 0.76,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),

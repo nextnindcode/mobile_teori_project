@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 
 class OrdersPage extends StatefulWidget {
@@ -43,16 +43,22 @@ class _OrdersPageState extends State<OrdersPage> {
       });
     }
     try {
-      final response = await ApiService.get('/orders');
-      if (response['success'] != true) {
-        throw Exception(response['message'] ?? 'Riwayat pesanan tidak tersedia.');
-      }
-      final data = response['data'] as List? ?? [];
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) throw Exception('Silakan login kembali.');
+      final rows = await Supabase.instance.client.from('orders')
+          .select('id,status,created_at,total_idr,order_items(id)')
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false)
+          .limit(100)
+          .timeout(const Duration(seconds: 10));
       if (!mounted) return;
       setState(() {
-        _orders = data
-            .map((item) => Map<String, dynamic>.from(item as Map))
-            .toList();
+        _orders = rows.map((item) {
+          final row = Map<String, dynamic>.from(item);
+          row['item_count'] = (row['order_items'] as List? ?? []).length;
+          row['total'] = row['total_idr'];
+          return row;
+        }).toList();
         _loading = false;
       });
     } catch (e) {

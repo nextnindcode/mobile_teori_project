@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
@@ -66,18 +66,16 @@ class _CartPageState extends State<CartPage> {
     setState(() => _isCheckingOut = true);
 
     try {
-      final response = await ApiService.post('/orders', {
-        'items': _cartItems
-            .map((item) => {
-                  'product_id': item['product_id'],
-                  'quantity': item['quantity'],
-                })
-            .toList(),
-      });
-
-      if (response['success'] != true) {
-        throw Exception(response['message'] ?? 'Checkout gagal.');
-      }
+      final response = await Supabase.instance.client.rpc(
+        'checkout_merchandise',
+        params: {
+          'p_items': _cartItems.map((item) => {
+            'product_id': item['product_id'],
+            'quantity': item['quantity'],
+          }).toList(),
+        },
+      ).timeout(const Duration(seconds: 15));
+      final result = Map<String, dynamic>.from(response as Map);
 
       await LocalDb.clearCart();
       if (!mounted) return;
@@ -86,7 +84,7 @@ class _CartPageState extends State<CartPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Pesanan #${response['data']?['order_id'] ?? '-'} berhasil dibuat.',
+            'Pesanan #${result['order_id'] ?? '-'} berhasil dibuat.',
           ),
           backgroundColor: Colors.green.shade700,
         ),

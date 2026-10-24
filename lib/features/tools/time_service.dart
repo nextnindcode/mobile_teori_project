@@ -9,17 +9,17 @@ class ZoneOption {
 
 /// Semua tanggal di database adalah UTC.
 class TimeService {
-  static const wib = ZoneOption('WIB', 'Asia/Jakarta');
-  static const wita = ZoneOption('WITA', 'Asia/Makassar');
-  static const wit = ZoneOption('WIT', 'Asia/Jayapura');
+  static const wib = ZoneOption('WIB · Jakarta', 'Asia/Jakarta');
+  static const wita = ZoneOption('WITA · Makassar', 'Asia/Makassar');
+  static const wit = ZoneOption('WIT · Jayapura', 'Asia/Jayapura');
   static const london = ZoneOption('London', 'Europe/London');
-  static const kst = ZoneOption('KST', 'Asia/Seoul');
+  static const kst = ZoneOption('KST · Seoul', 'Asia/Seoul');
 
   /// Zona tujuan yang selalu ditampilkan.
-  static const zones = [wib, wita, wit, london];
+  static const zones = [wib, wita, wit, kst];
 
   /// Zona asal untuk mode manual.
-  static const originZones = [wib, wita, wit, london, kst];
+  static const originZones = [wib, wita, wit, kst];
 
   static bool _ready = false;
   static void _ensure() {
@@ -40,7 +40,7 @@ class TimeService {
     return tz.TZDateTime(tz.getLocation(originZone), y, m, d, h, mi).toUtc();
   }
 
-  /// label zona -> waktu di zona itu (urut WIB, WITA, WIT, London).
+  /// Label zona -> waktu di zona itu (urut Indonesia, lalu Korea).
   static Map<String, tz.TZDateTime> convertAll(DateTime utc) => {
         for (final z in zones) z.label: at(utc, z.tzName),
       };

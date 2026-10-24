@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../membership/membership_service.dart';
 import '../../core/routes.dart';
 import '../../models/products.dart';
 import '../../theme/app_theme.dart';
@@ -111,20 +112,37 @@ class _CatalogPageState extends State<CatalogPage> {
     }
 
     try {
-      final response = await ApiService.get('/products');
-      if (response['success'] != true) {
-        throw ApiException(
-          response['message']?.toString() ??
-              'Gagal memuat daftar produk dari server.',
-          'API_ERROR',
-        );
+      final rows = await Supabase.instance.client
+          .from('products')
+          .select('id,name,description,price_idr,stock,cover_image_path,categories!inner(slug)')
+          .eq('is_published', true)
+          .order('created_at', ascending: false)
+          .limit(100)
+          .timeout(const Duration(seconds: 10));
+      final isMember = await MembershipService.isActive();
+      final products = <Product>[];
+      for (final item in rows) {
+        final row = Map<String, dynamic>.from(item);
+        final category = Map<String, dynamic>.from(row['categories'] as Map);
+        final slug = '${category['slug']}';
+        if (slug == 'collectible' && !isMember) continue;
+        final imagePath = row['cover_image_path']?.toString();
+        final imageUrl = (imagePath == null || imagePath.isEmpty)
+            ? null
+            : Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(imagePath);
+        products.add(Product(
+          id: (row['id'] as num).toInt(),
+          name: '${row['name']}',
+          category: slug,
+          description: '${row['description'] ?? ''}',
+          price: (row['price_idr'] as num).toInt(),
+          stock: (row['stock'] as num).toInt(),
+          imageUrl: imageUrl,
+        ));
       }
-      final List data = response['data'] as List? ?? [];
       if (!mounted) return;
       setState(() {
-        _products = data
-            .map((item) => Product.fromJson(Map<String, dynamic>.from(item)))
-            .toList();
+        _products = products;
         _isLoading = false;
       });
     } catch (e) {
@@ -214,7 +232,13 @@ class _CatalogPageState extends State<CatalogPage> {
                 return ChoiceChip(
                   label: Text(label),
                   selected: selected,
-                  onSelected: (_) => setState(() => _category = label),
+                  onSelected: (_) async {
+                    if (label == 'Koleksi' && !await MembershipService.isActive()) {
+                      if (mounted) Navigator.pushNamed(context, Routes.membership);
+                      return;
+                    }
+                    if (mounted) setState(() => _category = label);
+                  },
                   backgroundColor: AppTheme.surfaceElevated,
                   selectedColor: AppTheme.eclipseViolet,
                   labelStyle: TextStyle(

@@ -5,22 +5,22 @@ import 'package:google_fonts/google_fonts.dart';
 /// Inspired by deep space, celestial eclipses, and connected fandom universes.
 class AppTheme {
   // ===== Core Cosmic Palette =====
-  static const Color deepSpace = Color(0xFF080B16); // Deep space background
-  static const Color surfaceElevated = Color(0xFF11182A); // Primary elevated surface
-  static const Color surfaceSecondary = Color(0xFF19223A); // Secondary card surface
-  static const Color surfaceGlass = Color(0x3319223A); // Subtle glassmorphic surface
+  static const Color deepSpace = Color(0xFF17152B); // Twilight space: atmospheric, not pitch black
+  static const Color surfaceElevated = Color(0xFF24213F); // Nebula surface
+  static const Color surfaceSecondary = Color(0xFF302D50); // Elevated lavender-indigo surface
+  static const Color surfaceGlass = Color(0x55302D50); // Soft glassmorphic surface
 
   // ===== Semantic Accents =====
-  static const Color eclipseViolet = Color(0xFF8B5CF6); // Eclipse violet
-  static const Color nebulaIndigo = Color(0xFF536DFE); // Nebula indigo
-  static const Color coronaGold = Color(0xFFF3C969); // Corona gold
-  static const Color coolCyan = Color(0xFF67DDF5); // Cool cyan accent
+  static const Color eclipseViolet = Color(0xFFB39AFB); // Luminous eclipse lavender
+  static const Color nebulaIndigo = Color(0xFF858FF8); // Nebula periwinkle
+  static const Color coronaGold = Color(0xFFFFD98A); // Warm corona gold
+  static const Color coolCyan = Color(0xFF8DE8F2); // Starlight cyan
 
   // ===== Text & Neutral Colors =====
-  static const Color textPrimary = Color(0xFFF4F5FC); // Crisp primary text
-  static const Color textSecondary = Color(0xFFA6ADC5); // Muted secondary text
-  static const Color textMuted = Color(0xFF6B7280); // Subtle tertiary text
-  static const Color borderSubtle = Color(0x2A67DDF5); // Subtle cosmic border
+  static const Color textPrimary = Color(0xFFFFFCFF); // Starlight white
+  static const Color textSecondary = Color(0xFFD0CDE5); // Soft moonlight text
+  static const Color textMuted = Color(0xFFA6A1C1); // Muted nebula text
+  static const Color borderSubtle = Color(0x558DE8F2); // Visible but gentle starlight border
   static const Color borderLight = Color(0x1FFFFFFF); // Subtle white divider
 
   // ===== Backward Compatibility Aliases =====
@@ -49,7 +49,7 @@ class AppTheme {
   );
 
   static const LinearGradient cosmicHeroGradient = LinearGradient(
-    colors: [Color(0xFF2E1065), Color(0xFF1E1B4B), Color(0xFF0F172A)],
+    colors: [Color(0xFF58428B), Color(0xFF393C72), Color(0xFF252744)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

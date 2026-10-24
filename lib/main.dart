@@ -3,11 +3,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'theme/app_theme.dart';
 import 'core/routes.dart';
+import 'core/local_db.dart';
+import 'core/auth_service.dart';
+import 'core/supabase_config.dart';
 import 'features/auth/login_page.dart';
 import 'features/auth/register_page.dart';
 import 'features/auth/splash_page.dart';
-import 'core/local_db.dart';
-import 'core/auth_service.dart';
 import 'features/event/event_page.dart';
 import 'features/event/event_detail_page.dart';
 import 'features/fandom/member_detail_page.dart';
@@ -18,6 +19,7 @@ import 'features/game/game_page.dart';
 import 'features/marketplace/catalog_page.dart';
 import 'features/marketplace/cart_page.dart';
 import 'features/marketplace/orders_page.dart';
+import 'features/membership/membership_page.dart';
 import 'features/nearby/nearby_page.dart';
 import 'features/redeem/redeem_page.dart';
 import 'features/notification/notification_page.dart';
@@ -25,9 +27,11 @@ import 'features/notification/notification_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Semua anggota menggunakan satu Supabase project yang sama.
+  // Tidak ada lagi ketergantungan pada XAMPP, localhost, atau IP laptop.
   await Supabase.initialize(
-    url: 'https://swnnzsqwudezuvromgfm.supabase.co',
-    publishableKey: 'sb_publishable_vyYETtO5DqB0R0bv6H0qfA_mtiExTSp',
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.publishableKey,
   );
 
   runApp(const MyApp());
@@ -71,6 +75,7 @@ class MyApp extends StatelessWidget {
         Routes.catalog: (_) => const CatalogPage(),
         Routes.cart: (_) => const CartPage(),
         Routes.orders: (_) => const OrdersPage(),
+        Routes.membership: (_) => const MembershipPage(),
         Routes.ai: (_) => const AiPage(),
         Routes.game: (_) => const GamePage(),
         Routes.nearby: (_) => const NearbyPage(),

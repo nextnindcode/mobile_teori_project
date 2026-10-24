@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/local_db.dart';
 import '../../models/products.dart';
 import '../../theme/app_theme.dart';
@@ -36,17 +36,17 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
 
   Future<void> _fetchRates() async {
     try {
-      final res = await ApiService.get('/currency/rates?base=USD');
-      if (res['success'] == true && res['data'] is Map && res['data']['rates'] != null) {
-        if (!mounted) return;
-        setState(() {
-          final apiRates = res['data']['rates'];
-          if (apiRates['IDR'] != null) _rates['IDR'] = (apiRates['IDR'] as num).toDouble();
-          if (apiRates['USD'] != null) _rates['USD'] = (apiRates['USD'] as num).toDouble();
-          if (apiRates['KRW'] != null) _rates['KRW'] = (apiRates['KRW'] as num).toDouble();
-          if (apiRates['JPY'] != null) _rates['JPY'] = (apiRates['JPY'] as num).toDouble();
-        });
-      }
+      final rows = await Supabase.instance.client.from('currency_rates')
+          .select('target_code,rate')
+          .eq('base_code', 'USD')
+          .timeout(const Duration(seconds: 8));
+      if (!mounted) return;
+      setState(() {
+        for (final row in rows) {
+          final code = '${row['target_code']}';
+          if (_rates.containsKey(code)) _rates[code] = (row['rate'] as num).toDouble();
+        }
+      });
     } catch (_) {}
   }
 

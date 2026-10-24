@@ -56,7 +56,11 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_member?.stageName ?? 'Member')),
+      backgroundColor: AppTheme.deepSpace,
+      appBar: AppBar(
+        backgroundColor: AppTheme.deepSpace,
+        title: Text(_member?.stageName ?? 'Detail Member'),
+      ),
       body: _loading
           ? const LoadingView()
           : _error != null
@@ -82,25 +86,25 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
           ),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
-        Text(m.stageName, textAlign: TextAlign.center, style: t.headlineMedium),
+        Text(m.stageName, textAlign: TextAlign.center, style: t.headlineMedium?.copyWith(color: AppTheme.textPrimary)),
         const SizedBox(height: AppTheme.spacingSmall),
         Center(
           child: Chip(
             label: Text(m.position),
-            backgroundColor: AppTheme.primaryLight.withValues(alpha: 0.4),
+            backgroundColor: AppTheme.coolCyan.withValues(alpha: 0.18),
+            labelStyle: const TextStyle(color: AppTheme.coolCyan),
           ),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
-        Text('Deskripsi', style: t.titleLarge),
+        Text('Deskripsi', style: t.titleLarge?.copyWith(color: AppTheme.textPrimary)),
         const SizedBox(height: AppTheme.spacingXSmall),
-        Text(m.description.isEmpty ? '-' : m.description, style: t.bodyLarge),
+        Text(m.description.isEmpty ? '-' : m.description, style: t.bodyLarge?.copyWith(color: AppTheme.textSecondary, height: 1.5)),
         const SizedBox(height: AppTheme.spacingMedium),
         Card(
           child: ListTile(
-            leading: const Icon(Icons.lightbulb_outline,
-                color: AppTheme.primaryDark),
-            title: const Text('Fun fact'),
-            subtitle: Text(m.funFact.isEmpty ? '-' : m.funFact),
+            leading: const Icon(Icons.lightbulb_outline, color: AppTheme.coronaGold),
+            title: const Text('Fun fact', style: TextStyle(color: AppTheme.textPrimary)),
+            subtitle: Text(m.funFact.isEmpty ? '-' : m.funFact, style: const TextStyle(color: AppTheme.textSecondary, height: 1.4)),
           ),
         ),
       ],

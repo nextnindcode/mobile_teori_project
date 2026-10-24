@@ -1,32 +1,28 @@
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RedeemService {
-  // 1. Ambil total poin user dan kartu yang sudah dimiliki
+  static final _client = Supabase.instance.client;
+
   static Future<Map<String, dynamic>> getUserStats() async {
-    final response = await ApiService.post('/game/redeem', {
-      'action': 'get_points',
-    });
-    final data = response['data'];
-    if (data is Map) {
-      return Map<String, dynamic>.from(data);
-    }
-    return {'points': 0, 'owned_cards': []};
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('Silakan login terlebih dahulu.');
+    final pointsRow = await _client.from('user_points')
+        .select('total_points').eq('user_id', user.id).maybeSingle();
+    final cards = await _client.from('user_cards')
+        .select('card_id').eq('user_id', user.id);
+    return {
+      'points': (pointsRow?['total_points'] as num?)?.toInt() ?? 0,
+      'owned_cards': cards.map((row) => row['card_id']).toList(),
+    };
   }
 
-  // 2. Tukar poin dengan kartu
   static Future<void> redeemCard(int cardId, int cost) async {
-    await ApiService.post('/game/redeem', {
-      'action': 'redeem',
-      'card_id': cardId,
-      'cost': cost,
-    });
+    await _client.rpc('redeem_photocard', params: {'p_card_id': cardId});
   }
 
-  // 3. Verifikasi konsistensi blockchain ledger
   static Future<Map<String, dynamic>> verifyBlockchain() async {
-    final response = await ApiService.get('/blockchain/verify');
-    final data = response['data'];
-    if (data is Map) return Map<String, dynamic>.from(data);
-    throw Exception('Respons verifikasi blockchain tidak valid');
+    final result = await _client.rpc('verify_blockchain_ledger')
+        .timeout(const Duration(seconds: 10));
+    return Map<String, dynamic>.from(result as Map);
   }
 }
