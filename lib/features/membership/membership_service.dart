@@ -35,17 +35,17 @@ class MembershipService {
     final rows = await _client
         .from('membership_plans')
         .select(
-          'id, code, name, description, price_idr, benefits, quota_amount',
+          'id, code, name, description, price_points, benefits, quota_amount',
         )
         .eq('is_active', true)
-        .order('price_idr');
+        .order('price_points');
 
     return rows.map((row) => Map<String, dynamic>.from(row)).toList();
   }
 
   static Future<Map<String, dynamic>> purchase(int planId) async {
     final result = await _client.rpc(
-      'purchase_membership_simulated',
+      'purchase_membership_with_points',
       params: {'p_plan_id': planId},
     );
     return Map<String, dynamic>.from(result as Map);
