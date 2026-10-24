@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'eclipse_card_model.dart';
 import 'redeem_service.dart';
+import '../membership/membership_service.dart'; 
 
 class RedeemPage extends StatefulWidget {
   const RedeemPage({super.key});
@@ -12,6 +13,7 @@ class RedeemPage extends StatefulWidget {
 
 class _RedeemPageState extends State<RedeemPage> {
   bool _isLoading = true;
+  bool _isMember = false;
   String? _errorMessage;
   int _userPoints = 0;
   List<int> _ownedCardIds = [];
@@ -19,21 +21,32 @@ class _RedeemPageState extends State<RedeemPage> {
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _loadData();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Mengambil poin dan kartu dari API backend 
+      // 1. Cek status member dulu
+      final isMember = await MembershipService.checkIsMember();
+      
+      if (!isMember) {
+        setState(() {
+          _isMember = false;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 2. Jika membership, ambil data poin
       final data = await RedeemService.getUserStats();
       setState(() {
+        _isMember = true;
         _userPoints = data['points'] ?? 0;
-        // Konversi list dari API ke List<int> 
         _ownedCardIds = (data['owned_cards'] as List? ?? [])
             .map((value) => int.tryParse(value.toString()) ?? 0)
             .where((id) => id > 0)
@@ -48,33 +61,7 @@ class _RedeemPageState extends State<RedeemPage> {
     }
   }
 
-  Future<void> _verifyBlockchain() async {
-    try {
-      final result = await RedeemService.verifyBlockchain();
-      if (!mounted) return;
-      final valid = result['valid'] == true;
-      final count = result['block_count'] ?? 0;
-      final invalidId = result['invalid_block_id'];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            valid
-                ? 'Blockchain valid: $count blok terverifikasi.'
-                : 'Verifikasi gagal pada blok $invalidId.',
-          ),
-          backgroundColor: valid ? Colors.green : Colors.red,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memverifikasi blockchain: $e')),
-      );
-    }
-  }
-
   Future<void> _handleRedeem(EclipseCard card) async {
-    // Cek poin terlebih dahulu 
     if (_userPoints < card.cost) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Poin kamu tidak cukup!'), backgroundColor: Colors.red),
@@ -82,7 +69,6 @@ class _RedeemPageState extends State<RedeemPage> {
       return;
     }
 
-    // Tampilkan dialog konfirmasi 
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -100,13 +86,12 @@ class _RedeemPageState extends State<RedeemPage> {
     setState(() => _isLoading = true);
 
     try {
-      // Panggil API untuk memproses redeem kartu 
       await RedeemService.redeemCard(card.id, card.cost);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Berhasil mendapatkan ${card.name}!'), backgroundColor: Colors.green),
         );
-        _fetchData(); // Refresh data poin dan kartu 
+        _loadData();
       }
     } catch (e) {
       if (mounted) {
@@ -122,16 +107,7 @@ class _RedeemPageState extends State<RedeemPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: const Text('Redeem Card'),
-        actions: [
-          IconButton(
-            onPressed: _verifyBlockchain,
-            tooltip: 'Verifikasi blockchain',
-            icon: const Icon(Icons.verified_outlined),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Redeem Card')),
       body: _buildBody(),
     );
   }
@@ -139,6 +115,48 @@ class _RedeemPageState extends State<RedeemPage> {
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator(color: AppTheme.primaryDark));
+    }
+
+    // Redeem card akan digembok/dikunci jika bukan membership
+    if (!_isMember && _errorMessage == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryLight.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.card_giftcard, size: 80, color: AppTheme.primaryDark),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Akses Terkunci',
+                style: AppTheme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Fitur Redeem Card (Photocard) hanya tersedia untuk Member EclipseVerse. Silakan beli paket membership di halaman Profil.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, height: 1.5),
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: AppTheme.primaryButtonStyle,
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Kembali ke Home'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     if (_errorMessage != null) {
@@ -156,7 +174,7 @@ class _RedeemPageState extends State<RedeemPage> {
                 width: 200, 
                 child: ElevatedButton(
                   style: AppTheme.primaryButtonStyle,
-                  onPressed: _fetchData,
+                  onPressed: _loadData,
                   child: const Text('Coba Lagi'),
                 ),
               ),
@@ -166,42 +184,25 @@ class _RedeemPageState extends State<RedeemPage> {
       );
     }
 
+    // UI Redeem Card Jika Sudah Membership 
     return Column(
       children: [
-        // Header Poin User 
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryDark.withValues(alpha: 0.3), 
-                blurRadius: 10, 
-                offset: const Offset(0, 5)
-              ),
-            ],
+            boxShadow: [BoxShadow(color: AppTheme.primaryDark.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))],
           ),
           child: Column(
             children: [
-              const Text(
-                'Total Poin Kamu', 
-                style: TextStyle(color: Colors.white70, fontSize: 16)
-              ),
+              const Text('Total Poin Kamu', style: TextStyle(color: Colors.white70, fontSize: 16)),
               const SizedBox(height: 8),
-              Text(
-                '$_userPoints',
-                style: const TextStyle(
-                  color: Colors.white, 
-                  fontSize: 48, 
-                  fontWeight: FontWeight.bold
-                ),
-              ),
+              Text('$_userPoints', style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
         
-        // Grid Kartu Member 
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.all(16),
@@ -228,75 +229,48 @@ class _RedeemPageState extends State<RedeemPage> {
       decoration: BoxDecoration(
         color: AppTheme.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05), 
-            blurRadius: 10, 
-            offset: const Offset(0, 5)
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Bagian Gambar Kartu 
           Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Gambar dari URL 
                   Image.network(
                     card.imageUrl,
                     fit: BoxFit.cover, 
-                    
-                    // Tampilan jika gambar sedang loading 
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Container(
                         color: AppTheme.greyLight,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryDark),
-                        ),
+                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryDark)),
                       );
                     },
-
-                    // Tampilan jika link gambar mati/error 
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: AppTheme.greyLight,
-                        child: const Center(
-                          child: Icon(Icons.broken_image, color: AppTheme.grey, size: 40),
-                        ),
+                        child: const Center(child: Icon(Icons.broken_image, color: AppTheme.grey, size: 40)),
                       );
                     },
                   ),
                   
-                  // Jika kartu belum dimiliki: Efek Gelap + Gembok
                   if (!isOwned) 
                     Container(
                       color: Colors.black.withValues(alpha: 0.65),
-                      child: const Center(
-                        child: Icon(Icons.lock, color: Colors.white, size: 50),
-                      ),
+                      child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 50)),
                     ),
                   
-                  // Jika kartu sudah dimiliki: Label "OWNED"
                   if (isOwned)
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: 8, right: 8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'OWNED',
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
+                        decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(8)),
+                        child: const Text('OWNED', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ),
                 ],
@@ -304,7 +278,6 @@ class _RedeemPageState extends State<RedeemPage> {
             ),
           ),
           
-          // Bagian Detail dan Tombol
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Column(
@@ -318,28 +291,18 @@ class _RedeemPageState extends State<RedeemPage> {
                 ),
                 const SizedBox(height: 6),
                 if (isOwned)
-                  const Text(
-                    'Sudah Dimiliki', 
-                    style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)
-                  )
+                  const Text('Sudah Dimiliki', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))
                 else
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
                       const SizedBox(width: 4),
-                      Text(
-                        '${card.cost} Poin', 
-                        style: TextStyle(
-                          color: AppTheme.primaryDark, 
-                          fontWeight: FontWeight.bold
-                        )
-                      ),
+                      Text('${card.cost} Poin', style: TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 const SizedBox(height: 12),
                 
-                // Tombol Tukar 
                 SizedBox(
                   width: double.infinity,
                   height: 40,

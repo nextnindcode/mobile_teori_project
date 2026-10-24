@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'game_model.dart';
 import 'game_service.dart'; 
+import '../redeem/redeem_service.dart'; 
 
 class GameController extends ChangeNotifier {
   final List<Map<String, String>> _allMembers = [
@@ -26,6 +27,10 @@ class GameController extends ChangeNotifier {
   int _correctCount = 0;
   int _timeLeft = 15;
   int _bestScore = 0; 
+  
+  int _maxRounds = 10;
+  bool _isMemberMode = false;
+  
   Timer? _timer;
 
   List<GameQuestion> get questions => _questions;
@@ -34,10 +39,16 @@ class GameController extends ChangeNotifier {
   int get timeLeft => _timeLeft;
   int get bestScore => _bestScore; 
   int get correctCount => _correctCount; 
-  bool get isGameOver => _currentRound >= 10;
+  int get maxRounds => _maxRounds;
+  bool get isMemberMode => _isMemberMode;
+  
+  bool get isGameOver => _currentRound >= _maxRounds;
   GameQuestion get currentQuestion => _questions[_currentRound];
 
-  void startGame() async {
+  void startGame({bool isMemberMode = false}) async {
+    _isMemberMode = isMemberMode;
+    _maxRounds = 10; // Selalu 10 ronde
+
     try {
       _bestScore = await GameService.getBestScore();
     } catch (e) {
@@ -49,6 +60,7 @@ class GameController extends ChangeNotifier {
     _currentRound = 0;
     _score = 0;
     _correctCount = 0;
+    _timeLeft = 15; // Selalu 15 detik
     _startTimer();
     notifyListeners();
   }
@@ -56,14 +68,13 @@ class GameController extends ChangeNotifier {
   void _generateQuestions() {
     _questions.clear();
     final shuffledMembers = List<Map<String, String>>.from(_allMembers)..shuffle();
-    final selectedMembers = shuffledMembers.take(10).toList();
+    final selectedMembers = shuffledMembers.take(_maxRounds).toList();
 
     for (var member in selectedMembers) {
       String correct = member['name']!;
       String fact = member['funFact']!;
       List<String> wrongOptions = _allMembers.where((m) => m['name'] != correct).map((m) => m['name']!).toList()..shuffle();
       
-      // Hanya mengambil 1 jawaban salah (total ada 2 pilihan jawaban)
       List<String> options = [correct, ...wrongOptions.take(1)]..shuffle();
 
       _questions.add(GameQuestion(funFact: fact, options: options, correctAnswer: correct));
@@ -98,7 +109,7 @@ class GameController extends ChangeNotifier {
       _correctCount++;
     }
 
-    if (_currentRound < 9) {
+    if (_currentRound < _maxRounds - 1) {
       _currentRound++;
       _startTimer();
       return;
@@ -115,11 +126,11 @@ class GameController extends ChangeNotifier {
       }
     }
 
-    // Kegagalan jaringan tidak boleh membuat layar hasil permainan menggantung.
     try {
       await GameService.kirimSkorKeServer(_score, _correctCount);
+      await RedeemService.addPoints(_score);
     } catch (e) {
-      debugPrint('Gagal mengirim skor ke server: $e');
+      debugPrint('Gagal mengirim skor/poin ke server: $e');
     }
 
     notifyListeners();

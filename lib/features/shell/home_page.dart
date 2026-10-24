@@ -435,12 +435,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
-          _FeatureLink(
-            icon: Icons.card_giftcard,
-            title: 'Redeem Card',
-            subtitle: 'Tukar poin dengan kartu eksklusif member',
-            onTap: () => _open(context, Routes.redeem),
-          ),
         ],
       ),
     );
