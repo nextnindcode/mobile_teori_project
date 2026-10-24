@@ -114,7 +114,7 @@ class _AiPageState extends State<AiPage> {
                       ),
                       child: TextField(
                         controller: _textController,
-                        maxLength: 300, // Syarat Brief Maksimal 300 Karakter 
+                        maxLength: 500, // Syarat Brief Maksimal 500 Karakter 
                         textInputAction: TextInputAction.send,
                         decoration: InputDecoration(
                           hintText: 'Tanya seputar Eclipse...',
