@@ -79,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!authSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Verifikasi sidik jari gagal atau dibatalkan.'),
+          content: Text('Verifikasi biometrik gagal atau dibatalkan.'),
         ),
       );
       return;
@@ -265,7 +265,7 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: _isLoading ? null : _loginBiometric,
                       icon: const Icon(Icons.fingerprint, size: 28),
                       label: const Text(
-                        'Gunakan sidik jari',
+                        'Gunakan biometrik (wajah/sidik jari)',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
