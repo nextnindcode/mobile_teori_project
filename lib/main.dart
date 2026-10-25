@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'theme/app_theme.dart';
 import 'core/routes.dart';
-import 'core/local_db.dart';
 import 'core/auth_service.dart';
 import 'core/supabase_config.dart';
 import 'features/auth/login_page.dart';

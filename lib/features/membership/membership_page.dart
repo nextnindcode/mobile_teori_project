@@ -114,8 +114,9 @@ class _MembershipPageState extends State<MembershipPage> {
     final out = StringBuffer();
     for (var i = 0; i < digits.length; i++) {
       out.write(digits[i]);
-      if ((digits.length - i - 1) % 3 == 0 && i != digits.length - 1)
+      if ((digits.length - i - 1) % 3 == 0 && i != digits.length - 1) {
         out.write('.');
+      }
     }
     return out.toString();
   }

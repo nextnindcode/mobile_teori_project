@@ -164,15 +164,16 @@ class _CatalogPageState extends State<CatalogPage> {
   String _formatCurrency(double amount, String currency) {
     String symbol = '';
     int decimals = 0;
-    if (currency == 'IDR')
+    if (currency == 'IDR') {
       symbol = 'Rp ';
-    else if (currency == 'USD') {
+    } else if (currency == 'USD') {
       symbol = '\$ ';
       decimals = 2;
-    } else if (currency == 'KRW')
+    } else if (currency == 'KRW') {
       symbol = '₩ ';
-    else if (currency == 'JPY')
+    } else if (currency == 'JPY') {
       symbol = '¥ ';
+    }
 
     final formatted = amount
         .toStringAsFixed(decimals)
@@ -237,9 +238,18 @@ class _CatalogPageState extends State<CatalogPage> {
             final totalPriceIDR = product.price * qty;
 
             double convertedPrice = totalPriceIDR.toDouble();
-            if (selectedCurrency == 'USD') convertedPrice *= rateUSD;
-            if (selectedCurrency == 'KRW') convertedPrice *= rateKRW;
-            if (selectedCurrency == 'JPY') convertedPrice *= rateJPY;
+
+            if (selectedCurrency == 'USD') {
+              convertedPrice *= rateUSD;
+            }
+
+            if (selectedCurrency == 'KRW') {
+              convertedPrice *= rateKRW;
+            }
+
+            if (selectedCurrency == 'JPY') {
+              convertedPrice *= rateJPY;
+            }
 
             final displayPrice = selectedCurrency == 'IDR'
                 ? _formatRupiah(totalPriceIDR)
@@ -494,17 +504,21 @@ class _CatalogPageState extends State<CatalogPage> {
                                               price: product.price,
                                               quantity: qty,
                                             );
-                                            if (sheetContext.mounted) {
-                                              Navigator.pop(sheetContext);
-                                              ScaffoldMessenger.of(this.context)
-                                                  .showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text(
-                                                        'Berhasil ditambahkan ke keranjang!',
-                                                      ),
-                                                    ),
-                                                  );
+                                            if (!mounted ||
+                                                !sheetContext.mounted) {
+                                              return;
                                             }
+
+                                            Navigator.pop(sheetContext);
+
+                                            ScaffoldMessenger.of(this.context)
+                                                .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Berhasil ditambahkan ke keranjang!',
+                                                    ),
+                                                  ),
+                                                );
                                           },
                                     icon: const Icon(
                                       Icons.shopping_bag_outlined,
@@ -543,41 +557,39 @@ class _CatalogPageState extends State<CatalogPage> {
                                                   qty,
                                                 );
 
-                                            if (sheetContext.mounted) {
-                                              setSheetState(
-                                                () => isProcessing = false,
-                                              );
+                                            if (!mounted ||
+                                                !sheetContext.mounted) {
+                                              return;
+                                            }
 
-                                              // Cek apakah errorMessage kosong (null) = SUKSES
-                                              if (errorMessage == null) {
-                                                Navigator.pop(
-                                                  sheetContext,
-                                                ); // Tutup bottom sheet
-                                                ScaffoldMessenger.of(
-                                                  this.context,
-                                                ).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                      'Transaksi Berhasil! Pesanan sedang diproses.',
+                                            setSheetState(() {
+                                              isProcessing = false;
+                                            });
+
+                                            if (errorMessage == null) {
+                                              Navigator.pop(sheetContext);
+
+                                              ScaffoldMessenger.of(this.context)
+                                                  .showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Transaksi Berhasil! Pesanan sedang diproses.',
+                                                      ),
+                                                      backgroundColor:
+                                                          AppTheme.success,
                                                     ),
-                                                    backgroundColor:
-                                                        AppTheme.success,
-                                                  ),
-                                                );
-                                              } else {
-                                                // Kalau ada error, tampilkan pesan error dari database
-                                                ScaffoldMessenger.of(
-                                                  this.context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      'Error: $errorMessage',
+                                                  );
+                                            } else {
+                                              ScaffoldMessenger.of(this.context)
+                                                  .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Error: $errorMessage',
+                                                      ),
+                                                      backgroundColor:
+                                                          AppTheme.error,
                                                     ),
-                                                    backgroundColor:
-                                                        AppTheme.error,
-                                                  ),
-                                                );
-                                              }
+                                                  );
                                             }
                                           },
                                     style: ElevatedButton.styleFrom(
@@ -687,13 +699,22 @@ class _CatalogPageState extends State<CatalogPage> {
                   label: Text(label),
                   selected: selected,
                   onSelected: (_) async {
-                    if (label == 'Koleksi' &&
-                        !await MembershipService.isActive()) {
-                      if (mounted)
+                    if (label == 'Koleksi') {
+                      final isMember = await MembershipService.isActive();
+
+                      if (!context.mounted) return;
+
+                      if (!isMember) {
                         Navigator.pushNamed(context, Routes.membership);
-                      return;
+                        return;
+                      }
                     }
-                    if (mounted) setState(() => _category = label);
+
+                    if (!context.mounted) return;
+
+                    setState(() {
+                      _category = label;
+                    });
                   },
                   backgroundColor: AppTheme.surfaceElevated,
                   selectedColor: AppTheme.eclipseViolet,
@@ -757,8 +778,9 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   Widget _buildContent(List<Product> visibleProducts) {
-    if (_isLoading)
+    if (_isLoading) {
       return const CosmicLoading(message: 'Menghubungkan ke Eclipse Store...');
+    }
     if (_errorMessage != null) {
       return CosmicErrorView(
         message: _errorMessage!,
