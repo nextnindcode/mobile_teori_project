@@ -132,7 +132,7 @@ class _NearbyPageState extends State<NearbyPage> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 90), 
       itemCount: _eventsWithDistance.length,
       itemBuilder: (context, index) {
         final data = _eventsWithDistance[index];

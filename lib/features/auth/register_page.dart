@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/auth_service.dart';
 import '../../theme/app_theme.dart';
+import '../../core/routes.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -24,30 +27,75 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await ApiService.post('/auth/register', {
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'password': _passwordController.text,
-      });
+      final response = await AuthService.register(
+        name: _nameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      
+      final user = response.user;
+      if (user == null) {
+        throw Exception('Registrasi gagal. Silakan coba lagi.');
+      }
 
-      if (response['success'] == true) {
+      // =========================================================
+      // TAMBAHAN BAGIAN C: SIMPAN NOTIFIKASI WELCOME KE INBOX
+      // =========================================================
+      try {
+        await Supabase.instance.client.from('notifications').insert({
+          'user_id': user.id,
+          'title': 'Selamat Datang di EclipseVerse! 🌟',
+          'message': 'Halo ${_nameController.text}, selamat bergabung di semesta Eclipse. Jangan lupa lengkapi profilmu dan mainkan Mini Game untuk mendapatkan Photocard!',
+          'type': 'system',
+        });
+      } catch (e) {
+        // Jika gagal simpan notif, registrasi tetap lanjut
+        debugPrint('Gagal menyimpan notifikasi welcome: $e');
+      }
+      // =========================================================
+
+      if (response.session != null) {
+        await AuthService.cacheUserLocally(user);
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
+      } else {
+        // Supabase email confirmation is enabled: user must confirm before login.
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        Navigator.pop(context);
+        messenger.showSnackBar(
           const SnackBar(
-            content: Text('Registrasi berhasil, silakan login'),
+            content: Text(
+              'Registrasi berhasil. Periksa email untuk konfirmasi, lalu login.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Balik ke halaman login
       }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Registrasi gagal: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override

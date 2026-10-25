@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/api_service.dart';
-import '../../core/secure_store.dart';
-import '../../core/routes.dart';
-import '../../theme/app_theme.dart';
+import '../../core/auth_service.dart';
 import '../../core/local_db.dart';
+import '../../core/routes.dart';
+import '../../core/session_timeout_service.dart';
+import '../../core/secure_store.dart'; // Pastikan ini diimport
+import '../../theme/app_theme.dart';
+import '../profile/biometric_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,36 +23,111 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  @override
+  void initState() {
+    super.initState();
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
     try {
-      final response = await ApiService.post('/auth/login', {
-        'email': _emailController.text.trim(),
-        'password': _passwordController.text,
-      });
+      final response = await AuthService.login(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      final user = response.user;
+      if (user == null) throw Exception('Login gagal.');
 
-      if (response['success'] == true) {
-        await SecureStore.saveToken(response['data']['token']);
-        final user = Map<String, dynamic>.from(response['data']['user'] as Map);
-        await LocalDb.saveProfile(
-          userId: int.tryParse('${user['id']}') ?? 0,
-          name: '${user['name'] ?? ''}',
-          email: '${user['email'] ?? _emailController.text.trim()}',
+      await AuthService.cacheUserLocally(user);
+      await SessionTimeoutService.clearBackgroundTime();
+      if (!mounted) return;
+
+      // OTOMATIS SIMPAN KREDENSIAL BIOMETRIC SETELAH LOGIN SUKSES
+      // (Tanpa nanya pop-up, biar langsung siap dipake)
+      final isSupported = await BiometricService.isSupported();
+      if (isSupported) {
+        await SecureStore.saveCredentials(
+          _emailController.text.trim(),
+          _passwordController.text,
         );
-        await LocalDb.setPref('user_role', '${user['role'] ?? 'user'}');
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, Routes.shell);
+        await LocalDb.setPref('biometric_enabled', '1');
       }
+
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        SnackBar(content: Text('Login gagal: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loginBiometric() async {
+    final authSuccess = await BiometricService.authenticate();
+    if (!mounted) return;
+
+    if (!authSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Verifikasi biometrik gagal atau dibatalkan.'),
+        ),
+      );
+      return;
+    }
+
+    // Ambil kredensial yang tersimpan
+    final creds = await SecureStore.getCredentials();
+    if (!mounted) return;
+
+    if (creds == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Belum ada data sidik jari. Silakan isi email & password dulu.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Login ulang ke Supabase
+      final response = await AuthService.login(
+        email: creds['email']!,
+        password: creds['password']!,
+      );
+
+      await AuthService.cacheUserLocally(response.user!);
+      await SessionTimeoutService.clearBackgroundTime();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Gagal login: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -65,7 +143,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ===== 1. GAMBAR ATAS (ANIMASI GERHANA) =====
+                  // ===== 1. GAMBAR ATAS =====
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -85,7 +163,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       Transform.translate(
-                        offset: const Offset(-30, 0), // Bulan geser nutupin
+                        offset: const Offset(-30, 0),
                         child: Container(
                           width: 100,
                           height: 100,
@@ -150,7 +228,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ===== 5. TOMBOL LOGIN =====
+                  // ===== 5. TOMBOL LOGIN MANUAL =====
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -162,7 +240,51 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
 
+                  // ===== 6. PEMBATAS "ATAU" =====
                   const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          'atau',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ===== 7. TOMBOL SIDIK JARI (SELALU MUNCUL) =====
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _loginBiometric,
+                      icon: const Icon(Icons.fingerprint, size: 28),
+                      label: const Text(
+                        'Gunakan biometrik (wajah/sidik jari)',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryDark,
+                        side: const BorderSide(
+                          color: AppTheme.primaryDark,
+                          width: 2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
 
                   // ===== 8. LINK DAFTAR =====
                   TextButton(

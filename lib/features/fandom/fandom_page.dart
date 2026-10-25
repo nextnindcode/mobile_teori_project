@@ -15,6 +15,9 @@ class FandomPage extends StatefulWidget {
 class _FandomPageState extends State<FandomPage> {
   final _search = TextEditingController();
   List<Member> _all = [];
+  String _teamFilter = 'Semua';
+
+  static const _teams = ['Semua', 'Vocal Team', 'Performance Team', 'Hip-Hop Team'];
   bool _loading = true;
   String? _error;
 
@@ -48,10 +51,10 @@ class _FandomPageState extends State<FandomPage> {
 
   List<Member> get _filtered {
     final q = _search.text.trim().toLowerCase();
-    if (q.isEmpty) return _all;
     return _all.where((m) =>
-        m.stageName.toLowerCase().contains(q) ||
-        m.position.toLowerCase().contains(q)).toList();
+        (_teamFilter == 'Semua' || m.team == _teamFilter) &&
+        (q.isEmpty || m.stageName.toLowerCase().contains(q) ||
+         m.position.toLowerCase().contains(q) || m.team.toLowerCase().contains(q))).toList();
   }
 
   @override
@@ -59,7 +62,7 @@ class _FandomPageState extends State<FandomPage> {
     return Scaffold(
       backgroundColor: AppTheme.deepSpace,
       appBar: AppBar(
-        title: const Text('Direktori Member Eclipse'),
+        title: const Text('Direktori Member EclipseVerse'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -90,6 +93,23 @@ class _FandomPageState extends State<FandomPage> {
                         },
                       ),
               ),
+            ),
+          ),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: _teams.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final team = _teams[index];
+                return ChoiceChip(
+                  label: Text(team),
+                  selected: _teamFilter == team,
+                  onSelected: (_) => setState(() => _teamFilter = team),
+                );
+              },
             ),
           ),
           Expanded(child: _buildBody()),
@@ -129,7 +149,7 @@ class _FandomPageState extends State<FandomPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.88,
+          childAspectRatio: 0.76,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -171,15 +191,32 @@ class _FandomPageState extends State<FandomPage> {
                           ),
                         ],
                       ),
-                      child: Center(
-                        child: Text(
-                          m.initial,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      child: ClipOval(
+                        child: m.imageUrl != null && m.imageUrl!.isNotEmpty
+                            ? Image.network(
+                                m.imageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Center(
+                                  child: Text(
+                                    m.initial,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  m.initial,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -195,7 +232,7 @@ class _FandomPageState extends State<FandomPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      m.position,
+                      '${m.team} • ${m.position}',
                       maxLines: 2,
                       textAlign: TextAlign.center,
                       overflow: TextOverflow.ellipsis,

@@ -23,7 +23,7 @@ class _TimeTabState extends State<TimeTab> {
 
   DateTime _date = DateTime.now();
   TimeOfDay _time = const TimeOfDay(hour: 20, minute: 0);
-  ZoneOption _origin = TimeService.kst;
+  ZoneOption _origin = TimeService.wib;
 
   @override
   void initState() {

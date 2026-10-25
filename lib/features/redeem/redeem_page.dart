@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui'; 
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart'; 
 import 'eclipse_card_model.dart';
@@ -17,7 +18,9 @@ class _RedeemPageState extends State<RedeemPage> {
   bool _isMember = false;
   String? _errorMessage;
   int _userPoints = 0;
+  int _redeemQuota = 0;
   List<int> _ownedCardIds = [];
+  List<EclipseCard> _cards = [];
 
   @override
   void initState() {
@@ -32,8 +35,7 @@ class _RedeemPageState extends State<RedeemPage> {
     });
 
     try {
-      // 1. Cek status member
-      final isMember = await MembershipService.checkIsMember();
+      final isMember = await MembershipService.isActive();
       
       if (!isMember) {
         setState(() {
@@ -43,18 +45,39 @@ class _RedeemPageState extends State<RedeemPage> {
         return;
       }
 
-      // 2. Jika membership, ambil data poin
-      final data = await RedeemService.getUserStats();
+      final membership = await MembershipService.currentMembership();
+      final quota = (membership?['redeem_quota'] as num?)?.toInt() ?? 0;
+
+      if (quota <= 0) {
+        setState(() {
+          _isMember = false;
+          _isLoading = false;
+          _errorMessage = 'Kuota Redeem kamu sudah habis. Silakan perpanjang membership.';
+        });
+        return;
+      }
+
+      final results = await Future.wait([
+        RedeemService.getUserStats(),
+        RedeemService.getCards(),
+      ]);
+      
+      if (!mounted) return;
+      
+      final data = results[0] as Map<String, dynamic>;
       setState(() {
         _isMember = true;
-        _userPoints = data['points'] ?? 0;
+        _redeemQuota = quota;
+        _userPoints = data['points'] as int? ?? 0;
         _ownedCardIds = (data['owned_cards'] as List? ?? [])
             .map((value) => int.tryParse(value.toString()) ?? 0)
             .where((id) => id > 0)
             .toList();
+        _cards = results[1] as List<EclipseCard>;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
         _isLoading = false;
@@ -70,11 +93,13 @@ class _RedeemPageState extends State<RedeemPage> {
       return;
     }
 
+    if (_ownedCardIds.contains(card.id)) return;
+
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Konfirmasi Redeem'),
-        content: Text('Tukar ${card.cost} poin dengan kartu ${card.name}?'),
+        content: Text('Gunakan 1 kuota membership (Sisa: $_redeemQuota) untuk mendapatkan kartu ${card.name}?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Tukar')),
@@ -92,7 +117,7 @@ class _RedeemPageState extends State<RedeemPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Berhasil mendapatkan ${card.name}!'), backgroundColor: Colors.green),
         );
-        _loadData();
+        await _loadData();
       }
     } catch (e) {
       if (mounted) {
@@ -100,7 +125,7 @@ class _RedeemPageState extends State<RedeemPage> {
           SnackBar(content: Text('Gagal redeem: $e'), backgroundColor: Colors.red),
         );
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -121,11 +146,10 @@ class _RedeemPageState extends State<RedeemPage> {
       return const CosmicLoading(message: 'Memuat data...');
     }
 
-    // Layar akan digembok/terkunci apabila bukan membership 
     if (!_isMember && _errorMessage == null) {
       return CosmicEmptyView(
         title: 'Akses Terkunci',
-        subtitle: 'Fitur Redeem Card (Photocard) hanya tersedia untuk Member EclipseVerse. Silakan beli paket membership di halaman Profil.',
+        subtitle: 'Fitur Redeem Card hanya tersedia untuk Member EclipseVerse. Silakan beli paket membership di halaman Profil.',
         icon: Icons.lock_rounded,
         action: SizedBox(
           width: double.infinity,
@@ -150,10 +174,9 @@ class _RedeemPageState extends State<RedeemPage> {
       );
     }
 
-    // UI redeem card jika sudah member 
     return Column(
       children: [
-        // Header Poin 
+        // Header Poin dan Kuota 
         Container(
           width: double.infinity,
           margin: const EdgeInsets.all(20),
@@ -163,27 +186,40 @@ class _RedeemPageState extends State<RedeemPage> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [BoxShadow(color: AppTheme.eclipseViolet.withValues(alpha: 0.3), blurRadius: 15)],
           ),
-          child: Column(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              const Text('Total Poin Kamu', style: TextStyle(color: Colors.white70, fontSize: 16)),
-              const SizedBox(height: 8),
-              Text('$_userPoints', style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
+              Column(
+                children: [
+                  const Text('Total Poin', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text('$_userPoints', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Container(width: 1, height: 40, color: Colors.white54),
+              Column(
+                children: [
+                  const Text('Sisa Kuota', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text('$_redeemQuota', style: const TextStyle(color: AppTheme.coronaGold, fontSize: 32, fontWeight: FontWeight.bold)),
+                ],
+              ),
             ],
           ),
         ),
         
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 0, bottom: 100),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.7, 
+              childAspectRatio: 0.6, 
             ),
-            itemCount: dummyCards.length,
+            itemCount: _cards.length,
             itemBuilder: (context, index) {
-              final card = dummyCards[index];
+              final card = _cards[index];
               final isOwned = _ownedCardIds.contains(card.id);
               return _buildCardItem(card, isOwned);
             },
@@ -205,27 +241,33 @@ class _RedeemPageState extends State<RedeemPage> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    card.imageUrl,
-                    fit: BoxFit.cover, 
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: AppTheme.surfaceSecondary,
-                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.coolCyan)),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppTheme.surfaceSecondary,
-                        child: const Center(child: Icon(Icons.broken_image, color: AppTheme.textSecondary, size: 40)),
-                      );
-                    },
+                  ImageFiltered(
+                    imageFilter: ImageFilter.blur(
+                      sigmaX: isOwned ? 0 : 4.0, 
+                      sigmaY: isOwned ? 0 : 4.0,
+                    ),
+                    child: Image.network(
+                      card.imageUrl,
+                      fit: BoxFit.cover, 
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: AppTheme.surfaceSecondary,
+                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.coolCyan)),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppTheme.surfaceSecondary,
+                          child: const Center(child: Icon(Icons.broken_image, color: AppTheme.textSecondary, size: 40)),
+                        );
+                      },
+                    ),
                   ),
                   
                   if (!isOwned) 
                     Container(
-                      color: Colors.black.withValues(alpha: 0.65),
+                      color: Colors.black.withValues(alpha: 0.5),
                       child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 50)),
                     ),
                   
@@ -254,27 +296,41 @@ class _RedeemPageState extends State<RedeemPage> {
                 if (isOwned)
                   const Text('Sudah Dimiliki', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))
                 else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Column(
                     children: [
-                      const Icon(Icons.monetization_on, color: AppTheme.coronaGold, size: 16),
-                      const SizedBox(width: 4),
-                      Text('${card.cost} Poin', style: const TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.monetization_on, color: AppTheme.coronaGold, size: 16),
+                          const SizedBox(width: 4),
+                          Text('${card.cost} Poin', style: const TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Butuh 1 Kuota', 
+                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)
+                      ),
                     ],
                   ),
                 const SizedBox(height: 12),
                 
                 SizedBox(
                   width: double.infinity,
-                  height: 40,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isOwned ? AppTheme.surfaceSecondary : AppTheme.eclipseViolet,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      minimumSize: Size.zero, 
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: isOwned ? null : () => _handleRedeem(card),
-                    child: Text(isOwned ? 'Dimiliki' : 'Tukar'),
+                    child: Text(
+                      isOwned ? 'Dimiliki' : 'Tukar',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
               ],

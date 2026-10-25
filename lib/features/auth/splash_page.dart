@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/secure_store.dart';
-import '../../core/api_service.dart';
+import '../../core/auth_service.dart';
 import '../../core/routes.dart';
+import '../../core/session_timeout_service.dart';
 import '../../theme/app_theme.dart';
-import '../../core/local_db.dart';
-import '../profile/biometric_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -22,61 +21,32 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkSession() async {
-    // Delay 3 detik biar animasi gerhana selesai
-    await Future.delayed(const Duration(seconds: 3));
-
-    final token = await SecureStore.getToken();
-
+    await Future<void>.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
 
-    if (token != null) {
-      // Validasi sesi di server setiap aplikasi dibuka. Jika server offline,
-      // token lokal tetap dipakai agar pengguna bisa membuka cache yang tersedia.
-      try {
-        final session = await ApiService.get('/auth/me');
-        if (session['success'] != true) {
-          await SecureStore.deleteToken();
-          if (mounted) Navigator.pushReplacementNamed(context, Routes.login);
-          return;
-        }
-      } on ApiException catch (e) {
-        if (e.code == 'TOKEN_EXPIRED' || e.code == 'INVALID_SESSION') {
-          await SecureStore.deleteToken();
-          if (mounted) Navigator.pushReplacementNamed(context, Routes.login);
-          return;
-        }
-        // Error server selain token kadaluarsa: lanjut dengan sesi/cache lokal.
-      } catch (_) {
-        // Koneksi offline/timeout: lanjut dengan sesi/cache lokal.
-      }
+    final expired = await SessionTimeoutService.hasExpired();
+    await SessionTimeoutService.clearBackgroundTime();
 
+    final session = Supabase.instance.client.auth.currentSession;
+    final user = session?.user;
+
+    if (session == null || user == null || expired) {
+      if (expired && session != null) {
+        try {
+          await AuthService.logout();
+        } catch (_) {}
+      }
       if (!mounted) return;
-      final biometricEnabled = await LocalDb.getPref('biometric_enabled');
-
-      if (biometricEnabled == '1' || biometricEnabled == 'true') {
-        final isSupported = await BiometricService.isSupported();
-
-        if (isSupported) {
-          final authSuccess = await BiometricService.authenticate();
-
-          if (!mounted) return;
-
-          if (authSuccess) {
-            Navigator.pushReplacementNamed(context, Routes.shell);
-          } else {
-            Navigator.pushReplacementNamed(context, Routes.login);
-          }
-          return;
-        }
-      }
-
-      // Kalau biometrik mati / ga support, tapi token ada -> Langsung ke Home!
-      // ignore: use_build_context_synchronously
-      Navigator.pushReplacementNamed(context, Routes.shell);
-    } else {
-      // Kalau token ga ada -> ke Login
       Navigator.pushReplacementNamed(context, Routes.login);
+      return;
     }
+
+    try {
+      await AuthService.cacheUserLocally(user);
+    } catch (_) {}
+
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, Routes.shell);
   }
 
   @override
@@ -87,50 +57,56 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: -100.0, end: 0.0),
-              duration: const Duration(seconds: 3),
-              curve: Curves.easeInOut,
-              builder: (context, value, child) {
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
+            SizedBox(
+              width: 120,
+              height: 120,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.accentYellow,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orangeAccent,
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                  ),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: -120.0, end: 0.0),
+                    duration: const Duration(milliseconds: 1500),
+                    curve: Curves.easeInOut,
+                    builder: (context, value, child) {
+                      return Transform.translate(
+                        offset: Offset(value, 0),
+                        child: child,
+                      );
+                    },
+                    child: Container(
                       width: 100,
                       height: 100,
                       decoration: const BoxDecoration(
-                        color: AppTheme.background,
+                        color: AppTheme.primaryDark,
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.orangeAccent,
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
                       ),
                     ),
-                    // Bulan geser nutupin matahari
-                    Transform.translate(
-                      offset: Offset(value, 0),
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.primaryDark,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               'EclipseVerse',
               style: AppTheme.textTheme.headlineMedium?.copyWith(
                 color: Colors.white,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
               ),
             ),
             const SizedBox(height: 24),

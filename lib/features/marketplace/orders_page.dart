@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/api_service.dart';
 import '../../theme/app_theme.dart';
 
 class OrdersPage extends StatefulWidget {
@@ -28,8 +28,14 @@ class _OrdersPageState extends State<OrdersPage> {
       if (!mounted) return;
       setState(() {
         _orders = [
-          {'id': 'EV-2048', 'status': 'SHIPPED', 'created_at': '2026-10-18T10:30:00', 'item_count': 2, 'total': 268000},
-          {'id': 'EV-2031', 'status': 'CONFIRMED', 'created_at': '2026-10-12T14:15:00', 'item_count': 1, 'total': 79000},
+          {
+            'id': 'EV-2048-xxxx',
+            'status': 'SHIPPED',
+            'created_at': '2026-10-18T10:30:00',
+            'item_count': 2,
+            'total': 268000,
+            'items': [], // Kosongin aja buat preview
+          },
         ];
         _loading = false;
         _error = null;
@@ -43,16 +49,42 @@ class _OrdersPageState extends State<OrdersPage> {
       });
     }
     try {
-      final response = await ApiService.get('/orders');
-      if (response['success'] != true) {
-        throw Exception(response['message'] ?? 'Riwayat pesanan tidak tersedia.');
-      }
-      final data = response['data'] as List? ?? [];
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) throw Exception('Silakan login kembali.');
+
+      // 👇 Tarik data order_items sekalian nama produk & gambar dari tabel products
+      final rows = await Supabase.instance.client
+          .from('orders')
+          .select('''
+            id, status, created_at, total_idr, 
+            order_items(
+              quantity, 
+              unit_price_idr, 
+              products(name, cover_image_path)
+            )
+          ''')
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false)
+          .limit(100)
+          .timeout(const Duration(seconds: 10));
+
       if (!mounted) return;
       setState(() {
-        _orders = data
-            .map((item) => Map<String, dynamic>.from(item as Map))
-            .toList();
+        _orders = rows.map((item) {
+          final row = Map<String, dynamic>.from(item);
+          final List itemsList = row['order_items'] as List? ?? [];
+
+          // 👇 Hitung total qty (bukan cuma jumlah baris)
+          int totalQty = 0;
+          for (var i in itemsList) {
+            totalQty += (i['quantity'] as num?)?.toInt() ?? 0;
+          }
+
+          row['item_count'] = totalQty;
+          row['total'] = row['total_idr'];
+          row['items'] = itemsList; // Simpan list barang buat ditampilin
+          return row;
+        }).toList();
         _loading = false;
       });
     } catch (e) {
@@ -100,130 +132,235 @@ class _OrdersPageState extends State<OrdersPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_outlined, size: 52),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Riwayat belum bisa dimuat',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _loadOrders,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Coba lagi'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadOrders,
+              child: _orders.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(32),
                       children: [
-                        const Icon(Icons.cloud_off_outlined, size: 52),
-                        const SizedBox(height: 12),
-                        const Text('Riwayat belum bisa dimuat',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 90),
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 72,
+                          color: AppTheme.primaryDark,
+                        ),
                         const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _loadOrders,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Coba lagi'),
+                        Text(
+                          'Belum ada pesanan',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(color: AppTheme.surfaceSecondary),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Pesanan yang berhasil kamu checkout akan muncul di sini.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey),
                         ),
                       ],
-                    ),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadOrders,
-                  child: _orders.isEmpty
-                      ? ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(32),
-                          children: [
-                            const SizedBox(height: 90),
-                            Icon(Icons.receipt_long_outlined,
-                                size: 72, color: AppTheme.primaryDark),
-                            const SizedBox(height: 16),
-                            Text('Belum ada pesanan',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.titleLarge),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Pesanan yang berhasil kamu checkout akan muncul di sini.',
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        )
-                      : ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _orders.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final order = _orders[index];
-                            final status =
-                                '${order['status'] ?? 'CONFIRMED'}'.toUpperCase();
-                            return Card(
-                              color: Colors.white,
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                    )
+                  : ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _orders.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final order = _orders[index];
+                        final List items = order['items'] ?? [];
+                        final status = '${order['status'] ?? 'CONFIRMED'}'
+                            .toUpperCase();
+
+                        // 👇 Potong UUID biar cuma 8 karakter
+                        final String fullId = order['id']?.toString() ?? '';
+                        final String shortId = fullId.length > 8
+                            ? fullId.substring(0, 8)
+                            : fullId;
+
+                        return Card(
+                          color: Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Header (ID & Status)
+                                Row(
                                   children: [
-                                    Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor:
-                                              AppTheme.primaryLight.withValues(alpha: 0.45),
-                                          child: const Icon(
-                                              Icons.receipt_long_outlined,
-                                              color: AppTheme.primaryDark),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text('Pesanan #${order['id']}',
-                                                  style: const TextStyle(
-                                                      fontWeight: FontWeight.w800)),
-                                              const SizedBox(height: 3),
-                                              Text(_date(order['created_at']),
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall),
-                                            ],
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 5),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.primaryLight
-                                                .withValues(alpha: 0.45),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: Text(status,
-                                              style: const TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w800)),
-                                        ),
-                                      ],
+                                    CircleAvatar(
+                                      backgroundColor: AppTheme.primaryLight
+                                          .withValues(alpha: 0.45),
+                                      child: const Icon(
+                                        Icons.receipt_long_outlined,
+                                        color: AppTheme.primaryDark,
+                                      ),
                                     ),
-                                    const Divider(height: 24),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text('${order['item_count'] ?? 0} item'),
-                                        Text(
-                                          _rupiah(order['total']),
-                                          style: const TextStyle(
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Pesanan #$shortId',
+                                            style: const TextStyle(
                                               fontWeight: FontWeight.w800,
-                                              color: AppTheme.primaryDark,
-                                              fontSize: 16),
+                                              color: AppTheme.surfaceSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            _date(order['created_at']),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryLight.withValues(
+                                          alpha: 0.45,
                                         ),
-                                      ],
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        status,
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.surfaceSecondary,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
+                                const Divider(height: 24),
+
+                                // 👇 List Produk yang dibeli
+                                if (items.isNotEmpty)
+                                  ...items.map((item) {
+                                    final prod = item['products'] ?? {};
+                                    final qty = item['quantity'] ?? 1;
+                                    final prodName = prod['name'] ?? 'Produk';
+                                    final imagePath = prod['cover_image_path'];
+
+                                    // Gambar dari Supabase Storage
+                                    final imageUrl =
+                                        (imagePath != null &&
+                                            imagePath.isNotEmpty)
+                                        ? Supabase.instance.client.storage
+                                              .from('eclipseverse-media')
+                                              .getPublicUrl(imagePath)
+                                        : null;
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 8.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // Gambar kecil
+                                          Container(
+                                            width: 40,
+                                            height: 40,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade200,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              image: imageUrl != null
+                                                  ? DecorationImage(
+                                                      image: NetworkImage(
+                                                        imageUrl,
+                                                      ),
+                                                      fit: BoxFit.cover,
+                                                    )
+                                                  : null,
+                                            ),
+                                            child: imageUrl == null
+                                                ? const Icon(
+                                                    Icons.shopping_bag,
+                                                    color: Colors.grey,
+                                                  )
+                                                : null,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Nama produk & qty
+                                          Expanded(
+                                            child: Text(
+                                              '$qty x $prodName',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color:
+                                                    AppTheme.surfaceSecondary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+
+                                // Footer (Total)
+                                const Divider(height: 24),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '${order['item_count'] ?? 0} item',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.surfaceSecondary, // 👈 Warnanya diubah
+                                      ),
+                                    ),
+                                    Text(
+                                      _rupiah(order['total']),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.surfaceSecondary,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
     );
   }
 }

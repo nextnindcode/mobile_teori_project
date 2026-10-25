@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
@@ -19,24 +18,23 @@ class SensorService {
     _moveLocked = false;
     _confirmLocked = false;
 
-    // Accelerometer mengukur kemiringan HP. Ambang 2.5 m/s² lebih realistis
-    // untuk gerakan tangan biasa dibanding ambang yang terlalu tinggi.
+    // 1. Accelerometer dengan miringkan hp ke kiri/kanan untuk memilih jawaban 
     _accelSubscription = accelerometerEventStream().listen(
       (event) {
         if (_moveLocked) return;
 
-        if (event.x > 2.5) {
+        if (event.x > 5.0) {
           _moveLocked = true;
-          onMove(1);
+          onMove(1); // Geser Kanan
           _moveCooldown?.cancel();
-          _moveCooldown = Timer(const Duration(milliseconds: 650), () {
+          _moveCooldown = Timer(const Duration(milliseconds: 1000), () {
             _moveLocked = false;
           });
-        } else if (event.x < -2.5) {
+        } else if (event.x < -5.0) {
           _moveLocked = true;
-          onMove(-1);
+          onMove(-1); // Geser Kiri
           _moveCooldown?.cancel();
-          _moveCooldown = Timer(const Duration(milliseconds: 650), () {
+          _moveCooldown = Timer(const Duration(milliseconds: 1000), () {
             _moveLocked = false;
           });
         }
@@ -46,16 +44,15 @@ class SensorService {
       },
     );
 
-    // Gyroscope menghasilkan kecepatan rotasi dalam rad/s; 4.0 terlalu tinggi
-    // untuk anggukan normal. Ambang 1.0 lebih mudah terdeteksi.
+    // 2. Gyroscope dengan menganggukkan hp untuk mengonfirmasi jawaban 
     _gyroSubscription = gyroscopeEventStream().listen(
       (event) {
-        if (_confirmLocked || event.x.abs() < 1.0) return;
+        if (_confirmLocked || event.x.abs() < 5.0) return;
 
         _confirmLocked = true;
         onConfirm();
         _confirmCooldown?.cancel();
-        _confirmCooldown = Timer(const Duration(milliseconds: 900), () {
+        _confirmCooldown = Timer(const Duration(milliseconds: 1000), () {
           _confirmLocked = false;
         });
       },

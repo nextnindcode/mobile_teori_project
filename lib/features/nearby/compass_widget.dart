@@ -19,9 +19,11 @@ class _CompassWidgetState extends State<CompassWidget> {
   void initState() {
     super.initState();
     _subscription = FlutterCompass.events?.listen((event) {
-      setState(() {
-        _heading = event.heading;
-      });
+      if (mounted) {
+        setState(() {
+          _heading = event.heading;
+        });
+      }
     });
   }
 
@@ -31,68 +33,52 @@ class _CompassWidgetState extends State<CompassWidget> {
     super.dispose();
   }
 
-  String _getDirectionText(double? heading) {
-    if (heading == null) return 'Memuat...';
-    if (heading >= 337.5 || heading < 22.5) return 'Utara (N)';
-    if (heading >= 22.5 && heading < 67.5) return 'Timur Laut (NE)';
-    if (heading >= 67.5 && heading < 112.5) return 'Timur (E)';
-    if (heading >= 112.5 && heading < 157.5) return 'Tenggara (SE)';
-    if (heading >= 157.5 && heading < 202.5) return 'Selatan (S)';
-    if (heading >= 202.5 && heading < 247.5) return 'Barat Daya (SW)';
-    if (heading >= 247.5 && heading < 292.5) return 'Barat (W)';
-    if (heading >= 292.5 && heading < 337.5) return 'Barat Laut (NW)';
-    return '';
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Tampilan jika sensor kompas tidak ada di HP
     if (_heading == null) {
-      return const Center(
-        child: Text(
-          'Sensor kompas tidak tersedia', 
-          style: TextStyle(fontSize: 10, color: Colors.grey),
-          textAlign: TextAlign.center,
+      return Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppTheme.surfaceElevated,
+          border: Border.all(color: Colors.grey, width: 2),
+        ),
+        child: const Center(
+          child: Icon(Icons.explore_off, size: 30, color: Colors.grey),
         ),
       );
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          _getDirectionText(_heading),
-          style: AppTheme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryDark,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppTheme.primaryDark, width: 3),
-            color: AppTheme.white,
-          ),
-          child: Transform.rotate(
-            angle: -(_heading! * (pi / 180)), 
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  top: 8,
-                  child: Icon(Icons.navigation, size: 30, color: Colors.red.shade700),
-                ),
-                Positioned(top: 2, child: Text('N', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.red.shade700))),
-                Positioned(bottom: 2, child: Text('S', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primaryDark))),
-                Positioned(left: 4, child: Text('W', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primaryDark))),
-                Positioned(right: 4, child: Text('E', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primaryDark))),
-              ],
+    // Tampilan Kompas Visual Saja
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppTheme.surfaceElevated,
+        border: Border.all(color: AppTheme.coolCyan, width: 2),
+      ),
+      child: Transform.rotate(
+        // Jarum berputar berlawanan arah dengan HP
+        angle: -(_heading! * (pi / 180)), 
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Jarum Merah (Utara)
+            Positioned(
+              top: 4,
+              child: Icon(Icons.navigation, size: 22, color: Colors.red.shade700),
             ),
-          ),
+            // Huruf Mata Angin (N, E, S, W)
+            Positioned(top: 1, child: Text('N', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.red.shade700))),
+            Positioned(bottom: 1, child: Text('S', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
+            Positioned(left: 2, child: Text('W', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
+            Positioned(right: 2, child: Text('E', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

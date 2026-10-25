@@ -2,34 +2,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'game_model.dart';
 import 'game_service.dart'; 
-import '../redeem/redeem_service.dart'; 
 
 class GameController extends ChangeNotifier {
-  final List<Map<String, String>> _allMembers = [
-    {'name': 'Solen', 'funFact': 'Menulis lagu debut Eclipse di kamar kos'},
-    {'name': 'Lunar', 'funFact': 'Hafal 40 lagu tema film animasi'},
-    {'name': 'Astra', 'funFact': 'Pernah menjadi penyiar radio kampus'},
-    {'name': 'Orion', 'funFact': 'Juara kompetisi breakdance tingkat provinsi'},
-    {'name': 'Vega', 'funFact': 'Koreografer pertama lagu "Penumbra"'},
-    {'name': 'Nova', 'funFact': 'Bisa menari sambil memainkan yo-yo'},
-    {'name': 'Zephyr', 'funFact': 'Menulis lirik rap dalam tiga bahasa'},
-    {'name': 'Atlas', 'funFact': 'Kolektor sepatu edisi terbatas'},
-    {'name': 'Lyra', 'funFact': 'Pernah menjadi juara lomba debat sekolah'},
-    {'name': 'Cassio', 'funFact': 'Pernah menjadi model majalah sekolah'},
-    {'name': 'Rigel', 'funFact': 'Membuat 10 beat dalam satu malam'},
-    {'name': 'Altair', 'funFact': 'Bermain gitar sejak usia 7 tahun'},
-    {'name': 'Mira', 'funFact': 'Anggota termuda yang hobi merakit puzzle 1000 keping'},
-  ];
-
   final List<GameQuestion> _questions = [];
   int _currentRound = 0;
   int _score = 0;
   int _correctCount = 0;
   int _timeLeft = 15;
+  int _roundDuration = 15;
+  String? _loadError;
+  final Map<int, String> _answers = {};
+  bool _memberChallenge = false;
   int _bestScore = 0; 
-  
-  int _maxRounds = 10;
-  bool _isMemberMode = false;
   
   Timer? _timer;
 
@@ -39,51 +23,53 @@ class GameController extends ChangeNotifier {
   int get timeLeft => _timeLeft;
   int get bestScore => _bestScore; 
   int get correctCount => _correctCount; 
-  int get maxRounds => _maxRounds;
-  bool get isMemberMode => _isMemberMode;
-  
-  bool get isGameOver => _currentRound >= _maxRounds;
+  bool get isGameOver => _currentRound >= _questions.length;
+  bool get isMemberMode => _memberChallenge;
+  String? get loadError => _loadError;
   GameQuestion get currentQuestion => _questions[_currentRound];
 
-  void startGame({bool isMemberMode = false}) async {
-    _isMemberMode = isMemberMode;
-    _maxRounds = 10; // Selalu 10 ronde
+  Future<void> startGame({bool memberChallenge = false}) async {
+    _timer?.cancel();
+    _loadError = null;
+    _questions.clear();
+    _answers.clear();
+    notifyListeners();
 
     try {
       _bestScore = await GameService.getBestScore();
+      final rows = await GameService.fetchQuestions(); 
+      
+      _questions.addAll(rows.map((row) {
+        final options = Map<String, dynamic>.from(row['options'] as Map);
+        final labels = options.entries.map((entry) => '${entry.key}. ${entry.value}').toList()..shuffle();
+        
+        return GameQuestion(
+          id: (row['id'] as num).toInt(),
+          funFact: '${row['question_text']}',
+          options: labels,
+        );
+      }));
+
+      _memberChallenge = memberChallenge;
+      // Waktu: Membership 10 detik, Member Biasa 15 detik
+      _roundDuration = memberChallenge ? 10 : 15; 
+      
+      _currentRound = 0;
+      _score = 0;
+      _correctCount = 0;
+      _startTimer();
+      notifyListeners();
     } catch (e) {
       _bestScore = 0; 
-      debugPrint('SQLite tidak didukung di Web, best score di-reset.');
-    }
-    
-    _generateQuestions();
-    _currentRound = 0;
-    _score = 0;
-    _correctCount = 0;
-    _timeLeft = 15; // Selalu 15 detik
-    _startTimer();
-    notifyListeners();
-  }
-
-  void _generateQuestions() {
-    _questions.clear();
-    final shuffledMembers = List<Map<String, String>>.from(_allMembers)..shuffle();
-    final selectedMembers = shuffledMembers.take(_maxRounds).toList();
-
-    for (var member in selectedMembers) {
-      String correct = member['name']!;
-      String fact = member['funFact']!;
-      List<String> wrongOptions = _allMembers.where((m) => m['name'] != correct).map((m) => m['name']!).toList()..shuffle();
-      
-      List<String> options = [correct, ...wrongOptions.take(1)]..shuffle();
-
-      _questions.add(GameQuestion(funFact: fact, options: options, correctAnswer: correct));
+      _loadError = 'Soal belum dapat dimuat. Periksa koneksi internet. $e';
+      _questions.clear();
+      notifyListeners();
     }
   }
 
   void _startTimer() {
     _timer?.cancel();
-    _timeLeft = 15;
+    _timeLeft = _roundDuration;
     notifyListeners();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -92,47 +78,49 @@ class GameController extends ChangeNotifier {
         notifyListeners();
       } else {
         _timer?.cancel();
-        nextRound(isCorrect: false);
+        _answers[currentQuestion.id] = ''; 
+        nextRound();
       }
     });
   }
 
   void answerQuestion(String selectedAnswer) {
     _timer?.cancel();
-    bool isCorrect = selectedAnswer == currentQuestion.correctAnswer;
-    nextRound(isCorrect: isCorrect);
+    final question = currentQuestion;
+    final answerKey = selectedAnswer.split('.').first.trim(); 
+    _answers[question.id] = answerKey;
+    nextRound();
   }
 
-  void nextRound({required bool isCorrect}) async {
-    if (isCorrect) {
-      _score += 10;
-      _correctCount++;
-    }
-
-    if (_currentRound < _maxRounds - 1) {
+  Future<void> nextRound() async {
+    if (_currentRound < _questions.length - 1) {
       _currentRound++;
       _startTimer();
       return;
     }
 
     _currentRound++;
-
-    if (_score > _bestScore) {
-      _bestScore = _score;
-      try {
-        await GameService.saveBestScore(_bestScore);
-      } catch (e) {
-        debugPrint('Gagal menyimpan skor lokal: $e');
-      }
-    }
+    _timer?.cancel();
 
     try {
-      await GameService.kirimSkorKeServer(_score, _correctCount);
-      await RedeemService.addPoints(_score);
+      final answers = _questions.map((question) => {
+        'question_id': question.id,
+        'answer': _answers[question.id] ?? '',
+      }).toList();
+      
+      final result = await GameService.submitAnswers(answers, memberChallenge: _memberChallenge);
+      _score = (result['score'] as num?)?.toInt() ?? 0;
+      _correctCount = (result['correct_count'] as num?)?.toInt() ?? 0;
+      
+      if (_score > _bestScore) {
+        _bestScore = _score;
+        await GameService.saveBestScore(_bestScore);
+      }
+      _loadError = null;
     } catch (e) {
-      debugPrint('Gagal mengirim skor/poin ke server: $e');
+      _loadError = 'Skor belum dapat diverifikasi oleh server: $e';
+      GameService.logFailure(e);
     }
-
     notifyListeners();
   }
 

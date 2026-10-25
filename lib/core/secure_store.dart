@@ -4,6 +4,9 @@ class SecureStore {
   static const _storage = FlutterSecureStorage();
   static const _keyToken = 'auth_token';
 
+  static const _keyEmail = 'bio_email';
+  static const _keyPassword = 'bio_password';
+
   static Future<void> saveToken(String token) async {
     await _storage.write(key: _keyToken, value: token);
   }
@@ -14,5 +17,25 @@ class SecureStore {
 
   static Future<void> deleteToken() async {
     await _storage.delete(key: _keyToken);
+  }
+
+  // TAMBAHKAN FUNGSI SAVE CREDENTIALS, GET CREDENTIALS, DAN DELETE CREDENTIALS
+  static Future<void> saveCredentials(String email, String password) async {
+    await _storage.write(key: _keyEmail, value: email);
+    await _storage.write(key: _keyPassword, value: password);
+  }
+
+  static Future<Map<String, String>?> getCredentials() async {
+    final email = await _storage.read(key: _keyEmail);
+    final password = await _storage.read(key: _keyPassword);
+    if (email != null && password != null) {
+      return {'email': email, 'password': password};
+    }
+    return null;
+  }
+
+  static Future<void> deleteCredentials() async {
+    await _storage.delete(key: _keyEmail);
+    await _storage.delete(key: _keyPassword);
   }
 }

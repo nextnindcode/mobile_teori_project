@@ -1,9 +1,10 @@
 class Constants {
   /// Override with --dart-define=API_BASE_URL=...
-  /// Default: Android Emulator + XAMPP (backend at htdocs/eclipseverse/api).
+  /// Default: Android Emulator + XAMPP (repository at htdocs/eclipseverse,
+  /// REST router at htdocs/eclipseverse/backend/index.php).
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2/eclipseverse/api',
+    defaultValue: 'http://10.0.2.2/eclipseverse/backend',
   );
 
   static const String appName = 'EclipseVerse';

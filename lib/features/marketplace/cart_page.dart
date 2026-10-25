@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
+import '../notification/notification_service.dart'; 
 
 class CartPage extends StatefulWidget {
   final bool previewMode;
@@ -27,14 +29,42 @@ class _CartPageState extends State<CartPage> {
 
   Future<void> _loadCart() async {
     final items = await LocalDb.getCart();
-    final total = items.fold<int>(
+    final productIds = items.map((e) => e['product_id']).toList();
+    final stocks = <int, int>{};
+
+    if (productIds.isNotEmpty) {
+      try {
+        final res = await Supabase.instance.client
+            .from('products')
+            .select('id, stock')
+            .inFilter('id', productIds);
+
+        for (var row in res) {
+          stocks[row['id'] as int] = (row['stock'] as num).toInt();
+        }
+      } catch (e) {
+        debugPrint('Gagal ambil stok: $e');
+      }
+    }
+
+    final updatedItems = items.map((item) {
+      final id = (item['product_id'] as num).toInt();
+      return {
+        ...item,
+        'stock': stocks[id] ?? 0, 
+      };
+    }).toList();
+
+    final total = updatedItems.fold<int>(
       0,
       (sum, item) =>
-          sum + ((item['price'] as num).toInt() * (item['quantity'] as num).toInt()),
+          sum +
+          ((item['price'] as num).toInt() * (item['quantity'] as num).toInt()),
     );
+
     if (!mounted) return;
     setState(() {
-      _cartItems = items;
+      _cartItems = updatedItems;
       _totalPrice = total;
     });
   }
@@ -58,7 +88,10 @@ class _CartPageState extends State<CartPage> {
   Future<void> _checkout() async {
     if (widget.previewMode) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Checkout aktif setelah backend dan database online disiapkan.')),
+        const SnackBar(
+          content: Text('Pembayaran berhasil! Pesanan telah selesai.'),
+          backgroundColor: Colors.green,
+        ),
       );
       return;
     }
@@ -66,18 +99,27 @@ class _CartPageState extends State<CartPage> {
     setState(() => _isCheckingOut = true);
 
     try {
-      final response = await ApiService.post('/orders', {
-        'items': _cartItems
-            .map((item) => {
-                  'product_id': item['product_id'],
-                  'quantity': item['quantity'],
-                })
-            .toList(),
-      });
-
-      if (response['success'] != true) {
-        throw Exception(response['message'] ?? 'Checkout gagal.');
-      }
+      final response = await Supabase.instance.client
+          .rpc(
+            'checkout_merchandise',
+            params: {
+              'p_items': _cartItems
+                  .map(
+                    (item) => {
+                      'product_id': item['product_id'],
+                      'quantity': item['quantity'],
+                    },
+                  )
+                  .toList(),
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+      final result = Map<String, dynamic>.from(response as Map);
+      
+      // Notifikasi Status Bar (Lokal di hp)
+      final orderId = result['order_id'] ?? 0;
+      await NotificationService.showOrderConfirmed(orderId);
+      await Future.delayed(const Duration(seconds: 1));
 
       await LocalDb.clearCart();
       if (!mounted) return;
@@ -86,7 +128,7 @@ class _CartPageState extends State<CartPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Pesanan #${response['data']?['order_id'] ?? '-'} berhasil dibuat.',
+            'Pesanan #${result['order_id'] ?? '-'} berhasil dibuat.',
           ),
           backgroundColor: Colors.green.shade700,
         ),
@@ -131,12 +173,17 @@ class _CartPageState extends State<CartPage> {
                         color: AppTheme.primaryLight.withValues(alpha: 0.35),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.shopping_bag_outlined,
-                          size: 54, color: AppTheme.primaryDark),
+                      child: const Icon(
+                        Icons.shopping_bag_outlined,
+                        size: 54,
+                        color: AppTheme.primaryDark,
+                      ),
                     ),
                     const SizedBox(height: 18),
-                    Text('Keranjangmu masih kosong',
-                        style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'Keranjangmu masih kosong',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 8),
                     const Text(
                       'Yuk, temukan merchandise EclipseVerse favoritmu.',
@@ -144,7 +191,10 @@ class _CartPageState extends State<CartPage> {
                     ),
                     const SizedBox(height: 20),
                     FilledButton.icon(
-                      onPressed: () => Navigator.pushNamed(context, Routes.catalog),
+                      onPressed: () => Navigator.pushNamed(
+                        context,
+                        Routes.catalog,
+                      ),
                       icon: const Icon(Icons.storefront_outlined),
                       label: const Text('Jelajahi marketplace'),
                     ),
@@ -176,27 +226,39 @@ class _CartPageState extends State<CartPage> {
                               width: 58,
                               height: 68,
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryLight.withValues(alpha: 0.35),
+                                color: AppTheme.primaryLight.withValues(
+                                  alpha: 0.35,
+                                ),
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              child: const Icon(Icons.shopping_bag_outlined,
-                                  color: AppTheme.primaryDark, size: 28),
+                              child: const Icon(
+                                Icons.shopping_bag_outlined,
+                                color: AppTheme.primaryDark,
+                                size: 28,
+                              ),
                             ),
                             const SizedBox(width: 13),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('${item['name'] ?? 'Produk'}',
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w700)),
+                                  Text(
+                                    '${item['name'] ?? 'Produk'}',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.surfaceSecondary,
+                                    ),
+                                  ),
                                   const SizedBox(height: 5),
-                                  Text(_rupiah(price),
-                                      style: const TextStyle(
-                                          color: AppTheme.primaryDark,
-                                          fontWeight: FontWeight.w700)),
+                                  Text(
+                                    _rupiah(price),
+                                    style: const TextStyle(
+                                      color: AppTheme.surface,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                                   const SizedBox(height: 8),
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -205,17 +267,46 @@ class _CartPageState extends State<CartPage> {
                                         icon: quantity == 1
                                             ? Icons.delete_outline
                                             : Icons.remove,
-                                        onTap: () => _changeQuantity(id, quantity - 1),
+                                        onTap: () =>
+                                            _changeQuantity(id, quantity - 1),
                                       ),
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 13),
-                                        child: Text('$quantity',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w800)),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 13,
+                                        ),
+                                        child: Text(
+                                          '$quantity',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            color: AppTheme.surfaceSecondary,
+                                          ),
+                                        ),
                                       ),
                                       _QuantityButton(
                                         icon: Icons.add,
-                                        onTap: () => _changeQuantity(id, quantity + 1),
+                                        isDisabled:
+                                            quantity >=
+                                            ((item['stock'] as num?)?.toInt() ??
+                                                0),
+                                        onTap: () {
+                                          final maxStock =
+                                              (item['stock'] as num?)
+                                                  ?.toInt() ??
+                                              0;
+                                          if (quantity >= maxStock) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Stok maksimal hanya $maxStock',
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          _changeQuantity(id, quantity + 1);
+                                        },
                                       ),
                                     ],
                                   ),
@@ -223,9 +314,14 @@ class _CartPageState extends State<CartPage> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(_rupiah(price * quantity),
-                                style: const TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.w800)),
+                            Text(
+                              _rupiah(price * quantity),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.surfaceSecondary,
+                              ),
+                            ),
                           ],
                         ),
                       );
@@ -238,19 +334,30 @@ class _CartPageState extends State<CartPage> {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                     decoration: const BoxDecoration(
                       color: AppTheme.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 14)],
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 14),
+                      ],
                     ),
                     child: Column(
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Total pesanan'),
+                            const Text(
+                              'Total pesanan',
+                              style: TextStyle(
+                                color: AppTheme.surfaceSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                             Text(
                               _rupiah(_totalPrice),
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: AppTheme.primaryDark,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    color: AppTheme.surface,
                                     fontWeight: FontWeight.w800,
                                   ),
                             ),
@@ -265,14 +372,18 @@ class _CartPageState extends State<CartPage> {
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   )
-                                : const Icon(Icons.lock_outline),
-                            label: Text(widget.previewMode
-                                ? 'Checkout (mode preview)'
-                                : _isCheckingOut
-                                    ? 'Memproses pesanan...'
-                                    : 'Checkout sekarang'),
+                                : const Icon(Icons.payment_outlined),
+                            label: Text(
+                              widget.previewMode
+                                  ? 'Checkout (mode preview)'
+                                  : _isCheckingOut
+                                  ? 'Memproses pesanan...'
+                                  : 'Checkout sekarang',
+                            ),
                           ),
                         ),
                       ],
@@ -288,22 +399,33 @@ class _CartPageState extends State<CartPage> {
 class _QuantityButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
+  final bool isDisabled;
 
-  const _QuantityButton({required this.icon, required this.onTap});
+  const _QuantityButton({
+    required this.icon,
+    required this.onTap,
+    this.isDisabled = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: isDisabled ? null : onTap,
       borderRadius: BorderRadius.circular(9),
       child: Container(
         width: 30,
         height: 30,
         decoration: BoxDecoration(
-          color: AppTheme.primaryLight.withValues(alpha: 0.35),
+          color: isDisabled
+              ? Colors.grey.shade300
+              : AppTheme.primaryLight.withValues(alpha: 0.35),
           borderRadius: BorderRadius.circular(9),
         ),
-        child: Icon(icon, size: 17, color: AppTheme.primaryDark),
+        child: Icon(
+          icon,
+          size: 17,
+          color: isDisabled ? Colors.grey : AppTheme.primaryDark,
+        ),
       ),
     );
   }

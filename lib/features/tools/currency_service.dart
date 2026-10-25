@@ -1,14 +1,15 @@
-import 'package:eclipseverse/core/api_service.dart';
+import 'dart:convert';
 
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
-import '../fandom/shared/json_utils.dart';
+import '../../core/local_db.dart';
 
 class CurrencyRates {
   final String base;
   final Map<String, double> rates;
-  final DateTime updatedAt; // UTC
-  final String source; // "live" | "cache"
+  final DateTime updatedAt;
+  final String source;
 
   const CurrencyRates({
     required this.base,
@@ -17,46 +18,105 @@ class CurrencyRates {
     required this.source,
   });
 
-  /// hasil = jumlah / rate[asal] * rate[tujuan]
-  double convert(double amount, String from, String to) =>
-      amount / rates[from]! * rates[to]!;
+  double convert(double amount, String from, String to) {
+    final fromRate = rates[from];
+    final toRate = rates[to];
+    if (fromRate == null || toRate == null || fromRate == 0) {
+      throw ArgumentError('Kurs $from atau $to belum tersedia.');
+    }
+    return amount / fromRate * toRate;
+  }
 
-  factory CurrencyRates.fromJson(Map<String, dynamic> j) {
-    final payload =
-        (j['data'] is Map) ? Map<String, dynamic>.from(j['data'] as Map) : j;
-    final r = Map<String, dynamic>.from((payload['rates'] ?? {}) as Map);
+  factory CurrencyRates.fromJson(Map<String, dynamic> json) {
+    final rawRates = Map<String, dynamic>.from(json['rates'] as Map);
     return CurrencyRates(
-      base: '${payload['base'] ?? 'USD'}',
-      rates: r.map((k, v) => MapEntry(k, toDouble(v))),
-      updatedAt: parseUtc(payload['updated_at']),
-      source: '${payload['source'] ?? 'live'}',
+      base: '${json['base'] ?? 'USD'}',
+      rates: rawRates.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      ),
+      updatedAt: DateTime.parse('${json['updated_at']}').toUtc(),
+      source: '${json['source'] ?? 'ExchangeRate-API'}',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'base': base,
+        'rates': rates,
+        'updated_at': updatedAt.toIso8601String(),
+        'source': source,
+      };
 }
 
 class CurrencyService {
   static const codes = ['IDR', 'USD', 'KRW', 'JPY'];
+  static const _cacheKey = 'currency_rates_cache';
+  static const _apiUrl = 'https://open.er-api.com/v6/latest/USD';
 
   static Future<CurrencyRates> fetchRates() async {
-    final data = await ApiService.get(
-      '/currency/rates',
-      query: {'base': 'USD'},
-    );
-    final rates = CurrencyRates.fromJson(
-      Map<String, dynamic>.from(data as Map),
-    );
-    for (final c in codes) {
-      if (!rates.rates.containsKey(c) || rates.rates[c] == 0) {
-        throw Exception('Kurs belum tersedia');
+    try {
+      final response = await http
+          .get(Uri.parse(_apiUrl))
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) {
+        throw Exception('API kurs tidak merespons.');
       }
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (body['result'] != 'success' || body['rates'] is! Map) {
+        throw Exception('Format data kurs dari API tidak valid.');
+      }
+
+      final apiRates = Map<String, dynamic>.from(body['rates'] as Map);
+      final rates = <String, double>{};
+      for (final code in codes) {
+        final value = apiRates[code];
+        if (value is! num || value <= 0) {
+          throw Exception('Kurs $code tidak tersedia dari API.');
+        }
+        rates[code] = value.toDouble();
+      }
+      rates['USD'] = 1;
+
+      final unix = body['time_last_update_unix'];
+      final updatedAt = unix is num
+          ? DateTime.fromMillisecondsSinceEpoch(
+              unix.toInt() * 1000,
+              isUtc: true,
+            )
+          : DateTime.now().toUtc();
+
+      final result = CurrencyRates(
+        base: 'USD',
+        rates: rates,
+        updatedAt: updatedAt,
+        source: 'ExchangeRate-API',
+      );
+      await LocalDb.setPref(_cacheKey, jsonEncode(result.toJson()));
+      return result;
+    } catch (error) {
+      final cached = await LocalDb.getPref(_cacheKey);
+      if (cached != null) {
+        try {
+          final result = CurrencyRates.fromJson(
+            Map<String, dynamic>.from(jsonDecode(cached) as Map),
+          );
+          return CurrencyRates(
+            base: result.base,
+            rates: result.rates,
+            updatedAt: result.updatedAt,
+            source: '${result.source} (cache terakhir)',
+          );
+        } catch (_) {
+          // Cache rusak; tampilkan error jaringan asli di bawah.
+        }
+      }
+      rethrow;
     }
-    return rates;
   }
 
-  /// IDR, KRW, JPY tanpa desimal; USD 2 desimal.
-  static String format(String code, double v) =>
+  static String format(String code, double value) =>
       NumberFormat.decimalPatternDigits(
         locale: 'id_ID',
         decimalDigits: code == 'USD' ? 2 : 0,
-      ).format(v);
+      ).format(value);
 }
