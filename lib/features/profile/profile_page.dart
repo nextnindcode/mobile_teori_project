@@ -34,11 +34,14 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isMember = false;
   Map<String, dynamic>? _membershipData;
 
+  bool _hasRedeemedCards = false;
+
   @override
   void initState() {
     super.initState();
     _load();
     _checkMembership();
+    _checkCardStatus();
   }
 
   Future<void> _checkMembership() async {
@@ -53,6 +56,26 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       debugPrint('Gagal memuat status membership: $e');
+    }
+  }
+
+  Future<void> _checkCardStatus() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final res = await Supabase.instance.client
+          .from('user_cards')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+
+      if (mounted) {
+        setState(() {
+          _hasRedeemedCards = res.isNotEmpty;
+        });
+      }
+    } catch (e) {
+      debugPrint('Gagal cek kartu: $e');
     }
   }
 
@@ -153,8 +176,6 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) showSnack(context, 'Gagal memilih foto');
     }
   }
-
-  // Pastikan import '../../core/secure_store.dart'; ada di paling atas file
 
   Future<void> _toggleBiometric(bool on) async {
     if (on) {
@@ -326,30 +347,82 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: AppTheme.spacingMedium),
                 Card(
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.workspace_premium,
-                      color: _isMember ? Colors.amber : AppTheme.primaryLight,
-                    ),
-                    title: Text(
-                      _isMember
-                          ? 'VIP Member Aktif'
-                          : 'Membership EclipseVerse',
-                    ),
-                    subtitle: Text(
-                      _isMember
-                          ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali'
-                          : 'Akses fitur redeem kartu',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () async {
-                      // Pindah ke halaman Membership
-                      await Navigator.pushNamed(context, Routes.membership);
-                      // Pas balik dari halaman membership, cek ulang statusnya
-                      _checkMembership();
-                    },
+                  child: Column(
+                    children: [
+                      // 1. Bagian Membership (Atas)
+                      ListTile(
+                        leading: Icon(
+                          Icons.workspace_premium,
+                          color: _isMember
+                              ? Colors.amber
+                              : AppTheme.primaryLight,
+                        ),
+                        title: Text(
+                          _isMember
+                              ? 'VIP Member Aktif'
+                              : 'Membership EclipseVerse',
+                        ),
+                        subtitle: Text(
+                          _isMember
+                              ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali'
+                              : 'Akses fitur redeem kartu',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () async {
+                          await Navigator.pushNamed(context, Routes.membership);
+                          _checkMembership();
+                          _checkCardStatus();
+                        },
+                      ),
+
+                      // Bagian koleksi kartu
+                      ListTile(
+                        leading: Icon(
+                          Icons.style,
+                          // Kalau udah punya kartu jadi warna emas, kalau belum abu-abu
+                          color: _hasRedeemedCards ? Colors.amber : Colors.grey,
+                        ),
+                        title: Text(
+                          'Koleksi Kartu',
+                          style: TextStyle(
+                            color: _hasRedeemedCards
+                                ? AppTheme.textPrimary
+                                : Colors.grey,
+                          ),
+                        ),
+                        subtitle: Text(
+                          _hasRedeemedCards
+                              ? 'Lihat kartu yang sudah kamu kumpulkan'
+                              : 'Belum ada kartu yang diklaim',
+                          style: TextStyle(
+                            color: _hasRedeemedCards
+                                ? AppTheme.textSecondary
+                                : Colors.grey,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          // Kalau udah punya kartu atau member aktif, arahkan ke halaman Redeem
+                          if (_hasRedeemedCards || _isMember) {
+                            Navigator.pushNamed(context, Routes.redeem);
+                          } else {
+                            // Kalau belum, arahkan ke halaman Membership
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Kamu harus jadi Member dan redeem kartu terlebih dahulu!',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            Navigator.pushNamed(context, Routes.membership);
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ),
+                const Divider(height: 1),
                 const SizedBox(height: AppTheme.spacingMedium),
                 OutlinedButton.icon(
                   onPressed: _testNotification,

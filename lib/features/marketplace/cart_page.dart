@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
-import '../notification/notification_service.dart'; 
+import '../notification/notification_service.dart';
+import '../../models/products.dart';
+import '../marketplace/product_detail_sheet.dart';
 
 class CartPage extends StatefulWidget {
   final bool previewMode;
@@ -21,6 +22,8 @@ class _CartPageState extends State<CartPage> {
   int _totalPrice = 0;
   bool _isCheckingOut = false;
 
+  Set<int> _selectedIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -31,42 +34,61 @@ class _CartPageState extends State<CartPage> {
     final items = await LocalDb.getCart();
     final productIds = items.map((e) => e['product_id']).toList();
     final stocks = <int, int>{};
+    final imageUrls = <int, String?>{};
 
     if (productIds.isNotEmpty) {
       try {
         final res = await Supabase.instance.client
             .from('products')
-            .select('id, stock')
+            .select('id, stock, cover_image_path')
             .inFilter('id', productIds);
 
         for (var row in res) {
-          stocks[row['id'] as int] = (row['stock'] as num).toInt();
+          final id = row['id'] as int;
+          stocks[id] = (row['stock'] as num).toInt();
+
+          final path = row['cover_image_path']?.toString();
+          if (path != null && path.isNotEmpty) {
+            imageUrls[id] = Supabase.instance.client.storage
+                .from('eclipseverse-media')
+                .getPublicUrl(path);
+          } else {
+            imageUrls[id] = null;
+          }
         }
       } catch (e) {
-        debugPrint('Gagal ambil stok: $e');
+        debugPrint('Gagal ambil stok/gambar: $e');
       }
     }
 
     final updatedItems = items.map((item) {
       final id = (item['product_id'] as num).toInt();
-      return {
-        ...item,
-        'stock': stocks[id] ?? 0, 
-      };
+      return {...item, 'stock': stocks[id] ?? 0, 'image_url': imageUrls[id]};
     }).toList();
-
-    final total = updatedItems.fold<int>(
-      0,
-      (sum, item) =>
-          sum +
-          ((item['price'] as num).toInt() * (item['quantity'] as num).toInt()),
-    );
 
     if (!mounted) return;
     setState(() {
       _cartItems = updatedItems;
-      _totalPrice = total;
+
+      final currentIds = updatedItems
+          .map((e) => (e['product_id'] as num).toInt())
+          .toSet();
+      _selectedIds = _selectedIds.intersection(currentIds);
+      _calculateTotal();
     });
+  }
+
+  void _calculateTotal() {
+    int total = 0;
+    for (var item in _cartItems) {
+      final id = (item['product_id'] as num).toInt();
+      if (_selectedIds.contains(id)) {
+        total +=
+            ((item['price'] as num).toInt() *
+            (item['quantity'] as num).toInt());
+      }
+    }
+    _totalPrice = total;
   }
 
   String _rupiah(int amount) {
@@ -86,6 +108,21 @@ class _CartPageState extends State<CartPage> {
   }
 
   Future<void> _checkout() async {
+    final itemsToCheckout = _cartItems
+        .where(
+          (item) => _selectedIds.contains((item['product_id'] as num).toInt()),
+        )
+        .toList();
+
+    if (itemsToCheckout.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih minimal 1 barang untuk di-checkout!'),
+        ),
+      );
+      return;
+    }
+
     if (widget.previewMode) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -95,7 +132,8 @@ class _CartPageState extends State<CartPage> {
       );
       return;
     }
-    if (_cartItems.isEmpty || _isCheckingOut) return;
+
+    if (_isCheckingOut) return;
     setState(() => _isCheckingOut = true);
 
     try {
@@ -103,7 +141,7 @@ class _CartPageState extends State<CartPage> {
           .rpc(
             'checkout_merchandise',
             params: {
-              'p_items': _cartItems
+              'p_items': itemsToCheckout
                   .map(
                     (item) => {
                       'product_id': item['product_id'],
@@ -115,25 +153,76 @@ class _CartPageState extends State<CartPage> {
           )
           .timeout(const Duration(seconds: 15));
       final result = Map<String, dynamic>.from(response as Map);
-      
-      // Notifikasi Status Bar (Lokal di hp)
+
       final orderId = result['order_id'] ?? 0;
       await NotificationService.showOrderConfirmed(orderId);
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 500));
 
-      await LocalDb.clearCart();
+      for (var item in itemsToCheckout) {
+        await LocalDb.updateQuantity((item['product_id'] as num).toInt(), 0);
+      }
+
       if (!mounted) return;
       await _loadCart();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Pesanan #${result['order_id'] ?? '-'} berhasil dibuat.',
-          ),
-          backgroundColor: Colors.green.shade700,
-        ),
+
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Pembayaran Berhasil',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(dialogContext),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 60),
+                const SizedBox(height: 16),
+                Text(
+                  'Pesanan #$orderId berhasil dibuat.\nTerima kasih telah berbelanja!',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryDark,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text(
+                    'OKE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       );
-      Navigator.pushReplacementNamed(context, Routes.orders);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,10 +280,8 @@ class _CartPageState extends State<CartPage> {
                     ),
                     const SizedBox(height: 20),
                     FilledButton.icon(
-                      onPressed: () => Navigator.pushNamed(
-                        context,
-                        Routes.catalog,
-                      ),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, Routes.catalog),
                       icon: const Icon(Icons.storefront_outlined),
                       label: const Text('Jelajahi marketplace'),
                     ),
@@ -214,124 +301,210 @@ class _CartPageState extends State<CartPage> {
                       final id = (item['product_id'] as num).toInt();
                       final price = (item['price'] as num).toInt();
                       final quantity = (item['quantity'] as num).toInt();
-                      return Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppTheme.white,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 58,
-                              height: 68,
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryLight.withValues(
-                                  alpha: 0.35,
-                                ),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Icon(
-                                Icons.shopping_bag_outlined,
-                                color: AppTheme.primaryDark,
-                                size: 28,
-                              ),
+                      final isSelected = _selectedIds.contains(id);
+                      final imageUrl = item['image_url'] as String?;
+
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                          final product = Product(
+                            id: id,
+                            name: '${item['name'] ?? 'Produk'}',
+                            category: 'Merchandise',
+                            description: '',
+                            price: price,
+                            stock: (item['stock'] as num?)?.toInt() ?? 0,
+                            imageUrl: imageUrl,
+                          );
+
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => ProductDetailSheet(
+                              product: product,
+                              isFromCart: true,
+                              initialQuantity: quantity,
+                              // KIRIM CALLBACK BUAT UPDATE QTY
+                              onQuantityChanged: (newQty) {
+                                _changeQuantity(id, newQty);
+                              },
                             ),
-                            const SizedBox(width: 13),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${item['name'] ?? 'Produk'}',
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.surfaceSecondary,
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppTheme.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppTheme.primaryDark
+                                  : Colors.grey.shade300,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: AppTheme.primaryDark,
+                                    width: 1.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: Checkbox(
+                                    value: isSelected,
+                                    activeColor: AppTheme.primaryDark,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    side: BorderSide.none,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        if (val == true) {
+                                          _selectedIds.add(id);
+                                        } else {
+                                          _selectedIds.remove(id);
+                                        }
+                                        _calculateTotal();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryLight.withValues(
+                                      alpha: 0.35,
                                     ),
                                   ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    _rupiah(price),
-                                    style: const TextStyle(
-                                      color: AppTheme.surface,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _QuantityButton(
-                                        icon: quantity == 1
-                                            ? Icons.delete_outline
-                                            : Icons.remove,
-                                        onTap: () =>
-                                            _changeQuantity(id, quantity - 1),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 13,
+                                  child: imageUrl != null
+                                      ? Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  const Icon(
+                                                    Icons.shopping_bag_outlined,
+                                                    color: AppTheme.primaryDark,
+                                                  ),
+                                        )
+                                      : const Icon(
+                                          Icons.shopping_bag_outlined,
+                                          color: AppTheme.primaryDark,
                                         ),
-                                        child: Text(
-                                          '$quantity',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                            color: AppTheme.surfaceSecondary,
+                                ),
+                              ),
+
+                              const SizedBox(width: 13),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${item['name'] ?? 'Produk'}',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: AppTheme.surfaceSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      _rupiah(price),
+                                      style: const TextStyle(
+                                        color: AppTheme.surface,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        _QuantityButton(
+                                          icon: quantity == 1
+                                              ? Icons.delete_outline
+                                              : Icons.remove,
+                                          onTap: () =>
+                                              _changeQuantity(id, quantity - 1),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 13,
+                                          ),
+                                          child: Text(
+                                            '$quantity',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              color: AppTheme.surfaceSecondary,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      _QuantityButton(
-                                        icon: Icons.add,
-                                        isDisabled:
-                                            quantity >=
-                                            ((item['stock'] as num?)?.toInt() ??
-                                                0),
-                                        onTap: () {
-                                          final maxStock =
-                                              (item['stock'] as num?)
-                                                  ?.toInt() ??
-                                              0;
-                                          if (quantity >= maxStock) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Stok maksimal hanya $maxStock',
+                                        _QuantityButton(
+                                          icon: Icons.add,
+                                          isDisabled:
+                                              quantity >=
+                                              ((item['stock'] as num?)
+                                                      ?.toInt() ??
+                                                  0),
+                                          onTap: () {
+                                            final maxStock =
+                                                (item['stock'] as num?)
+                                                    ?.toInt() ??
+                                                0;
+                                            if (quantity >= maxStock) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Stok maksimal hanya $maxStock',
+                                                  ),
                                                 ),
-                                              ),
-                                            );
-                                            return;
-                                          }
-                                          _changeQuantity(id, quantity + 1);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                              );
+                                              return;
+                                            }
+                                            _changeQuantity(id, quantity + 1);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _rupiah(price * quantity),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.surfaceSecondary,
+                              const SizedBox(width: 8),
+                              Text(
+                                _rupiah(price * quantity),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.surfaceSecondary,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     },
                   ),
                 ),
+
                 SafeArea(
                   top: false,
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                     decoration: const BoxDecoration(
                       color: AppTheme.white,
                       borderRadius: BorderRadius.vertical(
@@ -342,6 +515,7 @@ class _CartPageState extends State<CartPage> {
                       ],
                     ),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -367,13 +541,36 @@ class _CartPageState extends State<CartPage> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: _isCheckingOut ? null : _checkout,
+                            onPressed: _isCheckingOut
+                                ? null
+                                : () {
+                                    if (_selectedIds.isEmpty) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Pilih minimal 1 barang untuk di-checkout!',
+                                              ),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                      return;
+                                    }
+                                    _checkout();
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _selectedIds.isEmpty
+                                  ? Colors.grey.shade400
+                                  : AppTheme.primaryDark,
+                              foregroundColor: Colors.white,
+                            ),
                             icon: _isCheckingOut
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
+                                      color: Colors.white,
                                     ),
                                   )
                                 : const Icon(Icons.payment_outlined),

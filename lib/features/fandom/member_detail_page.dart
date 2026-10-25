@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:eclipseverse/theme/app_theme.dart';
+
 import 'member_model.dart';
 import 'member_service.dart';
 import 'shared/state_views.dart';
@@ -64,8 +65,8 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       body: _loading
           ? const LoadingView()
           : _error != null
-              ? ErrorView(message: _error!, onRetry: _load)
-              : _content(_member!),
+          ? ErrorView(message: _error!, onRetry: _load)
+          : _content(_member!),
     );
   }
 
@@ -94,25 +95,50 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
           ),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
-        Text(m.stageName, textAlign: TextAlign.center, style: t.headlineMedium?.copyWith(color: AppTheme.textPrimary)),
+        Text(
+          m.stageName,
+          textAlign: TextAlign.center,
+          style: t.headlineMedium?.copyWith(color: AppTheme.textPrimary),
+        ),
         const SizedBox(height: AppTheme.spacingSmall),
         Center(
           child: Chip(
-            label: Text('${m.team} • ${m.position}'),
+            label: Text(m.position),
             backgroundColor: AppTheme.coolCyan.withValues(alpha: 0.18),
             labelStyle: const TextStyle(color: AppTheme.coolCyan),
           ),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
-        Text('Deskripsi', style: t.titleLarge?.copyWith(color: AppTheme.textPrimary)),
+        Text(
+          'Deskripsi',
+          style: t.titleLarge?.copyWith(color: AppTheme.textPrimary),
+        ),
         const SizedBox(height: AppTheme.spacingXSmall),
-        Text(m.description.isEmpty ? '-' : m.description, style: t.bodyLarge?.copyWith(color: AppTheme.textSecondary, height: 1.5)),
+        Text(
+          m.description.isEmpty ? '-' : m.description,
+          style: t.bodyLarge?.copyWith(
+            color: AppTheme.textSecondary,
+            height: 1.5,
+          ),
+        ),
         const SizedBox(height: AppTheme.spacingMedium),
         Card(
           child: ListTile(
-            leading: const Icon(Icons.lightbulb_outline, color: AppTheme.coronaGold),
-            title: const Text('Fun fact', style: TextStyle(color: AppTheme.textPrimary)),
-            subtitle: Text(m.funFact.isEmpty ? '-' : m.funFact, style: const TextStyle(color: AppTheme.textSecondary, height: 1.4)),
+            leading: const Icon(
+              Icons.lightbulb_outline,
+              color: AppTheme.coronaGold,
+            ),
+            title: const Text(
+              'Fun fact',
+              style: TextStyle(color: AppTheme.textPrimary),
+            ),
+            subtitle: Text(
+              m.funFact.isEmpty ? '-' : m.funFact,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                height: 1.4,
+              ),
+            ),
           ),
         ),
       ],
