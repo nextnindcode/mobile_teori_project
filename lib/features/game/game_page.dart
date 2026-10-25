@@ -281,6 +281,7 @@ class _GamePageState extends State<GamePage> {
                   question.funFact,
                   textAlign: TextAlign.center,
                   style: AppTheme.textTheme.titleLarge?.copyWith(
+                    color: AppTheme.primaryDark,
                     fontWeight: FontWeight.bold,
                     height: 1.4,
                   ),
