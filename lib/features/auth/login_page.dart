@@ -85,6 +85,8 @@ class _LoginPageState extends State<LoginPage> {
 
     // Ambil kredensial yang tersimpan
     final creds = await SecureStore.getCredentials();
+    if (!mounted) return;
+
     if (creds == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
