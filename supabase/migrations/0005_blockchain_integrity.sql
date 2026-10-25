@@ -70,7 +70,7 @@ set search_path = public, extensions, pg_temp
 as $
 declare
   v_row record;
-  v_previous text := repeat('0', 64);
+  v_previous text := null;
   v_expected text;
   v_count integer := 0;
   v_invalid bigint := null;
@@ -80,7 +80,7 @@ begin
   loop
     v_count := v_count + 1;
     v_expected := encode(digest(v_row.previous_hash || '|' || v_row.transaction_data::text, 'sha256'), 'hex');
-    if v_row.previous_hash <> v_previous or v_row.current_hash <> v_expected then
+    if ((v_count = 1 and v_row.previous_hash not in (repeat('0', 64), 'GENESIS'))\n        or (v_count > 1 and v_row.previous_hash <> v_previous)\n        or v_row.current_hash <> v_expected) then
       v_invalid := v_row.id;
       exit;
     end if;
