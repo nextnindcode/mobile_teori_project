@@ -195,7 +195,7 @@ class _CatalogPageState extends State<CatalogPage> {
       // 1. Insert ke tabel 'orders'
       final orderResponse = await Supabase.instance.client
           .from('orders')
-          .insert({'user_id': user.id, 'total_idr': totalIdr, 'status': 'paid'})
+          .insert({'user_id': user.id, 'total_idr': totalIdr, 'status': 'confirmed'})
           .select('id')
           .single();
 
