@@ -58,10 +58,13 @@ class _ProductFormPageState extends State<ProductFormPage> {
       if (!mounted) return;
       Navigator.pop(context, true); // Berhasil, balik ke katalog
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

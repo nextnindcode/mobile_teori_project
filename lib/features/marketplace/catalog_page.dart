@@ -216,13 +216,22 @@ class _CatalogPageState extends State<CatalogPage> {
                   label: Text(label),
                   selected: selected,
                   onSelected: (_) async {
-                    if (label == 'Koleksi' &&
-                        !await MembershipService.isActive()) {
-                      if (mounted)
+                    if (label == 'Koleksi') {
+                      final isMember = await MembershipService.isActive();
+
+                      if (!context.mounted) return;
+
+                      if (!isMember) {
                         Navigator.pushNamed(context, Routes.membership);
-                      return;
+                        return;
+                      }
                     }
-                    if (mounted) setState(() => _category = label);
+
+                    if (!context.mounted) return;
+
+                    setState(() {
+                      _category = label;
+                    });
                   },
                   backgroundColor: AppTheme.surfaceElevated,
                   selectedColor: AppTheme.eclipseViolet,
@@ -292,8 +301,9 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   Widget _buildContent(List<Product> visibleProducts) {
-    if (_isLoading)
+    if (_isLoading) {
       return const CosmicLoading(message: 'Menghubungkan ke Eclipse Store...');
+    }
     if (_errorMessage != null) {
       return CosmicErrorView(
         message: _errorMessage!,

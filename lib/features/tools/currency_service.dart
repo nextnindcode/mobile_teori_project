@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/local_db.dart';
 
 class CurrencyRates {
   final String base;
@@ -7,47 +11,112 @@ class CurrencyRates {
   final DateTime updatedAt;
   final String source;
 
-  const CurrencyRates({required this.base, required this.rates, required this.updatedAt, required this.source});
+  const CurrencyRates({
+    required this.base,
+    required this.rates,
+    required this.updatedAt,
+    required this.source,
+  });
 
-  double convert(double amount, String from, String to) => amount / rates[from]! * rates[to]!;
+  double convert(double amount, String from, String to) {
+    final fromRate = rates[from];
+    final toRate = rates[to];
+    if (fromRate == null || toRate == null || fromRate == 0) {
+      throw ArgumentError('Kurs $from atau $to belum tersedia.');
+    }
+    return amount / fromRate * toRate;
+  }
 
-  factory CurrencyRates.fromJson(Map<String, dynamic> j) {
+  factory CurrencyRates.fromJson(Map<String, dynamic> json) {
+    final rawRates = Map<String, dynamic>.from(json['rates'] as Map);
     return CurrencyRates(
-      base: '${j['base_code'] ?? 'USD'}',
-      rates: { '${j['target_code']}': (j['rate'] as num).toDouble() },
-      updatedAt: DateTime.tryParse('${j['fetched_at']}')?.toUtc() ?? DateTime.now().toUtc(),
-      source: '${j['source'] ?? 'demo'}',
+      base: '${json['base'] ?? 'USD'}',
+      rates: rawRates.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      ),
+      updatedAt: DateTime.parse('${json['updated_at']}').toUtc(),
+      source: '${json['source'] ?? 'ExchangeRate-API'}',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'base': base,
+        'rates': rates,
+        'updated_at': updatedAt.toIso8601String(),
+        'source': source,
+      };
 }
 
 class CurrencyService {
   static const codes = ['IDR', 'USD', 'KRW', 'JPY'];
-  static final _client = Supabase.instance.client;
+  static const _cacheKey = 'currency_rates_cache';
+  static const _apiUrl = 'https://open.er-api.com/v6/latest/USD';
 
   static Future<CurrencyRates> fetchRates() async {
-    final rows = await _client.from('currency_rates')
-        .select('base_code,target_code,rate,source,fetched_at')
-        .eq('base_code', 'USD')
-        .timeout(const Duration(seconds: 8));
-    final rates = <String, double>{};
-    DateTime updated = DateTime.now().toUtc();
-    var source = 'demo';
-    for (final row in rows) {
-      rates['${row['target_code']}'] = (row['rate'] as num).toDouble();
-      updated = DateTime.tryParse('${row['fetched_at']}')?.toUtc() ?? updated;
-      source = '${row['source'] ?? 'demo'}';
-    }
-    rates['USD'] = 1;
-    for (final code in codes) {
-      if (!rates.containsKey(code) || rates[code] == 0) {
-        throw Exception('Kurs $code belum tersedia di Supabase.');
+    try {
+      final response = await http
+          .get(Uri.parse(_apiUrl))
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) {
+        throw Exception('API kurs tidak merespons.');
       }
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (body['result'] != 'success' || body['rates'] is! Map) {
+        throw Exception('Format data kurs dari API tidak valid.');
+      }
+
+      final apiRates = Map<String, dynamic>.from(body['rates'] as Map);
+      final rates = <String, double>{};
+      for (final code in codes) {
+        final value = apiRates[code];
+        if (value is! num || value <= 0) {
+          throw Exception('Kurs $code tidak tersedia dari API.');
+        }
+        rates[code] = value.toDouble();
+      }
+      rates['USD'] = 1;
+
+      final unix = body['time_last_update_unix'];
+      final updatedAt = unix is num
+          ? DateTime.fromMillisecondsSinceEpoch(
+              unix.toInt() * 1000,
+              isUtc: true,
+            )
+          : DateTime.now().toUtc();
+
+      final result = CurrencyRates(
+        base: 'USD',
+        rates: rates,
+        updatedAt: updatedAt,
+        source: 'ExchangeRate-API',
+      );
+      await LocalDb.setPref(_cacheKey, jsonEncode(result.toJson()));
+      return result;
+    } catch (error) {
+      final cached = await LocalDb.getPref(_cacheKey);
+      if (cached != null) {
+        try {
+          final result = CurrencyRates.fromJson(
+            Map<String, dynamic>.from(jsonDecode(cached) as Map),
+          );
+          return CurrencyRates(
+            base: result.base,
+            rates: result.rates,
+            updatedAt: result.updatedAt,
+            source: '${result.source} (cache terakhir)',
+          );
+        } catch (_) {
+          // Cache rusak; tampilkan error jaringan asli di bawah.
+        }
+      }
+      rethrow;
     }
-    return CurrencyRates(base: 'USD', rates: rates, updatedAt: updated, source: source);
   }
 
-  static String format(String code, double v) => NumberFormat.decimalPatternDigits(
-    locale: 'id_ID', decimalDigits: code == 'USD' ? 2 : 0,
-  ).format(v);
+  static String format(String code, double value) =>
+      NumberFormat.decimalPatternDigits(
+        locale: 'id_ID',
+        decimalDigits: code == 'USD' ? 2 : 0,
+      ).format(value);
 }

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth_service.dart';
 import '../../core/routes.dart';
+import '../../core/session_timeout_service.dart';
 import '../../theme/app_theme.dart';
 
 class SplashPage extends StatefulWidget {
@@ -20,14 +21,21 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkSession() async {
-    // Delay 2 detik biar animasinya puas dulu dilihat
     await Future<void>.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
+
+    final expired = await SessionTimeoutService.hasExpired();
+    await SessionTimeoutService.clearBackgroundTime();
 
     final session = Supabase.instance.client.auth.currentSession;
     final user = session?.user;
 
-    if (session == null || user == null) {
+    if (session == null || user == null || expired) {
+      if (expired && session != null) {
+        try {
+          await AuthService.logout();
+        } catch (_) {}
+      }
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, Routes.login);
       return;
@@ -49,14 +57,12 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ===== ANIMASI GERHANA =====
             SizedBox(
               width: 120,
               height: 120,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // 1. Lingkaran Matahari (Kuning)
                   Container(
                     width: 100,
                     height: 100,
@@ -72,7 +78,6 @@ class _SplashPageState extends State<SplashPage> {
                       ],
                     ),
                   ),
-                  // 2. Lingkaran Bulan (Bergerak dari Kiri ke Kanan)
                   TweenAnimationBuilder<double>(
                     tween: Tween(begin: -120.0, end: 0.0),
                     duration: const Duration(milliseconds: 1500),
@@ -87,8 +92,7 @@ class _SplashPageState extends State<SplashPage> {
                       width: 100,
                       height: 100,
                       decoration: const BoxDecoration(
-                        // Warnanya sama dengan background biar kelihatan seperti bayangan
-                        color: AppTheme.primaryDark, 
+                        color: AppTheme.primaryDark,
                         shape: BoxShape.circle,
                       ),
                     ),

@@ -15,6 +15,7 @@ class _RedeemPageState extends State<RedeemPage> {
   String? _errorMessage;
   int _userPoints = 0;
   List<int> _ownedCardIds = [];
+  List<EclipseCard> _cards = [];
 
   @override
   void initState() {
@@ -29,18 +30,23 @@ class _RedeemPageState extends State<RedeemPage> {
     });
 
     try {
-      // Mengambil poin dan kartu dari API backend 
-      final data = await RedeemService.getUserStats();
+      final results = await Future.wait([
+        RedeemService.getUserStats(),
+        RedeemService.getCards(),
+      ]);
+      if (!mounted) return;
+      final data = results[0] as Map<String, dynamic>;
       setState(() {
-        _userPoints = data['points'] ?? 0;
-        // Konversi list dari API ke List<int> 
+        _userPoints = data['points'] as int? ?? 0;
         _ownedCardIds = (data['owned_cards'] as List? ?? [])
             .map((value) => int.tryParse(value.toString()) ?? 0)
             .where((id) => id > 0)
             .toList();
+        _cards = results[1] as List<EclipseCard>;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
         _isLoading = false;
@@ -74,20 +80,14 @@ class _RedeemPageState extends State<RedeemPage> {
   }
 
   Future<void> _handleRedeem(EclipseCard card) async {
-    // Cek poin terlebih dahulu 
-    if (_userPoints < card.cost) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Poin kamu tidak cukup!'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
+    // Redeem menggunakan kuota membership; tidak memotong poin kedua kali.
+    if (_ownedCardIds.contains(card.id)) return;
     // Tampilkan dialog konfirmasi 
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Konfirmasi Redeem'),
-        content: Text('Tukar ${card.cost} poin dengan kartu ${card.name}?'),
+        content: Text('Gunakan 1 kuota membership untuk mendapatkan kartu ${card.name}?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Tukar')),
@@ -106,7 +106,7 @@ class _RedeemPageState extends State<RedeemPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Berhasil mendapatkan ${card.name}!'), backgroundColor: Colors.green),
         );
-        _fetchData(); // Refresh data poin dan kartu 
+        await _fetchData(); // Refresh saldo dan koleksi dari database 
       }
     } catch (e) {
       if (mounted) {
@@ -114,7 +114,7 @@ class _RedeemPageState extends State<RedeemPage> {
           SnackBar(content: Text('Gagal redeem: $e'), backgroundColor: Colors.red),
         );
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -211,9 +211,9 @@ class _RedeemPageState extends State<RedeemPage> {
               mainAxisSpacing: 16,
               childAspectRatio: 0.7, 
             ),
-            itemCount: dummyCards.length,
+            itemCount: _cards.length,
             itemBuilder: (context, index) {
-              final card = dummyCards[index];
+              final card = _cards[index];
               final isOwned = _ownedCardIds.contains(card.id);
               return _buildCardItem(card, isOwned);
             },
@@ -329,7 +329,7 @@ class _RedeemPageState extends State<RedeemPage> {
                       const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
                       const SizedBox(width: 4),
                       Text(
-                        '${card.cost} Poin', 
+                        '1 Kuota Membership', 
                         style: TextStyle(
                           color: AppTheme.primaryDark, 
                           fontWeight: FontWeight.bold

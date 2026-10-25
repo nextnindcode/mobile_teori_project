@@ -12,7 +12,7 @@ declare
 begin
   perform pg_advisory_xact_lock(93402026);
   select current_hash into v_previous from public.blockchain_ledger order by id desc limit 1;
-  v_previous := coalesce(v_previous, 'GENESIS');
+  v_previous := coalesce(v_previous, repeat('0', 64));
   v_current := encode(digest(v_previous || '|' || p_transaction_data::text, 'sha256'), 'hex');
   insert into public.blockchain_ledger(user_id, action_type, transaction_data, previous_hash, current_hash)
   values (auth.uid(), p_action_type, p_transaction_data, v_previous, v_current)
@@ -70,7 +70,7 @@ set search_path = public, extensions, pg_temp
 as $
 declare
   v_row record;
-  v_previous text := 'GENESIS';
+  v_previous text := null;
   v_expected text;
   v_count integer := 0;
   v_invalid bigint := null;
@@ -80,7 +80,7 @@ begin
   loop
     v_count := v_count + 1;
     v_expected := encode(digest(v_row.previous_hash || '|' || v_row.transaction_data::text, 'sha256'), 'hex');
-    if v_row.previous_hash <> v_previous or v_row.current_hash <> v_expected then
+    if ((v_count = 1 and v_row.previous_hash not in (repeat('0', 64), 'GENESIS'))\n        or (v_count > 1 and v_row.previous_hash <> v_previous)\n        or v_row.current_hash <> v_expected) then
       v_invalid := v_row.id;
       exit;
     end if;

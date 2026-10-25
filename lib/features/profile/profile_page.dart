@@ -167,8 +167,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Ambil email & password dari session Supabase
       final user = Supabase.instance.client.auth.currentUser;
-      if (user != null && user.email != null) {
-      }
+      if (user != null && user.email != null) {}
     } else {
       // Jika dimatikan, hapus kredensial
       await SecureStore.deleteCredentials();
@@ -237,8 +236,9 @@ class _ProfilePageState extends State<ProfilePage> {
   ImageProvider? get _avatarImage {
     final p = _avatarPath;
     if (p == null) return null;
-    if (p.startsWith('https://') || p.startsWith('http://'))
+    if (p.startsWith('https://') || p.startsWith('http://')) {
       return NetworkImage(p);
+    }
     final f = File(p);
     return f.existsSync() ? FileImage(f) : null;
   }

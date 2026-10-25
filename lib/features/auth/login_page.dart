@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth_service.dart';
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
+import '../../core/session_timeout_service.dart';
 import '../../core/secure_store.dart'; // Pastikan ini diimport
 import '../../theme/app_theme.dart';
 import '../profile/biometric_service.dart';
@@ -40,6 +41,7 @@ class _LoginPageState extends State<LoginPage> {
       if (user == null) throw Exception('Login gagal.');
 
       await AuthService.cacheUserLocally(user);
+      await SessionTimeoutService.clearBackgroundTime();
       if (!mounted) return;
 
       // OTOMATIS SIMPAN KREDENSIAL BIOMETRIC SETELAH LOGIN SUKSES
@@ -77,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!authSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Verifikasi sidik jari gagal atau dibatalkan.'),
+          content: Text('Verifikasi biometrik gagal atau dibatalkan.'),
         ),
       );
       return;
@@ -85,6 +87,8 @@ class _LoginPageState extends State<LoginPage> {
 
     // Ambil kredensial yang tersimpan
     final creds = await SecureStore.getCredentials();
+    if (!mounted) return;
+
     if (creds == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -106,6 +110,7 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       await AuthService.cacheUserLocally(response.user!);
+      await SessionTimeoutService.clearBackgroundTime();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
     } catch (e) {
@@ -260,7 +265,7 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: _isLoading ? null : _loginBiometric,
                       icon: const Icon(Icons.fingerprint, size: 28),
                       label: const Text(
-                        'Gunakan sidik jari',
+                        'Gunakan biometrik (wajah/sidik jari)',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
