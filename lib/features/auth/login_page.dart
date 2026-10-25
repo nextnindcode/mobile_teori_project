@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth_service.dart';
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
+import '../../core/session_timeout_service.dart';
 import '../../core/secure_store.dart'; // Pastikan ini diimport
 import '../../theme/app_theme.dart';
 import '../profile/biometric_service.dart';
@@ -40,6 +41,7 @@ class _LoginPageState extends State<LoginPage> {
       if (user == null) throw Exception('Login gagal.');
 
       await AuthService.cacheUserLocally(user);
+      await SessionTimeoutService.clearBackgroundTime();
       if (!mounted) return;
 
       // OTOMATIS SIMPAN KREDENSIAL BIOMETRIC SETELAH LOGIN SUKSES
@@ -108,6 +110,7 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       await AuthService.cacheUserLocally(response.user!);
+      await SessionTimeoutService.clearBackgroundTime();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
     } catch (e) {
