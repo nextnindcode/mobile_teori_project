@@ -82,13 +82,6 @@ class _RedeemPageState extends State<RedeemPage> {
   Future<void> _handleRedeem(EclipseCard card) async {
     // Redeem menggunakan kuota membership; tidak memotong poin kedua kali.
     if (_ownedCardIds.contains(card.id)) return;
-    if (_userPoints < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Status poin tidak valid. Muat ulang halaman.'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
     // Tampilkan dialog konfirmasi 
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -336,7 +329,7 @@ class _RedeemPageState extends State<RedeemPage> {
                       const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
                       const SizedBox(width: 4),
                       Text(
-                        '${card.cost} Poin', 
+                        '1 Kuota Membership', 
                         style: TextStyle(
                           color: AppTheme.primaryDark, 
                           fontWeight: FontWeight.bold
