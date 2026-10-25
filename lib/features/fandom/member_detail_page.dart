@@ -78,11 +78,19 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
           child: CircleAvatar(
             radius: 56,
             backgroundColor: memberColor(m.id),
-            child: Text(m.initial,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold)),
+            backgroundImage: m.imageUrl != null && m.imageUrl!.isNotEmpty
+                ? NetworkImage(m.imageUrl!)
+                : null,
+            child: m.imageUrl == null || m.imageUrl!.isEmpty
+                ? Text(
+                    m.initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : null,
           ),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
@@ -90,7 +98,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         const SizedBox(height: AppTheme.spacingSmall),
         Center(
           child: Chip(
-            label: Text(m.position),
+            label: Text('${m.team} • ${m.position}'),
             backgroundColor: AppTheme.coolCyan.withValues(alpha: 0.18),
             labelStyle: const TextStyle(color: AppTheme.coolCyan),
           ),
