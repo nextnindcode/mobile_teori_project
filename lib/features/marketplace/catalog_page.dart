@@ -185,36 +185,26 @@ class _CatalogPageState extends State<CatalogPage> {
     return '$symbol$formatted';
   }
 
-  // ===== FUNGSI SIMULASI BELI LANGSUNG KE SUPABASE =====
+  // Beli langsung memakai RPC checkout yang sama dengan keranjang.
+  // Ini menjaga status order, stok, dan pencatatan blockchain tetap konsisten.
   Future<String?> _prosesBeliLangsung(Product product, int qty) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return "User belum login";
+      if (user == null) return 'Silakan login kembali.';
 
-      final totalIdr = product.price * qty;
+      await Supabase.instance.client.rpc(
+        'checkout_merchandise',
+        params: {
+          'p_items': [
+            {'product_id': product.id, 'quantity': qty},
+          ],
+        },
+      ).timeout(const Duration(seconds: 15));
 
-      // 1. Insert ke tabel 'orders'
-      final orderResponse = await Supabase.instance.client
-          .from('orders')
-          .insert({'user_id': user.id, 'total_idr': totalIdr, 'status': 'confirmed'})
-          .select('id')
-          .single();
-
-      final orderId = orderResponse['id'];
-
-      // 2. Insert ke tabel 'order_items'
-      await Supabase.instance.client.from('order_items').insert({
-        'order_id': orderId,
-        'product_id': product.id,
-        'product_name_snapshot': product.name,
-        'quantity': qty,
-        'unit_price_idr': product.price,
-      });
-
-      return null; // Kalau sukses, return null (berarti gak ada error)
+      return null;
     } catch (e) {
       debugPrint('Error saat beli langsung: $e');
-      return e.toString(); // Kembalikan pesan error aslinya
+      return e.toString().replaceAll('Exception: ', '');
     }
   }
 
