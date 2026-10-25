@@ -31,7 +31,6 @@ class _GamePageState extends State<GamePage> {
     _sensorService.listenSensors(
       onMove: (direction) {
         setState(() {
-          // Navigasi melingkar untuk 2 pilihan (0 -> 1 -> 0)
           final optionCount = controller.questions.isEmpty ? 4 : controller.currentQuestion.options.length;
           _highlightedIndex = (_highlightedIndex + direction) % optionCount;
           if (_highlightedIndex < 0) _highlightedIndex = optionCount - 1;
@@ -58,6 +57,8 @@ class _GamePageState extends State<GamePage> {
     await Future.delayed(const Duration(milliseconds: 1000));
 
     controller.answerQuestion(option);
+
+    if (!mounted) return;
 
     setState(() {
       _selectedOption = null;
@@ -151,6 +152,7 @@ class _GamePageState extends State<GamePage> {
                 onPressed: () async {
                   setState(() => _memberChallenge = false);
                   await controller.startGame();
+                  if (!mounted) return;
                   _startSensors(controller);
                 },
                 child: const Text('Mulai Bermain'),
@@ -165,16 +167,18 @@ class _GamePageState extends State<GamePage> {
                 onPressed: () async {
                   try {
                     final active = await MembershipService.isActive();
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     if (!active) {
                       Navigator.pushNamed(context, Routes.membership);
                       return;
                     }
                     setState(() => _memberChallenge = true);
                     await controller.startGame(memberChallenge: true);
+                    if (!mounted) return;
                     _startSensors(controller);
                   } catch (e) {
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Status membership gagal diperiksa: $e')),
                     );
                   }
@@ -194,11 +198,9 @@ class _GamePageState extends State<GamePage> {
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       child: Column(
         children: [
-        // Header ronde dan skor 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Badge Ronde
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
@@ -220,8 +222,6 @@ class _GamePageState extends State<GamePage> {
                     fontSize: 16,
                   )),
               ),
-              
-              // Badge Skor
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
@@ -246,7 +246,6 @@ class _GamePageState extends State<GamePage> {
             ],
           ),
           const SizedBox(height: 16),
-          
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
@@ -259,10 +258,7 @@ class _GamePageState extends State<GamePage> {
           const SizedBox(height: 8),
           Text('Sisa waktu: ${controller.timeLeft} detik', 
             style: AppTheme.textTheme.bodySmall?.copyWith(color: controller.timeLeft > 5 ? AppTheme.grey : Colors.red, fontWeight: FontWeight.bold)),
-          
           const SizedBox(height: 24),
-
-          // Kotak Soal
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -292,10 +288,7 @@ class _GamePageState extends State<GamePage> {
               ],
             ),
           ),
-
           const SizedBox(height: 24),
-
-          // Pilihan 2x2 agar empat jawaban tetap terbaca di layar HP.
           Expanded(
             child: GridView.count(
               crossAxisCount: 2,
@@ -336,8 +329,6 @@ class _GamePageState extends State<GamePage> {
               }),
             ),
           ),
-
-          // Teks Petunjuk
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: Text(
@@ -374,7 +365,6 @@ class _GamePageState extends State<GamePage> {
               ),
             ),
             const SizedBox(height: 24),
-            
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               decoration: BoxDecoration(
@@ -417,7 +407,6 @@ class _GamePageState extends State<GamePage> {
                 ],
               ),
             ),
-            
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
