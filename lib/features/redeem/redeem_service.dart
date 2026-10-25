@@ -9,14 +9,16 @@ class RedeemService {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Silakan login terlebih dahulu.');
 
-    final results = await Future.wait([
-      _client.from('user_points')
+    final results = await Future.wait<dynamic>([
+      (() async => await _client
+          .from('user_points')
           .select('total_points')
           .eq('user_id', user.id)
-          .maybeSingle(),
-      _client.from('user_cards')
+          .maybeSingle())(),
+      (() async => await _client
+          .from('user_cards')
           .select('card_id')
-          .eq('user_id', user.id),
+          .eq('user_id', user.id))(),
     ]);
 
     final pointsRow = results[0] as Map<String, dynamic>?;
@@ -53,12 +55,14 @@ class RedeemService {
   static Future<void> redeemCard(int cardId, int cost) async {
     // Biaya dan kuota divalidasi di database. Parameter cost hanya untuk
     // menjaga kompatibilitas pemanggil lama dan tidak dipercaya oleh server.
-    await _client.rpc('redeem_photocard', params: {'p_card_id': cardId})
+    await _client
+        .rpc('redeem_photocard', params: {'p_card_id': cardId})
         .timeout(const Duration(seconds: 12));
   }
 
   static Future<Map<String, dynamic>> verifyBlockchain() async {
-    final result = await _client.rpc('verify_blockchain_ledger')
+    final result = await _client
+        .rpc('verify_blockchain_ledger')
         .timeout(const Duration(seconds: 10));
     return Map<String, dynamic>.from(result as Map);
   }
