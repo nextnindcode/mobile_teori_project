@@ -7,6 +7,7 @@ import '../../core/local_db.dart';
 import '../../models/products.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
+import '../tools/currency_service.dart';
 
 class CatalogPage extends StatefulWidget {
   final bool previewMode;
@@ -218,14 +219,18 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   // ===== FUNGSI BOTTOM SHEET =====
-  void _showProductSheet(BuildContext context, Product product) {
+  Future<void> _showProductSheet(BuildContext context, Product product) async {
     int qty = 1;
     String selectedCurrency = 'IDR';
     bool isProcessing = false;
 
-    const double rateUSD = 0.000063;
-    const double rateKRW = 0.085;
-    const double rateJPY = 0.0095;
+    CurrencyRates? liveRates;
+    try {
+      liveRates = await CurrencyService.fetchRates();
+    } catch (e) {
+      debugPrint('Kurs live belum tersedia: $e');
+    }
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -237,23 +242,21 @@ class _CatalogPageState extends State<CatalogPage> {
             final isOutOfStock = product.stock <= 0;
             final totalPriceIDR = product.price * qty;
 
-            double convertedPrice = totalPriceIDR.toDouble();
-
-            if (selectedCurrency == 'USD') {
-              convertedPrice *= rateUSD;
-            }
-
-            if (selectedCurrency == 'KRW') {
-              convertedPrice *= rateKRW;
-            }
-
-            if (selectedCurrency == 'JPY') {
-              convertedPrice *= rateJPY;
-            }
+            final convertedPrice = selectedCurrency == 'IDR'
+                ? totalPriceIDR.toDouble()
+                : (liveRates == null
+                    ? null
+                    : liveRates.convert(
+                        totalPriceIDR.toDouble(),
+                        'IDR',
+                        selectedCurrency,
+                      ));
 
             final displayPrice = selectedCurrency == 'IDR'
                 ? _formatRupiah(totalPriceIDR)
-                : _formatCurrency(convertedPrice, selectedCurrency);
+                : convertedPrice == null
+                    ? 'Kurs tidak tersedia'
+                    : _formatCurrency(convertedPrice, selectedCurrency);
 
             return Container(
               decoration: const BoxDecoration(
@@ -360,9 +363,11 @@ class _CatalogPageState extends State<CatalogPage> {
                                   ) {
                                     final isSelected = selectedCurrency == curr;
                                     return GestureDetector(
-                                      onTap: () => setSheetState(
-                                        () => selectedCurrency = curr,
-                                      ),
+                                      onTap: (curr != 'IDR' && liveRates == null)
+                                          ? null
+                                          : () => setSheetState(
+                                                () => selectedCurrency = curr,
+                                              ),
                                       child: Container(
                                         margin: const EdgeInsets.only(left: 6),
                                         padding: const EdgeInsets.symmetric(
