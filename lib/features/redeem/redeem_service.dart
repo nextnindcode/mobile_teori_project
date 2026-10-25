@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart'; 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'eclipse_card_model.dart';
 
@@ -31,7 +31,6 @@ class RedeemService {
 
   // 2. Ambil katalog kartu (Menggabungkan data dari tabel cards dan members)
   static Future<List<EclipseCard>> getCards() async {
-    // A. Ambil data kartu (harga poin)
     final cardRows = await _client
         .from('cards')
         .select('id, card_name, points_cost, is_available')
@@ -39,12 +38,10 @@ class RedeemService {
         .order('points_cost')
         .timeout(const Duration(seconds: 10));
 
-    // B. Ambil data member (untuk gambar profil)
     final memberRows = await _client
         .from('members')
         .select('stage_name, profile_image_path');
 
-    // C. Buat Map untuk mencocokkan nama member dengan link gambarnya
     final Map<String, String> memberImages = {};
     for (var m in memberRows) {
       final name = m['stage_name'].toString().toLowerCase();
@@ -56,12 +53,10 @@ class RedeemService {
       }
     }
 
-    // D. Gabungkan data kartu dan gambar
     return cardRows.map((item) {
       final row = Map<String, dynamic>.from(item);
       final cardName = row['card_name'].toString().toLowerCase();
 
-      // Cari gambar berdasarkan nama (misal: "Solen - Eclipse Edition" cocok dengan member "Solen")
       String imageUrl = '';
       for (String memberName in memberImages.keys) {
         if (cardName.contains(memberName)) {
@@ -86,12 +81,19 @@ class RedeemService {
         .rpc('redeem_photocard', params: {'p_card_id': cardId})
         .timeout(const Duration(seconds: 12));
 
-    // Munculkan di terminal VS Code untuk debugging
     debugPrint('Respon Database: $response');
 
-    // Jika database bilang "success: false" (misal poin kurang/kuota habis), lempar error ke UI
+    // Jika database bilang "success: false" (poin kurang/kuota habis), lempar error ke UI
     if (response is Map && response['success'] == false) {
       throw Exception(response['message']);
     }
+  }
+
+  // 4. Verifikasi blockchain ledger 
+  static Future<Map<String, dynamic>> verifyBlockchain() async {
+    final result = await _client
+        .rpc('verify_blockchain_ledger')
+        .timeout(const Duration(seconds: 10));
+    return Map<String, dynamic>.from(result as Map);
   }
 }
