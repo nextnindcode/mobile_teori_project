@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/auth_service.dart';
+import '../../core/routes.dart';
+import '../../core/session_timeout_service.dart';
 import '../fandom/fandom_page.dart';
 import '../feedback/feedback_page.dart';
 import '../profile/profile_page.dart';
@@ -15,8 +18,9 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
+  bool _checkingTimeout = false;
 
   List<Widget> get _pages => [
         const HomePage(),
@@ -24,6 +28,56 @@ class _MainShellState extends State<MainShell> {
         const FeedbackPage(),
         ProfilePage(onLogout: widget.onLogout),
       ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      SessionTimeoutService.markBackgrounded();
+    } else if (state == AppLifecycleState.resumed) {
+      _checkSessionTimeout();
+    }
+  }
+
+  Future<void> _checkSessionTimeout() async {
+    if (_checkingTimeout) return;
+    _checkingTimeout = true;
+    try {
+      final expired = await SessionTimeoutService.hasExpired();
+      await SessionTimeoutService.clearBackgroundTime();
+      if (!expired || !mounted) return;
+
+      await AuthService.logout();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        Routes.login,
+        (_) => false,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesi berakhir karena aplikasi tidak aktif lebih dari 2 menit. Silakan login lagi.'),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Session timeout check failed: $e');
+    } finally {
+      _checkingTimeout = false;
+    }
+  }
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
