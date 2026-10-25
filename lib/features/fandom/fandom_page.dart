@@ -51,7 +51,6 @@ class _FandomPageState extends State<FandomPage> {
 
   List<Member> get _filtered {
     final q = _search.text.trim().toLowerCase();
-    if (q.isEmpty) return _all;
     return _all.where((m) =>
         (_teamFilter == 'Semua' || m.team == _teamFilter) &&
         (q.isEmpty || m.stageName.toLowerCase().contains(q) ||
