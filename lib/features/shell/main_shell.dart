@@ -60,7 +60,11 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       await SessionTimeoutService.clearBackgroundTime();
       if (!expired || !mounted) return;
 
-      await AuthService.logout();
+      try {
+        await AuthService.logout();
+      } catch (e) {
+        debugPrint('Logout after session timeout failed: $e');
+      }
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(
         context,
