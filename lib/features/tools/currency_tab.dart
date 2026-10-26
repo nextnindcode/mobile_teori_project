@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:eclipseverse/theme/app_theme.dart';
 
 import '../fandom/shared/state_views.dart';
@@ -93,12 +92,6 @@ class _CurrencyTabState extends State<CurrencyTab> {
                 ),
               ),
             ),
-        const SizedBox(height: AppTheme.spacingSmall),
-        Text(
-          'Diperbarui: ${DateFormat('d MMM yyyy HH:mm').format(rates.updatedAt.toLocal())} • Sumber: ${rates.source}',
-          style: Theme.of(context).textTheme.bodySmall,
-          textAlign: TextAlign.center,
-        ),
       ],
     );
   }
