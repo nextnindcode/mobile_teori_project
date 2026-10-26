@@ -245,14 +245,14 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _testNotification() async {
-    if (!_notifEnabled) {
-      showSnack(context, 'Aktifkan notifikasi terlebih dahulu');
-      return;
-    }
-    await NotificationService.showTest();
-    if (mounted) showSnack(context, 'Notifikasi akan muncul 10 detik lagi');
-  }
+  // Future<void> _testNotification() async {
+  //   if (!_notifEnabled) {
+  //     showSnack(context, 'Aktifkan notifikasi terlebih dahulu');
+  //     return;
+  //   }
+  //   await NotificationService.showTest();
+  //   if (mounted) showSnack(context, 'Notifikasi akan muncul 10 detik lagi');
+  // }
 
   ImageProvider? get _avatarImage {
     final p = _avatarPath;
@@ -424,12 +424,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const Divider(height: 1),
                 const SizedBox(height: AppTheme.spacingMedium),
-                OutlinedButton.icon(
-                  onPressed: _testNotification,
-                  icon: const Icon(Icons.notifications_active),
-                  label: const Text('Uji notifikasi'),
-                ),
-                const SizedBox(height: AppTheme.spacingMedium),
+                // OutlinedButton.icon(
+                //   onPressed: _testNotification,
+                //   icon: const Icon(Icons.notifications_active),
+                //   label: const Text('Uji notifikasi'),
+                // ),
+                // const SizedBox(height: AppTheme.spacingMedium),
                 OutlinedButton.icon(
                   onPressed: widget.onLogout == null ? null : _confirmLogout,
                   icon: const Icon(Icons.logout),
