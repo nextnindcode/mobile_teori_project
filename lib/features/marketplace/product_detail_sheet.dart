@@ -77,33 +77,31 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     return '$symbol$formatted';
   }
 
-  Future<Map<String, dynamic>?> _prosesBeliLangsung(
-    Product product,
-    int qty,
-  ) async {
+    Future<Map<String, dynamic>?> _prosesBeliLangsung (
+      Product product,
+      int qty,
+    ) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return {'error': 'User belum login'};
 
-      final totalIdr = product.price * qty;
+      // GUNAKAN RPC YANG SAMA DENGAN CART
+      final response = await Supabase.instance.client.rpc(
+        'checkout_merchandise',
+        params: {
+          'p_items': [
+            {
+              'product_id': product.id,
+              'quantity': qty,
+            }
+          ],
+        },
+      ).timeout(const Duration(seconds: 15));
 
-      final orderResponse = await Supabase.instance.client
-          .from('orders')
-          .insert({'user_id': user.id, 'total_idr': totalIdr, 'status': 'paid'})
-          .select('id')
-          .single();
-
-      final orderId = orderResponse['id'];
-
-      await Supabase.instance.client.from('order_items').insert({
-        'order_id': orderId,
-        'product_id': product.id,
-        'product_name_snapshot': product.name,
-        'quantity': qty,
-        'unit_price_idr': product.price,
-      });
-
-      return {'order_id': orderId};
+      final result = Map<String, dynamic>.from(response as Map);
+      
+      // Kembalikan order_id dari RPC agar notifikasi bisa muncul
+      return {'order_id': result['order_id']};
     } catch (e) {
       return {'error': e.toString()};
     }
