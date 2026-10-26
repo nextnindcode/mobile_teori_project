@@ -1,138 +1,131 @@
+## Menjalankan EclipseVerse (Supabase)
+
+Aplikasi Flutter menggunakan Supabase sebagai backend online: Supabase Auth untuk sesi login, Postgres untuk data, Storage untuk media, dan Edge Function untuk Eclipse AI. PHP/XAMPP tidak diperlukan untuk menjalankan versi aplikasi ini.
+
+1. Jalankan migrasi SQL secara berurutan di Supabase SQL Editor:
+   - `supabase/migrations/0001_initial_schema.sql`
+   - `supabase/migrations/0002_demo_seed.sql`
+   - `supabase/migrations/0003_supabase_only_membership_checkout.sql`
+   - `supabase/migrations/0004_member_quiz_access.sql`
+   - `supabase/migrations/0005_blockchain_integrity.sql`
+2. Atur konfirmasi email di Supabase Authentication sesuai kebutuhan demonstrasi.
+3. Deploy Edge Function `eclipse-ai` dan set secret `GEMINI_API_KEY` di Supabase Functions. Jangan menaruh kunci Gemini di Flutter.
+4. Setiap anggota dapat menjalankan aplikasi dari laptop masing-masing tanpa XAMPP:
+
+```bash
+flutter pub get
+flutter run --dart-define=SUPABASE_URL=https://PROJECT-REF.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+```
+
+Ganti URL dan publishable key dengan kredensial project Supabase tim. Publishable key digunakan pada aplikasi client; jangan pernah memasukkan service-role key atau secret Gemini ke aplikasi Flutter. Semua anggota memakai database online yang sama.
+
+Catatan: layanan yang sudah dipindahkan memakai Supabase langsung. Uji setiap alur pada project yang telah menjalankan migrasi. Edge Function AI perlu dideploy terpisah. Build dan sensor tetap harus diuji pada HP Android fisik.
+
 # EclipseVerse
 
-Aplikasi Flutter untuk project akhir Pemrograman Aplikasi Mobile. EclipseVerse menggabungkan fandom hub, event, marketplace merchandise, konversi mata uang/waktu, profil, AI, mini-game, lokasi, notifikasi, dan redeem.
+Aplikasi Flutter untuk project akhir Pemrograman Aplikasi Mobile. EclipseVerse menggabungkan fandom, event, marketplace, konversi mata uang/waktu, profil, mini-game, lokasi, notifikasi, dan redeem.
 
-## Stack
+## Stack yang saat ini ada di kode
 
-- Flutter / Dart (aplikasi Android)
-- PHP REST API dengan JSON
-- MySQL untuk data online
-- SQLite (`sqflite`) untuk data lokal/cache
-- `flutter_secure_storage` untuk token
-- `local_auth`, `geolocator`, `sensors_plus`, `flutter_local_notifications` untuk fitur perangkat
+- Flutter / Dart
+- Supabase Auth dan sebagian data Home
+- PHP REST API + MySQL untuk fitur yang masih memakai `ApiService`
+- SQLite (sqflite) untuk cache dan keranjang lokal
+- Fitur perangkat: biometrik, lokasi, sensor, dan notifikasi lokal
 
-## Struktur proyek
+**Catatan integrasi:** repo saat ini masih mencampur Supabase dan PHP/MySQL. Project Brief final menyebut arsitektur PHP REST API + MySQL sebagai backend aplikasi. Jangan menganggap seluruh fitur sudah memakai satu backend sampai tiap modul dipindahkan dan diuji dengan kontrak API yang sama.
+
+## Entry point — gunakan yang ini
+
+- `lib/main.dart`: aplikasi utama dengan Supabase Auth. Ini entry point resmi untuk pengembangan dan pengujian integrasi.
+- `lib/main_preview.dart`: preview UI tanpa login. Gunakan hanya untuk memeriksa tampilan; data preview tidak membuktikan koneksi Supabase.
+
+Jangan membuat entry point baru untuk fitur yang sudah terdaftar di `main.dart`. Tambahkan halaman melalui `core/routes.dart` dan `main.dart`.
+
+## Struktur kode
 
 ```text
 lib/
-  core/                 # API client, konstanta, database lokal, routing, token aman
+  main.dart                 # satu entry point utama
+  main_preview.dart         # preview UI tanpa login
+  core/
+    auth_service.dart       # Supabase Auth + cache profil
+    local_db.dart           # SQLite untuk data lokal
+    routes.dart             # nama route
+    secure_store.dart       # penyimpanan lokal aman
+    api_service.dart        # adapter lama; hapus setelah migrasi endpoint selesai
+    constants.dart          # konfigurasi adapter lama; hapus setelah migrasi selesai
   features/
-    auth/               # login, register, splash
-    fandom/             # daftar/detail member, model, service, cache helpers
-    event/              # daftar/detail event, model, service
-    marketplace/        # katalog
-    tools/              # konversi mata uang dan waktu
-    feedback/           # saran & kesan
-    profile/            # profil, foto, biometrik
-    ai/                 # chat AI
-    game/               # mini-game, sensor, model/controller/service
-    nearby/             # lokasi dan peta
-    notification/       # notifikasi dan pengingat
-    redeem/             # kartu dan penukaran poin
-    shell/              # home dan navigasi utama
-  models/               # model lintas fitur
-  theme/                # tema UI
-  main.dart             # entry point integrasi utama
-  main_dev.dart         # entry point uji modul B
-  main_full.dart        # entry point uji integrasi fitur
-backend/
-  index.php             # router REST API
-  api/                  # endpoint untuk AI, game, notifikasi, health
-  controllers/           # logika API
-  models/                # akses data
-  lib/                   # database, respons, auth guard, validasi
-  config/                # konfigurasi database/rahasia
-  schema.sql             # struktur tabel
-  seed.sql               # data awal
+    auth/                   # login, register, splash
+    shell/                  # home dan navigasi utama
+    fandom/                 # direktori member
+    event/                  # event dan detail
+    marketplace/            # katalog, keranjang, pesanan
+    feedback/               # saran dan kesan
+    profile/                # profil, foto, biometrik
+    ai/                     # chat AI
+    game/                   # mini-game
+    nearby/                 # lokasi dan peta
+    notification/           # notifikasi
+    redeem/                 # poin dan photocard
+    tools/                  # kurs dan zona waktu
+  models/                   # model lintas fitur
+  theme/                    # tema dan komponen UI
+supabase/
+  migrations/               # skema dan data demo Supabase
 ```
 
-## Menjalankan Flutter
+## Menjalankan aplikasi dan backend XAMPP
 
-Pastikan Flutter SDK dan Android toolchain tersedia, lalu jalankan dari root repo:
+1. Salin/clone repository ini sebagai `C:\\xampp\\htdocs\\eclipseverse`.
+2. Jalankan **Apache** dan **MySQL** di XAMPP.
+3. Buat database `eclipseverse` di phpMyAdmin, lalu import `backend/schema.sql` dan `backend/seed.sql`.
+4. Salin `backend/config/db.php.example` menjadi `backend/config/db.php`, lalu isi host, nama database, username, dan password MySQL lokal. File `db.php` jangan di-commit.
+5. Uji dari browser laptop: `http://localhost/eclipseverse/backend/health`. Pastikan respons JSON menunjukkan `success: true` dan database connected.
+6. Jalankan Flutter dengan URL sesuai perangkat (jangan menghapus `/backend`):
+
+Android Emulator:
+
+```bash
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2/eclipseverse/backend
+```
+
+HP Android fisik yang tersambung ke Wi-Fi yang sama dengan laptop:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://192.168.1.10/eclipseverse/backend
+```
+
+Ganti `192.168.1.10` dengan **IPv4 laptop sebenarnya** dari `ipconfig`. Izinkan Apache melalui Windows Firewall untuk jaringan privat. HP tidak bisa memakai `10.0.2.2`; alamat itu khusus Android Emulator. Jangan memakai `localhost` dari HP karena itu menunjuk ke HP sendiri.
+
+Untuk hosting, gunakan URL HTTPS publik backend yang aktif:
+
+```bash
+flutter run --dart-define=API_BASE_URL=https://domain-kamu.example/backend
+```
+
+`API_BASE_URL` adalah alamat folder yang memiliki `index.php`, bukan alamat yang selalu berakhiran `/api`. Semua anggota tim dapat memakai server XAMPP anggota yang menjadi host dengan mengganti IP/URL tersebut; mereka tidak perlu menjalankan MySQL sendiri untuk demo bersama, tetapi laptop host harus menyala dan dapat diakses jaringan.
+
+## Menjalankan aplikasi
+
+Dari root repository:
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-Perintah default menggunakan `lib/main.dart`. Untuk menguji modul B secara terpisah:
+Untuk memeriksa UI tanpa login:
 
 ```bash
-flutter run -t lib/main_dev.dart
+flutter run -t lib/main_preview.dart
 ```
 
-Untuk menjalankan kumpulan halaman uji integrasi:
+## Status migrasi
 
-```bash
-flutter run -t lib/main_full.dart
-```
+Supabase adalah backend utama untuk autentikasi dan Home. Beberapa fitur lama masih memiliki pemanggilan melalui `ApiService`; migrasikan fitur tersebut ke Supabase sebelum menghapus adapter dan backend PHP lama. Jangan mengaktifkan kembali endpoint PHP sebagai fallback diam-diam karena itu akan membuat sumber data rancu.
 
-Entry point uji memakai token/profil dummy. Jangan menggunakannya sebagai bukti bahwa login produksi berhasil atau untuk build final.
+## Supabase
 
-## Menjalankan backend lokal (disarankan untuk debugging)
-
-Mulai dari XAMPP agar request GET/POST dapat diuji tanpa lapisan anti-bot hosting gratis.
-
-1. Jalankan Apache dan MySQL dari XAMPP.
-2. Buat folder `C:\\xampp\\htdocs\\eclipseverse\\api\\`, lalu salin **isi folder `backend/`** ke dalam folder `api/`. Pastikan ada `C:\\xampp\\htdocs\\eclipseverse\\api\\index.php`.
-3. Di phpMyAdmin, buat database bernama `eclipseverse`, pilih database itu, lalu impor `backend/schema.sql`. Jika membutuhkan data contoh, impor `backend/seed.sql` sesudah schema. Schema berisi `DROP TABLE IF EXISTS`; jangan impor ulang jika data perlu dipertahankan.
-4. Salin `backend/config/db.php.example` menjadi `C:\\xampp\\htdocs\\eclipseverse\\api\\config\\db.php`, lalu isi sesuai MySQL lokal. Contoh standar XAMPP (hanya jika cocok dengan instalasimu):
-
-   ```php
-   <?php
-   return [
-       'host' => '127.0.0.1',
-       'port' => 3306,
-       'db_name' => 'eclipseverse',
-       'username' => 'root',
-       'password' => '',
-   ];
-   ```
-
-5. Buka `http://localhost/eclipseverse/api/health`. Hasil yang diharapkan adalah JSON dengan `success: true` dan `data.database: "connected"`.
-6. Jalankan Flutter di Android Emulator dengan base URL lokal bawaan:
-
-   ```bash
-   flutter pub get
-   flutter run
-   ```
-
-   `10.0.2.2` adalah alamat khusus emulator untuk mengakses localhost laptop. Untuk HP fisik, gunakan IP LAN laptop dan jalankan dengan `--dart-define=API_BASE_URL=http://IP-LAPTOP/eclipseverse/api`; HP dan laptop harus satu Wi-Fi, Apache harus bisa diakses dari jaringan, dan firewall mengizinkan koneksi.
-7. Uji register/login dahulu, karena endpoint feedback dan AI memerlukan token login. Selanjutnya uji GET members/events/products/currency, POST feedback/orders, lalu fitur lain satu per satu.
-
-Konfigurasi database hanya berada di `backend/config/db.php` dan tidak boleh masuk Git. Jika password database pernah terunggah atau dibagikan, ganti/rotasi password tersebut dari panel database terlebih dahulu.
-
-## Backend online dengan InfinityFree
-
-Jika backend PHP sudah diunggah dan seluruh endpoint berfungsi di InfinityFree, XAMPP maupun Cloudflare Tunnel tidak diperlukan untuk penggunaan normal.
-
-1. Buat database MySQL melalui panel hosting dan catat hostname, nama database, username, serta password.
-2. Backup database sebelum impor. **`backend/schema.sql` berisi `DROP TABLE IF EXISTS`**, sehingga impor ulang dapat menghapus tabel dan data dengan nama yang sama.
-3. Pilih database yang benar di phpMyAdmin, lalu impor schema dan (bila dibutuhkan) seed.
-4. Unggah file backend dengan susunan folder yang konsisten dengan path `require_once` di PHP. Router harus berada pada URL dasar yang cocok dengan `Constants.baseUrl` di `lib/core/constants.dart`.
-5. Setelah `schema.sql`, impor `backend/migrations/001_game_redeem_blockchain.sql` untuk membuat kolom `products.image_url`, tabel poin, kartu milik pengguna, dan ledger hash-chain. Migration ini tidak menggantikan schema utama.
-6. Buat konfigurasi rahasia berdasarkan file contoh di `backend/config/`; jangan commit file berisi password hosting atau API key.
-7. Uji `/health`, login/register, member, event, feedback, currency, AI, game, redeem, blockchain verification, dan notifikasi secara terpisah. Health check yang berhasil saja tidak menjamin endpoint lainnya berfungsi.
-8. Pastikan ekstensi PHP yang diperlukan (misalnya PDO MySQL dan cURL) tersedia pada paket hosting.
-
-Jangan unggah seluruh repository Flutter ke web root. Yang diletakkan di hosting adalah backend dan file yang dibutuhkan server.
-
-## Checklist pengujian akhir
-
-- [ ] Login/register, password hash, token, logout dan sesi kedaluwarsa
-- [ ] Biometrik hanya aktif setelah pengguna mengaktifkannya
-- [ ] SQLite dan MySQL online
-- [ ] API berfungsi pada hosting
-- [ ] LBS dan izin lokasi
-- [ ] AI/LLM merespons input
-- [ ] Blockchain sederhana menyimpan dan memvalidasi hash transaksi
-- [ ] Minimal dua sensor berjalan di perangkat yang mendukungnya
-- [ ] Notifikasi lokal dan pengingat event
-- [ ] Pencarian/pemilihan data
-- [ ] Mini-game, skor, poin, dan redeem
-- [ ] Foto profil, saran-kesan, logout dari profil
-- [ ] Konversi minimal IDR, USD, KRW (juga JPY)
-- [ ] Waktu WIB, WITA, WIT, dan London
-- [ ] `flutter analyze`, build Android, dan skenario gagal jaringan
-
-Keberadaan file/dependensi bukan bukti bahwa fitur sudah berfungsi; setiap alur harus dites pada emulator/perangkat dan backend yang benar-benar digunakan.
+URL project di aplikasi harus berakhiran `.supabase.co`. Publishable key boleh digunakan di aplikasi klien; jangan pernah menaruh service-role key atau secret key di kode Flutter.

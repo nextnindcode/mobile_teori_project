@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
@@ -15,6 +16,9 @@ class FandomPage extends StatefulWidget {
 class _FandomPageState extends State<FandomPage> {
   final _search = TextEditingController();
   List<Member> _all = [];
+  String _teamFilter = 'Semua';
+  static const _teams = ['Semua', 'Vocalist', 'Dancer', 'Rapper', 'Maknae'];
+
   bool _loading = true;
   String? _error;
 
@@ -48,10 +52,18 @@ class _FandomPageState extends State<FandomPage> {
 
   List<Member> get _filtered {
     final q = _search.text.trim().toLowerCase();
-    if (q.isEmpty) return _all;
-    return _all.where((m) =>
-        m.stageName.toLowerCase().contains(q) ||
-        m.position.toLowerCase().contains(q)).toList();
+    return _all.where((m) {
+      final matchFilter =
+          _teamFilter == 'Semua' ||
+          m.position.toLowerCase().contains(_teamFilter.toLowerCase());
+
+      final matchSearch =
+          q.isEmpty ||
+          m.stageName.toLowerCase().contains(q) ||
+          m.position.toLowerCase().contains(q);
+
+      return matchFilter && matchSearch;
+    }).toList();
   }
 
   @override
@@ -59,7 +71,7 @@ class _FandomPageState extends State<FandomPage> {
     return Scaffold(
       backgroundColor: AppTheme.deepSpace,
       appBar: AppBar(
-        title: const Text('Direktori Member Eclipse'),
+        title: const Text('Direktori Member EclipseVerse'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -78,18 +90,39 @@ class _FandomPageState extends State<FandomPage> {
               onChanged: (_) => setState(() {}),
               style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'Cari nama member atau posisi (Vocal, Dancer...)...',
+                hintText: 'Cari nama member atau posisi...',
                 prefixIcon: const Icon(Icons.search, color: AppTheme.coolCyan),
                 suffixIcon: _search.text.isEmpty
                     ? null
                     : IconButton(
-                        icon: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: AppTheme.textSecondary,
+                        ),
                         onPressed: () {
                           _search.clear();
                           setState(() {});
                         },
                       ),
               ),
+            ),
+          ),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: _teams.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final team = _teams[index];
+                return ChoiceChip(
+                  label: Text(team),
+                  selected: _teamFilter == team,
+                  onSelected: (_) => setState(() => _teamFilter = team),
+                );
+              },
             ),
           ),
           Expanded(child: _buildBody()),
@@ -100,7 +133,7 @@ class _FandomPageState extends State<FandomPage> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const CosmicLoading(message: 'Memuat profil 13 member Eclipse...');
+      return const CosmicLoading(message: 'Memuat profil member Eclipse...');
     }
     if (_error != null) {
       return CosmicErrorView(message: _error!, onRetry: _load);
@@ -129,7 +162,7 @@ class _FandomPageState extends State<FandomPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.88,
+          childAspectRatio: 0.76,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -171,15 +204,46 @@ class _FandomPageState extends State<FandomPage> {
                           ),
                         ],
                       ),
-                      child: Center(
-                        child: Text(
-                          m.initial,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      child: ClipOval(
+                        child: m.imageUrl != null && m.imageUrl!.isNotEmpty
+                            ? Image.network(
+                                m.imageUrl!,
+                                fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return const Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                errorBuilder: (_, _, _) => Center(
+                                  child: Text(
+                                    m.initial,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  m.initial,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -195,6 +259,7 @@ class _FandomPageState extends State<FandomPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
+                      // Nampilin posisi
                       m.position,
                       maxLines: 2,
                       textAlign: TextAlign.center,

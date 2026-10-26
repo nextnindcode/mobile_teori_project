@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProductFormPage extends StatefulWidget {
   final dynamic product; // Kalau null = Create, kalau ada isinya = Edit
@@ -26,9 +26,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
     if (widget.product != null) {
       _nameCtrl.text = widget.product['name'];
       _descCtrl.text = widget.product['description'] ?? '';
-      _priceCtrl.text = widget.product['price'].toString();
+      _priceCtrl.text = (widget.product['price_idr'] ?? widget.product['price']).toString();
       _stockCtrl.text = widget.product['stock'].toString();
-      _imgCtrl.text = widget.product['image_url'] ?? '';
+      _imgCtrl.text = widget.product['cover_image_path'] ?? widget.product['image_url'] ?? '';
       _category = widget.product['category'];
     }
   }
@@ -37,28 +37,34 @@ class _ProductFormPageState extends State<ProductFormPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
+    final client = Supabase.instance.client;
+    final category = await client.from('categories').select('id').eq('slug', _category).single();
     final body = {
-      'name': _nameCtrl.text,
-      'category': _category,
-      'description': _descCtrl.text,
-      'price': int.parse(_priceCtrl.text),
+      'name': _nameCtrl.text.trim(),
+      'category_id': category['id'],
+      'description': _descCtrl.text.trim(),
+      'price_idr': int.parse(_priceCtrl.text),
       'stock': int.parse(_stockCtrl.text),
-      'image_url': _imgCtrl.text,
+      'cover_image_path': _imgCtrl.text.trim(),
     };
 
     try {
       if (widget.product == null) {
-        await ApiService.post('/products', body);
+        body['sku'] = 'EV-ADM-${DateTime.now().millisecondsSinceEpoch}';
+        await client.from('products').insert(body);
       } else {
-        await ApiService.put('/products/${widget.product['id']}', body);
+        await client.from('products').update(body).eq('id', widget.product['id']);
       }
       if (!mounted) return;
       Navigator.pop(context, true); // Berhasil, balik ke katalog
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
 import '../../models/products.dart';
@@ -10,9 +11,9 @@ import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../event/event_model.dart';
 import '../event/event_page.dart' show formatEventDate;
+// ignore: unused_import
 import '../event/event_service.dart';
 import '../marketplace/product_detail_sheet.dart';
-import '../redeem/redeem_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -48,27 +49,47 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadProfile() async {
     try {
-      final profile = await LocalDb.getUserProfile();
+      final cached = await LocalDb.getUserProfile();
       final avatar = await LocalDb.getPref('avatar_path');
       if (mounted) {
         setState(() {
-          if (profile != null &&
-              profile['name'] != null &&
-              profile['name'].toString().isNotEmpty) {
-            _userName = profile['name'].toString();
+          if (cached?['name'] != null &&
+              cached!['name'].toString().trim().isNotEmpty) {
+            _userName = cached['name'].toString();
           }
           _avatarPath = avatar;
         });
       }
+
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
+      final name = profile?['display_name']?.toString().trim() ?? '';
+      if (mounted && name.isNotEmpty) setState(() => _userName = name);
     } catch (_) {}
   }
 
   Future<void> _loadPoints() async {
     try {
-      final stats = await RedeemService.getUserStats();
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        if (mounted) setState(() => _isLoadingPoints = false);
+        return;
+      }
+      final stats = await Supabase.instance.client
+          .from('user_points')
+          .select('total_points')
+          .eq('user_id', user.id)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
       if (mounted) {
         setState(() {
-          _userPoints = (stats['points'] as num?)?.toInt() ?? 0;
+          _userPoints = (stats?['total_points'] as num?)?.toInt() ?? 0;
           _isLoadingPoints = false;
         });
       }
@@ -79,11 +100,21 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadEvents() async {
     try {
-      final events = await EventService.fetchEvents();
+      final rows = await Supabase.instance.client
+          .from('events')
+          .select(
+            'id, title, description, event_date, venue, city, latitude, longitude',
+          )
+          .eq('status', 'scheduled')
+          .order('event_date')
+          .limit(3)
+          .timeout(const Duration(seconds: 8));
+      final events = (rows as List)
+          .map((row) => Event.fromJson(Map<String, dynamic>.from(row)))
+          .toList();
       if (mounted) {
         setState(() {
-          // Take first 3 upcoming events
-          _upcomingEvents = events.take(3).toList();
+          _upcomingEvents = events;
           _isLoadingEvents = false;
         });
       }
@@ -94,20 +125,47 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadProducts() async {
     try {
-      final response = await ApiService.get('/products');
-      if (response['success'] == true && response['data'] is List) {
-        final list = (response['data'] as List)
-            .map((item) => Product.fromJson(Map<String, dynamic>.from(item)))
-            .take(6)
-            .toList();
-        if (mounted) {
-          setState(() {
-            _featuredProducts = list;
-            _isLoadingProducts = false;
-          });
+      final rows = await Supabase.instance.client
+          .from('products')
+          .select(
+            'id, name, description, price_idr, stock, cover_image_path, categories(name)',
+          )
+          .eq('is_published', true)
+          .order('created_at', ascending: false)
+          .limit(6)
+          .timeout(const Duration(seconds: 8));
+
+      final list = (rows as List).map((item) {
+        final row = Map<String, dynamic>.from(item);
+        final rawCategory = row['categories'];
+        final category = rawCategory is Map
+            ? (rawCategory['name']?.toString() ?? 'Merchandise')
+            : 'Merchandise';
+        final imagePath = row['cover_image_path']?.toString();
+        String? imageUrl;
+        if (imagePath != null && imagePath.trim().isNotEmpty) {
+          imageUrl = imagePath.startsWith('http')
+              ? imagePath
+              : Supabase.instance.client.storage
+                    .from('eclipseverse-media')
+                    .getPublicUrl(imagePath);
         }
-      } else {
-        if (mounted) setState(() => _isLoadingProducts = false);
+        return Product(
+          id: (row['id'] as num).toInt(),
+          name: row['name']?.toString() ?? 'Produk',
+          category: category,
+          description: row['description']?.toString() ?? '',
+          price: (row['price_idr'] as num?)?.toInt() ?? 0,
+          stock: (row['stock'] as num?)?.toInt() ?? 0,
+          imageUrl: imageUrl,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _featuredProducts = list;
+          _isLoadingProducts = false;
+        });
       }
     } catch (_) {
       if (mounted) setState(() => _isLoadingProducts = false);
@@ -179,7 +237,6 @@ class _HomePageState extends State<HomePage> {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 36),
           children: [
-            // 1. Personalized Hero Header Section
             _buildHeroHeader(),
 
             const SizedBox(height: 24),
@@ -189,12 +246,13 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  Text(
-                    'Jelajahi Universe',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(color: AppTheme.textPrimary),
+                  Expanded( // <--- FIX OVERFLOW 1
+                    child: Text(
+                      'Jelajahi Universe',
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(color: AppTheme.textPrimary),
+                    ),
                   ),
-                  const Spacer(),
                   const Text(
                     'Fitur Utama',
                     style: TextStyle(
@@ -247,7 +305,6 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Stack(
         children: [
-          // Ambient Eclipse Planet Glow in Background
           Positioned(
             right: -25,
             top: -25,
@@ -269,7 +326,6 @@ class _HomePageState extends State<HomePage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row: Avatar + Greeting + Points Pill
               Row(
                 children: [
                   CircleAvatar(
@@ -307,6 +363,8 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(height: 2),
                         const Text(
                           'Selamat datang di semesta Eclipse',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: AppTheme.textSecondary,
                             fontSize: 12,
@@ -315,7 +373,6 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                   ),
-                  // Points Badge Pill
                   GestureDetector(
                     onTap: () => _open(Routes.redeem),
                     child: Container(
@@ -359,7 +416,6 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 20),
 
-              // Hero statement
               const Text(
                 'A Little Piece of Your Universe',
                 style: TextStyle(
@@ -382,52 +438,55 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 18),
 
-              // Action buttons row
               Row(
                 children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.eclipseViolet,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+                  Expanded( // <--- FIX OVERFLOW 2
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.eclipseViolet,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: () => _open(Routes.catalog),
-                    icon: const Icon(Icons.storefront_rounded, size: 16),
-                    label: const Text(
-                      'Beli Merch',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                      onPressed: () => _open(Routes.catalog),
+                      icon: const Icon(Icons.storefront_rounded, size: 16),
+                      label: const Text(
+                        'Beli Merch',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.coolCyan,
-                      side: const BorderSide(color: AppTheme.borderSubtle),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
+                  Expanded( // <--- FIX OVERFLOW 2
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.coolCyan,
+                        side: const BorderSide(color: AppTheme.borderSubtle),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: () => _open(Routes.ai),
-                    icon: const Icon(Icons.auto_awesome, size: 16),
-                    label: const Text(
-                      'Tanya AI',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                      onPressed: () => _open(Routes.ai),
+                      icon: const Icon(Icons.auto_awesome, size: 16),
+                      label: const Text(
+                        'Tanya AI',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -442,72 +501,24 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildQuickActionGrid() {
     final actions = [
-      {
-        'label': 'Store',
-        'icon': Icons.storefront_outlined,
-        'color': AppTheme.eclipseViolet,
-        'route': Routes.catalog,
-      },
-      {
-        'label': 'Events',
-        'icon': Icons.calendar_month_outlined,
-        'color': AppTheme.nebulaIndigo,
-        'route': Routes.events,
-      },
-      {
-        'label': 'Fandom',
-        'icon': Icons.people_alt_outlined,
-        'color': AppTheme.coolCyan,
-        'route': Routes.shell,
-      },
-      {
-        'label': 'Nearby',
-        'icon': Icons.near_me_outlined,
-        'color': AppTheme.coronaGold,
-        'route': Routes.nearby,
-      },
-      {
-        'label': 'Eclipse AI',
-        'icon': Icons.auto_awesome_outlined,
-        'color': const Color(0xFFC084FC),
-        'route': Routes.ai,
-      },
-      {
-        'label': 'Tools',
-        'icon': Icons.currency_exchange_rounded,
-        'color': const Color(0xFF38BDF8),
-        'route': Routes.tools,
-      },
-      {
-        'label': 'Mini Game',
-        'icon': Icons.sports_esports_outlined,
-        'color': const Color(0xFFF472B6),
-        'route': Routes.game,
-      },
-      {
-        'label': 'Redeem',
-        'icon': Icons.card_giftcard_rounded,
-        'color': const Color(0xFFFBBF24),
-        'route': Routes.redeem,
-      },
+      {'label': 'Nearby', 'icon': Icons.near_me_outlined, 'color': AppTheme.coronaGold, 'route': Routes.nearby},
+      {'label': 'Eclipse AI', 'icon': Icons.auto_awesome_outlined, 'color': AppTheme.eclipseViolet, 'route': Routes.ai},
+      {'label': 'Kurs & Waktu', 'icon': Icons.currency_exchange_rounded, 'color': AppTheme.coolCyan, 'route': Routes.tools},
+      {'label': 'Redeem Poin', 'icon': Icons.card_giftcard_rounded, 'color': AppTheme.coronaGold, 'route': Routes.redeem},
     ];
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          childAspectRatio: 0.88,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
+          crossAxisCount: 4, childAspectRatio: 0.88,
+          crossAxisSpacing: 10, mainAxisSpacing: 10,
         ),
         itemCount: actions.length,
         itemBuilder: (context, index) {
           final item = actions[index];
           final color = item['color'] as Color;
-
           return InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: () => _open(item['route'] as String),
@@ -521,28 +532,15 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      item['icon'] as IconData,
-                      color: color,
-                      size: 22,
-                    ),
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.16), shape: BoxShape.circle),
+                    child: Icon(item['icon'] as IconData, color: color, size: 22),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    item['label'] as String,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(item['label'] as String, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
                   ),
                 ],
               ),
@@ -592,12 +590,16 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        'Guess the Member',
-                        style: TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                      const Expanded( // <--- FIX OVERFLOW 3
+                        child: Text(
+                          'Guess the Member',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -643,12 +645,15 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Text(
-                'Event Mendatang',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(color: AppTheme.textPrimary),
+              Expanded( // <--- FIX OVERFLOW 4
+                child: Text(
+                  'Event Mendatang',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(color: AppTheme.textPrimary),
+                ),
               ),
-              const Spacer(),
               TextButton(
                 onPressed: () => _open(Routes.events),
                 child: const Text(
@@ -775,12 +780,15 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Text(
-                'Merchandise Pilihan',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(color: AppTheme.textPrimary),
+              Expanded( // <--- FIX OVERFLOW 5
+                child: Text(
+                  'Merchandise Pilihan',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(color: AppTheme.textPrimary),
+                ),
               ),
-              const Spacer(),
               TextButton(
                 onPressed: () => _open(Routes.catalog),
                 child: const Text(

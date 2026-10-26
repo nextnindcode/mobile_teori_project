@@ -31,11 +31,16 @@ class _AiPageState extends State<AiPage> {
       setState(() {
         _messages.add({'text': reply, 'isUser': false});
       });
-    } catch (e) {
-      setState(() {
-        _messages.add({'text': 'AI sedang tidak tersedia.', 'isUser': false, 'isError': true});
-      });
-    } finally {
+        } catch (e) {
+        setState(() {
+          // TAMPILKAN ERROR ASLI
+          _messages.add({
+            'text': 'Error: $e', 
+            'isUser': false, 
+            'isError': true
+          });
+        });
+        } finally {
       setState(() {
         _isLoading = false;
       });
@@ -114,7 +119,7 @@ class _AiPageState extends State<AiPage> {
                       ),
                       child: TextField(
                         controller: _textController,
-                        maxLength: 300, // Syarat Brief Maksimal 300 Karakter 
+                        maxLength: 500, // Syarat Brief Maksimal 500 Karakter 
                         textInputAction: TextInputAction.send,
                         decoration: InputDecoration(
                           hintText: 'Tanya seputar Eclipse...',

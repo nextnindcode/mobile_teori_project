@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
@@ -63,135 +64,175 @@ class _EventListPageState extends State<EventListPage> {
       body: _loading
           ? const CosmicLoading(message: 'Memuat jadwal konser & event...')
           : _error != null
-              ? CosmicErrorView(message: _error!, onRetry: _load)
-              : _events.isEmpty
-                  ? const CosmicEmptyView(
-                      title: 'Belum Ada Jadwal Event',
-                      subtitle: 'Pantau terus untuk pengumuman konser tur berikutnya!',
-                      icon: Icons.event_busy_rounded,
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      color: AppTheme.eclipseViolet,
-                      backgroundColor: AppTheme.surfaceElevated,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                        itemCount: _events.length,
-                        itemBuilder: (_, i) {
-                          final e = _events[i];
-                          final isPast = e.isPast;
+          ? CosmicErrorView(message: _error!, onRetry: _load)
+          : _events.isEmpty
+          ? const CosmicEmptyView(
+              title: 'Belum Ada Jadwal Event',
+              subtitle: 'Pantau terus untuk pengumuman konser tur berikutnya!',
+              icon: Icons.event_busy_rounded,
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              color: AppTheme.eclipseViolet,
+              backgroundColor: AppTheme.surfaceElevated,
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                itemCount: _events.length,
+                itemBuilder: (_, i) {
+                  final e = _events[i];
+                  final isPast = e.isPast;
 
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 14),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceElevated,
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: isPast ? AppTheme.borderLight : AppTheme.borderSubtle,
-                              ),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(22),
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                Routes.eventDetail,
-                                arguments: e.id,
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(18),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Row Header: City Badge + Date Status
-                                    Row(
-                                      children: [
-                                        CosmicBadge(
-                                          text: e.city.toUpperCase(),
-                                          color: isPast ? AppTheme.textSecondary : AppTheme.coolCyan,
-                                          textColor: isPast ? AppTheme.textSecondary : AppTheme.coolCyan,
-                                          icon: Icons.location_on_outlined,
-                                        ),
-                                        const Spacer(),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: (isPast ? AppTheme.textMuted : AppTheme.coronaGold)
-                                                .withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Text(
-                                            isPast ? 'SELESAI' : 'MENDATANG',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: isPast ? AppTheme.textSecondary : AppTheme.coronaGold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
+                  // Tentukan warna background dan border
+                  final cardColor = isPast
+                      ? Colors.grey.shade900.withValues(alpha: 0.5)
+                      : AppTheme.surfaceElevated;
+                  final borderColor = isPast
+                      ? Colors.grey.shade800
+                      : AppTheme.borderSubtle;
 
-                                    // Title
-                                    Text(
-                                      e.title,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.textPrimary,
-                                        height: 1.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-
-                                    // Venue
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.place_outlined, size: 14, color: AppTheme.textSecondary),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            e.venue,
-                                            style: const TextStyle(
-                                              color: AppTheme.textSecondary,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-
-                                    // Date
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.schedule_rounded, size: 14, color: AppTheme.coronaGold),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          formatEventDate(e.eventDate),
-                                          style: const TextStyle(
-                                            color: AppTheme.coronaGold,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        const Icon(
-                                          Icons.arrow_forward_ios_rounded,
-                                          size: 14,
-                                          color: AppTheme.coolCyan,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: cardColor, // Pakai warna dinamis
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: borderColor),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(22),
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        Routes.eventDetail,
+                        arguments: e.id,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Row Header: City Badge & Date Status
+                            Row(
+                              children: [
+                                CosmicBadge(
+                                  text: e.city.toUpperCase(),
+                                  color: isPast
+                                      ? Colors.grey
+                                      : AppTheme.coolCyan,
+                                  textColor: isPast
+                                      ? Colors.grey
+                                      : AppTheme.coolCyan,
+                                  icon: Icons.location_on_outlined,
                                 ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        (isPast
+                                                ? Colors.grey
+                                                : AppTheme.coronaGold)
+                                            .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    // GANTI TEKS JADI 'EVENT BERAKHIR'
+                                    isPast ? 'EVENT BERAKHIR' : 'MENDATANG',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: isPast
+                                          ? Colors.grey
+                                          : AppTheme.coronaGold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Title
+                            Text(
+                              e.title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                // Judul
+                                color: isPast
+                                    ? Colors.grey
+                                    : AppTheme.textPrimary,
+                                height: 1.3,
                               ),
                             ),
-                          );
-                        },
+                            const SizedBox(height: 10),
+
+                            // Venue
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.place_outlined,
+                                  size: 14,
+                                  color: isPast
+                                      ? Colors.grey.shade600
+                                      : AppTheme.textSecondary,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    e.venue,
+                                    style: TextStyle(
+                                      color: isPast
+                                          ? Colors.grey.shade600
+                                          : AppTheme.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Date
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.schedule_rounded,
+                                  size: 14,
+                                  color: isPast
+                                      ? Colors.grey.shade600
+                                      : AppTheme.coronaGold,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  formatEventDate(e.eventDate),
+                                  style: TextStyle(
+                                    color: isPast
+                                        ? Colors.grey.shade600
+                                        : AppTheme.coronaGold,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 14,
+                                  color: isPast
+                                      ? Colors.grey.shade600
+                                      : AppTheme.coolCyan,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

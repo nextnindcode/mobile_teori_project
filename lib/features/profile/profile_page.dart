@@ -1,13 +1,19 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:sqflite/sqflite.dart' show getDatabasesPath;
 import 'package:eclipseverse/theme/app_theme.dart';
 import 'package:eclipseverse/core/local_db.dart';
 
 import '../notification/notification_service.dart';
 import '../fandom/shared/state_views.dart';
 import 'biometric_service.dart';
+import '../../core/routes.dart';
+import '../../core/secure_store.dart';
+import '../membership/membership_service.dart';
 
 class ProfilePage extends StatefulWidget {
   final Future<void> Function()? onLogout;
@@ -25,16 +31,77 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _bioEnabled = false;
   bool _notifEnabled = false;
   bool _loading = true;
+  bool _isMember = false;
+  Map<String, dynamic>? _membershipData;
+
+  bool _hasRedeemedCards = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _checkMembership();
+    _checkCardStatus();
+  }
+
+  Future<void> _checkMembership() async {
+    try {
+      final isActive = await MembershipService.isActive();
+      final data = await MembershipService.currentMembership();
+      if (mounted) {
+        setState(() {
+          _isMember = isActive;
+          _membershipData = data;
+        });
+      }
+    } catch (e) {
+      debugPrint('Gagal memuat status membership: $e');
+    }
+  }
+
+  Future<void> _checkCardStatus() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final res = await Supabase.instance.client
+          .from('user_cards')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+
+      if (mounted) {
+        setState(() {
+          _hasRedeemedCards = res.isNotEmpty;
+        });
+      }
+    } catch (e) {
+      debugPrint('Gagal cek kartu: $e');
+    }
   }
 
   Future<void> _load() async {
     final profile = await LocalDb.getUserProfile();
     final avatar = await LocalDb.getPref('avatar_path');
+    String? remoteAvatarUrl;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      try {
+        final row = await Supabase.instance.client
+            .from('profiles')
+            .select('avatar_path')
+            .eq('id', user.id)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 6));
+        final storagePath = row?['avatar_path']?.toString();
+        if (storagePath != null && storagePath.isNotEmpty) {
+          remoteAvatarUrl = Supabase.instance.client.storage
+              .from('eclipseverse-media')
+              .getPublicUrl(storagePath);
+        }
+      } catch (_) {
+        // Keep local avatar cache if the network is temporarily unavailable.
+      }
+    }
     final bio = await LocalDb.getPref('biometric_enabled');
     final notif = await LocalDb.getPref('notification_enabled');
     final supported = await BiometricService.isSupported();
@@ -42,7 +109,9 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       _name = '${profile?['name'] ?? ''}';
       _email = '${profile?['email'] ?? ''}';
-      _avatarPath = (avatar != null && avatar.isNotEmpty) ? avatar : null;
+      _avatarPath =
+          remoteAvatarUrl ??
+          ((avatar != null && avatar.isNotEmpty) ? avatar : null);
       _bioSupported = supported;
       _bioEnabled = supported && bio == '1';
       _notifEnabled = notif == '1';
@@ -57,9 +126,52 @@ class _ProfilePageState extends State<ProfilePage> {
         imageQuality: 80,
       );
       if (x == null) return;
-      await LocalDb.setPref('avatar_path', x.path);
+      // image_picker returns a temporary/cache path; copy it to app storage
+      // so the avatar remains available after Android cleans temporary files.
+      final directory = await getDatabasesPath();
+      final extension = path.extension(x.path).isEmpty
+          ? '.jpg'
+          : path.extension(x.path);
+      final savedPath = path.join(directory, 'eclipseverse_avatar$extension');
+      final savedFile = await File(x.path).copy(savedPath);
+      await LocalDb.setPref('avatar_path', savedFile.path);
+      var displayedPath = savedFile.path;
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        try {
+          final storagePath =
+              'avatars/${user.id}/profile${path.extension(savedFile.path)}';
+          await Supabase.instance.client.storage
+              .from('eclipseverse-media')
+              .upload(
+                storagePath,
+                savedFile,
+                fileOptions: FileOptions(
+                  upsert: true,
+                  contentType:
+                      path.extension(savedFile.path).toLowerCase() == '.png'
+                      ? 'image/png'
+                      : 'image/jpeg',
+                ),
+              )
+              .timeout(const Duration(seconds: 12));
+          await Supabase.instance.client
+              .from('profiles')
+              .update({
+                'avatar_path': storagePath,
+                'updated_at': DateTime.now().toUtc().toIso8601String(),
+              })
+              .eq('id', user.id)
+              .timeout(const Duration(seconds: 8));
+          displayedPath = Supabase.instance.client.storage
+              .from('eclipseverse-media')
+              .getPublicUrl(storagePath);
+        } catch (_) {
+          // Keep the persistent local copy if Storage is unavailable or the user is offline.
+        }
+      }
       if (!mounted) return;
-      setState(() => _avatarPath = x.path);
+      setState(() => _avatarPath = displayedPath);
     } catch (_) {
       if (mounted) showSnack(context, 'Gagal memilih foto');
     }
@@ -73,7 +185,15 @@ class _ProfilePageState extends State<ProfilePage> {
         showSnack(context, 'Verifikasi biometric gagal atau dibatalkan');
         return;
       }
+
+      // Ambil email & password dari session Supabase
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null && user.email != null) {}
+    } else {
+      // Jika dimatikan, hapus kredensial
+      await SecureStore.deleteCredentials();
     }
+
     await LocalDb.setPref('biometric_enabled', on ? '1' : '0');
     if (mounted) setState(() => _bioEnabled = on);
   }
@@ -125,18 +245,21 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _testNotification() async {
-    if (!_notifEnabled) {
-      showSnack(context, 'Aktifkan notifikasi terlebih dahulu');
-      return;
-    }
-    await NotificationService.showTest();
-    if (mounted) showSnack(context, 'Notifikasi akan muncul 10 detik lagi');
-  }
+  // Future<void> _testNotification() async {
+  //   if (!_notifEnabled) {
+  //     showSnack(context, 'Aktifkan notifikasi terlebih dahulu');
+  //     return;
+  //   }
+  //   await NotificationService.showTest();
+  //   if (mounted) showSnack(context, 'Notifikasi akan muncul 10 detik lagi');
+  // }
 
   ImageProvider? get _avatarImage {
     final p = _avatarPath;
     if (p == null) return null;
+    if (p.startsWith('https://') || p.startsWith('http://')) {
+      return NetworkImage(p);
+    }
     final f = File(p);
     return f.existsSync() ? FileImage(f) : null;
   }
@@ -196,7 +319,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                const SizedBox(height: AppTheme.spacingLarge),
+                const SizedBox(height: AppTheme.spacingMedium),
                 Card(
                   child: Column(
                     children: [
@@ -204,7 +327,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         title: const Text('Login biometric'),
                         subtitle: Text(
                           _bioSupported
-                              ? 'Gunakan sidik jari/wajah saat membuka aplikasi'
+                              ? 'Gunakan sidik jari saat membuka aplikasi'
                               : 'Perangkat tidak mendukung',
                         ),
                         value: _bioEnabled,
@@ -223,12 +346,90 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacingMedium),
-                OutlinedButton.icon(
-                  onPressed: _testNotification,
-                  icon: const Icon(Icons.notifications_active),
-                  label: const Text('Uji notifikasi'),
+                Card(
+                  child: Column(
+                    children: [
+                      // 1. Bagian Membership (Atas)
+                      ListTile(
+                        leading: Icon(
+                          Icons.workspace_premium,
+                          color: _isMember
+                              ? Colors.amber
+                              : AppTheme.primaryLight,
+                        ),
+                        title: Text(
+                          _isMember
+                              ? 'VIP Member Aktif'
+                              : 'Membership EclipseVerse',
+                        ),
+                        subtitle: Text(
+                          _isMember
+                              ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali'
+                              : 'Akses fitur redeem kartu',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () async {
+                          await Navigator.pushNamed(context, Routes.membership);
+                          _checkMembership();
+                          _checkCardStatus();
+                        },
+                      ),
+
+                      // Bagian koleksi kartu
+                      ListTile(
+                        leading: Icon(
+                          Icons.style,
+                          // Kalau udah punya kartu jadi warna emas, kalau belum abu-abu
+                          color: _hasRedeemedCards ? Colors.amber : Colors.grey,
+                        ),
+                        title: Text(
+                          'Koleksi Kartu',
+                          style: TextStyle(
+                            color: _hasRedeemedCards
+                                ? AppTheme.textPrimary
+                                : Colors.grey,
+                          ),
+                        ),
+                        subtitle: Text(
+                          _hasRedeemedCards
+                              ? 'Lihat kartu yang sudah kamu kumpulkan'
+                              : 'Belum ada kartu yang diklaim',
+                          style: TextStyle(
+                            color: _hasRedeemedCards
+                                ? AppTheme.textSecondary
+                                : Colors.grey,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          // Kalau udah punya kartu atau member aktif, arahkan ke halaman Redeem
+                          if (_hasRedeemedCards || _isMember) {
+                            Navigator.pushNamed(context, Routes.redeem);
+                          } else {
+                            // Kalau belum, arahkan ke halaman Membership
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Kamu harus jadi Member dan redeem kartu terlebih dahulu!',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            Navigator.pushNamed(context, Routes.membership);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
+                const Divider(height: 1),
                 const SizedBox(height: AppTheme.spacingMedium),
+                // OutlinedButton.icon(
+                //   onPressed: _testNotification,
+                //   icon: const Icon(Icons.notifications_active),
+                //   label: const Text('Uji notifikasi'),
+                // ),
+                // const SizedBox(height: AppTheme.spacingMedium),
                 OutlinedButton.icon(
                   onPressed: widget.onLogout == null ? null : _confirmLogout,
                   icon: const Icon(Icons.logout),

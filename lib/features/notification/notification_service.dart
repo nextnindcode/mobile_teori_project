@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
-import '../../core/local_db.dart';
+// import '../../core/local_db.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -35,31 +35,31 @@ class NotificationService {
   }
 
   // Menampilkan notifikasi uji coba 10 detik kemudian.
-  static Future<void> showTest() async {
-    final granted = await init();
-    if (!granted) return;
-    final isEnabled = (await LocalDb.getPref('notification_enabled')) == '1';
-    if (!isEnabled) return;
+  // static Future<void> showTest() async {
+  //   final granted = await init();
+  //   if (!granted) return;
+  //   final isEnabled = (await LocalDb.getPref('notification_enabled')) == '1';
+  //   if (!isEnabled) return;
 
-    final scheduledTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
+  //   final scheduledTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
 
-    const androidDetails = AndroidNotificationDetails(
-      'eclipse_test_channel',
-      'Test Notifications',
-      channelDescription: 'Uji coba notifikasi EclipseVerse',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
+  //   const androidDetails = AndroidNotificationDetails(
+  //     'eclipse_test_channel',
+  //     'Test Notifications',
+  //     channelDescription: 'Uji coba notifikasi EclipseVerse',
+  //     importance: Importance.max,
+  //     priority: Priority.high,
+  //   );
 
-    await _notificationsPlugin.zonedSchedule(
-      id: 9999,
-      title: 'Uji Notifikasi EclipseVerse',
-      body: 'Notifikasi berhasil muncul setelah 10 detik! Fandom Eclipse siap menyapamu.',
-      scheduledDate: scheduledTime,
-      notificationDetails: const NotificationDetails(android: androidDetails),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-    );
-  }
+  //   await _notificationsPlugin.zonedSchedule(
+  //     id: 9999,
+  //     title: 'Uji Notifikasi EclipseVerse',
+  //     body: 'Notifikasi berhasil muncul setelah 10 detik! Fandom Eclipse siap menyapamu.',
+  //     scheduledDate: scheduledTime,
+  //     notificationDetails: const NotificationDetails(android: androidDetails),
+  //     androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+  //   );
+  // }
 
   // Menampilkan notifikasi order berhasil dibuat.
   static Future<void> showOrderConfirmed(dynamic orderId) async {
