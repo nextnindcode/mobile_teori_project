@@ -70,28 +70,25 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     );
   }
 
-  Widget _content(Member m) {
+  Widget _factTile(IconData icon, String title, String value) => Card(\n    child: ListTile(leading: Icon(icon, color: AppTheme.coronaGold), title: Text(title, style: const TextStyle(color: AppTheme.textPrimary)), subtitle: Text(value.isEmpty ? '-' : value, style: const TextStyle(color: AppTheme.textSecondary, height: 1.4))),\n  );\n\n  Widget _content(Member m) {
     final t = Theme.of(context).textTheme;
     return ListView(
       padding: const EdgeInsets.all(AppTheme.spacingLarge),
       children: [
-        Center(
-          child: CircleAvatar(
-            radius: 56,
-            backgroundColor: memberColor(m.id),
-            backgroundImage: m.imageUrl != null && m.imageUrl!.isNotEmpty
-                ? NetworkImage(m.imageUrl!)
-                : null,
-            child: m.imageUrl == null || m.imageUrl!.isEmpty
-                ? Text(
-                    m.initial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : null,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: SizedBox(
+            width: double.infinity,
+            height: 300,
+            child: Image.asset(
+              m.imageAssetPath,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: memberColor(m.id),
+                alignment: Alignment.center,
+                child: Text(m.initial, style: const TextStyle(color: Colors.white, fontSize: 72, fontWeight: FontWeight.bold)),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
@@ -103,7 +100,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         const SizedBox(height: AppTheme.spacingSmall),
         Center(
           child: Chip(
-            label: Text(m.position),
+            label: Text('${m.team} • ${m.position}'),
             backgroundColor: AppTheme.coolCyan.withValues(alpha: 0.18),
             labelStyle: const TextStyle(color: AppTheme.coolCyan),
           ),
@@ -122,25 +119,12 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
           ),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
-        Card(
-          child: ListTile(
-            leading: const Icon(
-              Icons.lightbulb_outline,
-              color: AppTheme.coronaGold,
-            ),
-            title: const Text(
-              'Fun fact',
-              style: TextStyle(color: AppTheme.textPrimary),
-            ),
-            subtitle: Text(
-              m.funFact.isEmpty ? '-' : m.funFact,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ),
+        _factTile(Icons.cake_outlined, 'Tanggal lahir', m.birthDate == null ? '-' : '${m.birthDate!.day.toString().padLeft(2, '0')}-${m.birthDate!.month.toString().padLeft(2, '0')}-${m.birthDate!.year}'),
+        _factTile(Icons.restaurant_outlined, 'Makanan kesukaan', m.favoriteFood),
+        _factTile(Icons.pets_outlined, 'Spirit animal', m.spiritAnimal),
+        _factTile(Icons.palette_outlined, 'Warna favorit', m.favoriteColor),
+        _factTile(Icons.interests_outlined, 'Hobi', m.hobby),
+        _factTile(Icons.lightbulb_outline, 'Fun fact', m.funFact),
       ],
     );
   }
