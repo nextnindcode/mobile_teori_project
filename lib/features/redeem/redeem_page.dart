@@ -389,7 +389,7 @@ class _RedeemPageState extends State<RedeemPage> {
                         children: [
                           const Icon(Icons.monetization_on, color: AppTheme.coronaGold, size: 16),
                           const SizedBox(width: 4),
-                          Text('${card.cost} Poin', style: const TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold)),
+                          const Text('1 Kuota Membership', style: TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 2),
