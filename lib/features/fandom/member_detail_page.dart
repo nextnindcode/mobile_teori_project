@@ -70,7 +70,17 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     );
   }
 
-  Widget _factTile(IconData icon, String title, String value) => Card(\n    child: ListTile(leading: Icon(icon, color: AppTheme.coronaGold), title: Text(title, style: const TextStyle(color: AppTheme.textPrimary)), subtitle: Text(value.isEmpty ? '-' : value, style: const TextStyle(color: AppTheme.textSecondary, height: 1.4))),\n  );\n\n  Widget _content(Member m) {
+  Widget _factTile(IconData icon, String title, String value) => Card(
+        child: ListTile(
+          leading: Icon(icon, color: AppTheme.coronaGold),
+          title: Text(title, style: const TextStyle(color: AppTheme.textPrimary)),
+          subtitle: Text(
+            value.isEmpty ? '-' : value,
+            style: const TextStyle(color: AppTheme.textSecondary, height: 1.4),
+          ),
+        ),
+      );
+\n  Widget _content(Member m) {
     final t = Theme.of(context).textTheme;
     return ListView(
       padding: const EdgeInsets.all(AppTheme.spacingLarge),
