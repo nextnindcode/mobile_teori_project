@@ -324,7 +324,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     children: [
                       SwitchListTile(
-                        title: const Text('Login biometric'),
+                        title: const Text('Login dengan sidik jari'),
                         subtitle: Text(
                           _bioSupported
                               ? 'Gunakan sidik jari saat membuka aplikasi'
