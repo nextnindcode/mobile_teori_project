@@ -365,7 +365,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         subtitle: Text(
                           _isMember
                               ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali'
-                              : 'Akses fitur redeem kartu',
+                              : 'Membership untuk menukar kartu baru',
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () async {
@@ -393,7 +393,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         subtitle: Text(
                           _hasRedeemedCards
                               ? 'Lihat kartu yang sudah kamu kumpulkan'
-                              : 'Belum ada kartu yang diklaim',
+                              : 'Jelajahi koleksi photocard';
                           style: TextStyle(
                             color: _hasRedeemedCards
                                 ? AppTheme.textSecondary
@@ -402,21 +402,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          // Kalau udah punya kartu atau member aktif, arahkan ke halaman Redeem
-                          if (_hasRedeemedCards || _isMember) {
-                            Navigator.pushNamed(context, Routes.redeem);
-                          } else {
-                            // Kalau belum, arahkan ke halaman Membership
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Kamu harus jadi Member dan redeem kartu terlebih dahulu!',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            Navigator.pushNamed(context, Routes.membership);
-                          }
+                          // Koleksi kartu yang sudah dimiliki tetap bisa dibuka meskipun membership berakhir.
+                          Navigator.pushNamed(context, Routes.redeem);
                         },
                       ),
                     ],
