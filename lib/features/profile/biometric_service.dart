@@ -1,16 +1,14 @@
 import 'package:local_auth/local_auth.dart';
 
-/// Kontrak serah-terima H11 (ke A): isSupported() dan authenticate() -> bool.
-/// Aplikasi tidak menyimpan data biometrik; OS hanya mengembalikan berhasil/gagal.
+/// Aplikasi hanya meminta autentikasi sidik jari dari sistem operasi.
+/// Data biometrik tidak pernah dibaca atau disimpan oleh EclipseVerse.
 class BiometricService {
   static final LocalAuthentication _auth = LocalAuthentication();
 
   static Future<bool> isSupported() async {
     try {
-      final deviceOk = await _auth.isDeviceSupported();
-      if (!deviceOk) return false;
       final enrolled = await _auth.getAvailableBiometrics();
-      return enrolled.isNotEmpty;
+      return enrolled.contains(BiometricType.fingerprint);
     } catch (_) {
       return false;
     }
@@ -19,10 +17,10 @@ class BiometricService {
   static Future<bool> authenticate() async {
     try {
       return await _auth.authenticate(
-        localizedReason: 'Verifikasi untuk membuka EclipseVerse',
+        localizedReason: 'Verifikasi sidik jari untuk membuka EclipseVerse',
+        options: const AuthenticationOptions(biometricOnly: true),
       );
     } catch (_) {
-      // dibatalkan, gagal, atau tidak didukung -> false
       return false;
     }
   }

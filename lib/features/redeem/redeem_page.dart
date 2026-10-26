@@ -77,13 +77,6 @@ class _RedeemPageState extends State<RedeemPage> {
       return;
     }
 
-    if (_userPoints < card.cost) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Poin kamu tidak cukup!'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
     if (_ownedCardIds.contains(card.id)) return;
 
     bool? confirm = await showDialog<bool>(
@@ -119,6 +112,46 @@ class _RedeemPageState extends State<RedeemPage> {
         await _loadData(); 
       }
     }
+  }
+
+
+  void _showCardDetail(EclipseCard card) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: AppTheme.surfaceElevated,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  height: 360,
+                  width: 250,
+                  child: Image.asset(
+                    card.imageAssetPath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Image.network(
+                      card.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.style, size: 64)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(card.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              const SizedBox(height: 8),
+              const Text('Kartu ini tersimpan di koleksimu dan tetap bisa dilihat meskipun masa membership berakhir.', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary)),
+              const SizedBox(height: 12),
+              FilledButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Tutup')),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showUpgradeDialog() {
@@ -356,12 +389,12 @@ class _RedeemPageState extends State<RedeemPage> {
                         children: [
                           const Icon(Icons.monetization_on, color: AppTheme.coronaGold, size: 16),
                           const SizedBox(width: 4),
-                          Text('${card.cost} Poin', style: const TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold)),
+                          const Text('1 Kuota Membership', style: TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 2),
                       const Text(
-                        'Butuh 1 Kuota', 
+                        'Tidak memotong poin lagi', 
                         style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)
                       ),
                     ],
@@ -381,12 +414,12 @@ class _RedeemPageState extends State<RedeemPage> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    onPressed: isOwned 
-                        ? null 
+                    onPressed: isOwned
+                        ? () => _showCardDetail(card)
                         : (canRedeem ? () => _handleRedeem(card) : _showUpgradeDialog),
                     child: Text(
                       isOwned 
-                          ? 'Dimiliki' 
+                          ? 'Lihat Kartu' 
                           : (canRedeem ? 'Tukar' : 'Perlu Member'),
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                     ),

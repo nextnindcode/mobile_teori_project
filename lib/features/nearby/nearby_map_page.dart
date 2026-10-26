@@ -34,6 +34,8 @@ class _NearbyMapPageState extends State<NearbyMapPage> {
   double? _headingDegrees;
   Event? _selectedEvent;
   List<LatLng> _routePoints = [];
+  double? _routeDistanceKm;
+  int? _routeDurationMinutes;
   bool _loadingRoute = false;
   String? _routeError;
 
@@ -72,6 +74,8 @@ class _NearbyMapPageState extends State<NearbyMapPage> {
     setState(() {
       _selectedEvent = event;
       _routePoints = [];
+      _routeDistanceKm = null;
+      _routeDurationMinutes = null;
       _routeError = null;
     });
     await _loadRoute(event);
@@ -86,6 +90,8 @@ class _NearbyMapPageState extends State<NearbyMapPage> {
 
     setState(() {
       _loadingRoute = true;
+      _routeDistanceKm = null;
+      _routeDurationMinutes = null;
       _routeError = null;
     });
 
@@ -104,8 +110,11 @@ class _NearbyMapPageState extends State<NearbyMapPage> {
       final routes = body['routes'] as List? ?? [];
       if (routes.isEmpty) throw Exception('Rute berkendara tidak ditemukan.');
 
-      final geometry = routes.first['geometry'] as Map<String, dynamic>;
+      final route = Map<String, dynamic>.from(routes.first as Map);
+      final geometry = route['geometry'] as Map<String, dynamic>;
       final coordinates = geometry['coordinates'] as List;
+      final distanceKm = ((route['distance'] as num?)?.toDouble() ?? 0) / 1000;
+      final durationMinutes = (((route['duration'] as num?)?.toDouble() ?? 0) / 60).ceil();
       final points = coordinates.map((pair) {
         final values = pair as List;
         return LatLng((values[1] as num).toDouble(), (values[0] as num).toDouble());
@@ -114,6 +123,8 @@ class _NearbyMapPageState extends State<NearbyMapPage> {
       if (!mounted) return;
       setState(() {
         _routePoints = points;
+        _routeDistanceKm = distanceKm;
+        _routeDurationMinutes = durationMinutes;
         _loadingRoute = false;
       });
 
@@ -133,6 +144,8 @@ class _NearbyMapPageState extends State<NearbyMapPage> {
       if (!mounted) return;
       setState(() {
         _loadingRoute = false;
+        _routeDistanceKm = null;
+        _routeDurationMinutes = null;
         _routeError = 'Rute belum tersedia. Periksa koneksi internet lalu pilih event lagi.';
       });
     }
@@ -154,6 +167,14 @@ class _NearbyMapPageState extends State<NearbyMapPage> {
   Widget build(BuildContext context) {
     final target = _selectedEvent;
     final bearing = target == null ? null : _bearingTo(target);
+    final estimatedDeparture = target != null && _routeDurationMinutes != null
+        ? target.eventDate.toLocal().subtract(Duration(minutes: _routeDurationMinutes! + 30))
+        : null;
+    final departureLabel = target == null || target.isPast || estimatedDeparture == null
+        ? null
+        : estimatedDeparture.isAfter(DateTime.now())
+            ? 'Saran berangkat: ${estimatedDeparture.hour.toString().padLeft(2, '0')}:${estimatedDeparture.minute.toString().padLeft(2, '0')} (buffer 30 menit)'
+            : 'Sebaiknya berangkat sekarang agar punya buffer sebelum acara.';
     final relative = bearing == null || _headingDegrees == null
         ? null
         : (bearing - _headingDegrees! + 360) % 360;
@@ -287,7 +308,17 @@ class _NearbyMapPageState extends State<NearbyMapPage> {
                             else if (_routeError != null)
                               Text(_routeError!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.error, fontSize: 11))
                             else if (_routePoints.isNotEmpty)
-                              const Text('Rute berkendara ditampilkan', style: TextStyle(color: AppTheme.success, fontSize: 11)),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Rute ${_routeDistanceKm?.toStringAsFixed(1) ?? '-'} km • sekitar ${_routeDurationMinutes ?? '-'} menit',
+                                    style: const TextStyle(color: AppTheme.success, fontSize: 11),
+                                  ),
+                                  if (departureLabel != null)
+                                    Text(departureLabel, style: const TextStyle(color: AppTheme.coronaGold, fontSize: 11)),
+                                ],
+                              ),
                           ],
                         ),
                       ),

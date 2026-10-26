@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import '../../theme/app_theme.dart';
@@ -60,9 +59,11 @@ class _CompassWidgetState extends State<CompassWidget> {
         color: AppTheme.surfaceElevated,
         border: Border.all(color: AppTheme.coolCyan, width: 2),
       ),
-      child: Transform.rotate(
-        // Jarum berputar berlawanan arah dengan HP
-        angle: -(_heading! * (pi / 180)), 
+      child: AnimatedRotation(
+        // Jarum bergerak mengikuti sensor kompas saat HP diputar.
+        turns: -(_heading! / 360),
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
         child: Stack(
           alignment: Alignment.center,
           children: [

@@ -17,7 +17,7 @@ class _FandomPageState extends State<FandomPage> {
   final _search = TextEditingController();
   List<Member> _all = [];
   String _teamFilter = 'Semua';
-  static const _teams = ['Semua', 'Vocalist', 'Dancer', 'Rapper', 'Maknae'];
+  static const _teams = ['Semua', 'Vocal Team', 'Performance Team', 'Hip-Hop Team'];
 
   bool _loading = true;
   String? _error;
@@ -54,8 +54,7 @@ class _FandomPageState extends State<FandomPage> {
     final q = _search.text.trim().toLowerCase();
     return _all.where((m) {
       final matchFilter =
-          _teamFilter == 'Semua' ||
-          m.position.toLowerCase().contains(_teamFilter.toLowerCase());
+          _teamFilter == 'Semua' || m.team == _teamFilter;
 
       final matchSearch =
           q.isEmpty ||
@@ -162,7 +161,7 @@ class _FandomPageState extends State<FandomPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.76,
+          childAspectRatio: 0.68,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -190,60 +189,20 @@ class _FandomPageState extends State<FandomPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 58,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: color.withValues(alpha: 0.25),
-                        border: Border.all(color: color, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: color.withValues(alpha: 0.3),
-                            blurRadius: 10,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 132,
+                        child: Image.asset(
+                          m.imageAssetPath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: color.withValues(alpha: 0.25),
+                            alignment: Alignment.center,
+                            child: Text(m.initial, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                           ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: m.imageUrl != null && m.imageUrl!.isNotEmpty
-                            ? Image.network(
-                                m.imageUrl!,
-                                fit: BoxFit.cover,
-                                loadingBuilder:
-                                    (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return const Center(
-                                        child: SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                errorBuilder: (_, _, _) => Center(
-                                  child: Text(
-                                    m.initial,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : Center(
-                                child: Text(
-                                  m.initial,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -260,7 +219,7 @@ class _FandomPageState extends State<FandomPage> {
                     const SizedBox(height: 4),
                     Text(
                       // Nampilin posisi
-                      m.position,
+                      m.team,
                       maxLines: 2,
                       textAlign: TextAlign.center,
                       overflow: TextOverflow.ellipsis,

@@ -43,8 +43,10 @@ class RedeemService {
         .select('stage_name, profile_image_path');
 
     final Map<String, String> memberImages = {};
+    final Map<String, String> memberAssets = {};
     for (var m in memberRows) {
       final name = m['stage_name'].toString().toLowerCase();
+      memberAssets[name] = 'assets/members/${m['stage_name'].toString().toUpperCase()}.jpg';
       final path = m['profile_image_path']?.toString() ?? '';
       if (path.isNotEmpty) {
         memberImages[name] = _client.storage
@@ -58,9 +60,11 @@ class RedeemService {
       final cardName = row['card_name'].toString().toLowerCase();
 
       String imageUrl = '';
+      String imageAssetPath = 'assets/members/SOLEN.jpg';
       for (String memberName in memberImages.keys) {
         if (cardName.contains(memberName)) {
           imageUrl = memberImages[memberName]!;
+          imageAssetPath = memberAssets[memberName]!;
           break;
         }
       }
@@ -70,6 +74,7 @@ class RedeemService {
         name: '${row['card_name'] ?? 'Photocard'}',
         cost: (row['points_cost'] as num).toInt(),
         imageUrl: imageUrl,
+        imageAssetPath: imageAssetPath,
       );
     }).toList();
   }
