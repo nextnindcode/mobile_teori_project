@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'dart:ui'; 
+
+import 'dart:ui';
+
 import '../../theme/app_theme.dart';
-import '../../theme/cosmic_widgets.dart'; 
+import '../../theme/cosmic_widgets.dart';
 import '../../core/routes.dart'; // Pastikan ini di-import untuk navigasi ke membership
 import 'eclipse_card_model.dart';
 import 'redeem_service.dart';
-import '../membership/membership_service.dart'; 
+import '../membership/membership_service.dart';
 
 class RedeemPage extends StatefulWidget {
   const RedeemPage({super.key});
@@ -46,9 +48,9 @@ class _RedeemPageState extends State<RedeemPage> {
         RedeemService.getUserStats(),
         RedeemService.getCards(),
       ]);
-      
+
       if (!mounted) return;
-      
+
       final data = results[0] as Map<String, dynamic>;
       setState(() {
         _isMember = isMember && quota > 0;
@@ -83,10 +85,18 @@ class _RedeemPageState extends State<RedeemPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Konfirmasi Redeem'),
-        content: Text('Gunakan 1 kuota membership (Sisa: $_redeemQuota) untuk mendapatkan kartu ${card.name}?'),
+        content: Text(
+          'Gunakan 1 kuota membership (Sisa: $_redeemQuota) untuk mendapatkan kartu ${card.name}?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Tukar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Tukar'),
+          ),
         ],
       ),
     );
@@ -99,7 +109,10 @@ class _RedeemPageState extends State<RedeemPage> {
       await RedeemService.redeemCard(card.id, card.cost);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Berhasil mendapatkan ${card.name}!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text('Berhasil mendapatkan ${card.name}!'),
+            backgroundColor: Colors.green,
+          ),
         );
         await _loadData();
       }
@@ -107,13 +120,15 @@ class _RedeemPageState extends State<RedeemPage> {
       if (mounted) {
         // Tampilkan pesan error, lalu refresh data agar UI tidak stuck
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal redeem: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Gagal redeem: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
-        await _loadData(); 
+        await _loadData();
       }
     }
   }
-
 
   void _showCardDetail(EclipseCard card) {
     showDialog<void>(
@@ -133,20 +148,36 @@ class _RedeemPageState extends State<RedeemPage> {
                   child: Image.asset(
                     card.imageAssetPath,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Image.network(
+                    errorBuilder: (_, _, _) => Image.network(
                       card.imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.style, size: 64)),
+                      errorBuilder: (_, _, _) =>
+                          const Center(child: Icon(Icons.style, size: 64)),
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 14),
-              Text(card.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              Text(
+                card.name,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
               const SizedBox(height: 8),
-              const Text('Kartu ini tersimpan di koleksimu dan tetap bisa dilihat meskipun masa membership berakhir.', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary)),
+              const Text(
+                'Kartu ini tersimpan di koleksimu dan tetap bisa dilihat meskipun masa membership berakhir.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
               const SizedBox(height: 12),
-              FilledButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Tutup')),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Tutup'),
+              ),
             ],
           ),
         ),
@@ -159,7 +190,9 @@ class _RedeemPageState extends State<RedeemPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Kuota Habis'),
-        content: const Text('Kuota redeem kamu sudah habis. Silakan perpanjang membership dengan poin untuk menukar kartu baru.'),
+        content: const Text(
+          'Kuota redeem kamu sudah habis. Silakan perpanjang membership dengan poin untuk menukar kartu baru.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -168,7 +201,10 @@ class _RedeemPageState extends State<RedeemPage> {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.pushNamed(context, Routes.membership).then((_) => _loadData());
+              Navigator.pushNamed(
+                context,
+                Routes.membership,
+              ).then((_) => _loadData());
             },
             child: const Text('Beli Membership'),
           ),
@@ -180,7 +216,7 @@ class _RedeemPageState extends State<RedeemPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.deepSpace, 
+      backgroundColor: AppTheme.deepSpace,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: const Text('Redeem Card'),
@@ -196,15 +232,12 @@ class _RedeemPageState extends State<RedeemPage> {
 
     // Hanya tampilkan Error View kalau memang error koneksi/database
     if (_errorMessage != null) {
-      return CosmicErrorView(
-        message: _errorMessage!,
-        onRetry: _loadData,
-      );
+      return CosmicErrorView(message: _errorMessage!, onRetry: _loadData);
     }
 
     // Jika data kosong atau tidak ada kartu, tampilkan Empty View
     if (_cards.isEmpty && _ownedCardIds.isEmpty) {
-       return const CosmicEmptyView(
+      return const CosmicEmptyView(
         title: 'Belum Ada Kartu',
         subtitle: 'Saat ini belum ada kartu yang bisa ditukar.',
         icon: Icons.style,
@@ -230,7 +263,11 @@ class _RedeemPageState extends State<RedeemPage> {
                 const SizedBox(height: 8),
                 const Text(
                   'Kuota Redeem Habis',
-                  style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(
+                    color: AppTheme.error,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 const Text(
@@ -246,16 +283,19 @@ class _RedeemPageState extends State<RedeemPage> {
                       backgroundColor: AppTheme.eclipseViolet,
                     ),
                     onPressed: () {
-                      Navigator.pushNamed(context, Routes.membership).then((_) => _loadData());
+                      Navigator.pushNamed(
+                        context,
+                        Routes.membership,
+                      ).then((_) => _loadData());
                     },
                     child: const Text('Beli Membership Lagi'),
                   ),
-                )
+                ),
               ],
             ),
           ),
 
-        // Header Poin dan Kuota 
+        // Header Poin dan Kuota
         Container(
           width: double.infinity,
           margin: const EdgeInsets.all(20),
@@ -263,42 +303,70 @@ class _RedeemPageState extends State<RedeemPage> {
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: AppTheme.eclipseViolet.withValues(alpha: 0.3), blurRadius: 15)],
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.eclipseViolet.withValues(alpha: 0.3),
+                blurRadius: 15,
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               Column(
                 children: [
-                  const Text('Total Poin', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const Text(
+                    'Total Poin',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
                   const SizedBox(height: 4),
-                  Text('$_userPoints', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                  Text(
+                    '$_userPoints',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
               Container(width: 1, height: 40, color: Colors.white54),
               Column(
                 children: [
-                  const Text('Sisa Kuota', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const Text(
+                    'Sisa Kuota',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
                   const SizedBox(height: 4),
-                  Text('$_redeemQuota', style: TextStyle(
-                    color: _redeemQuota > 0 ? AppTheme.coronaGold : AppTheme.error, 
-                    fontSize: 32, 
-                    fontWeight: FontWeight.bold
-                  )),
+                  Text(
+                    '$_redeemQuota',
+                    style: TextStyle(
+                      color: _redeemQuota > 0
+                          ? AppTheme.coronaGold
+                          : AppTheme.error,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ],
           ),
         ),
-        
+
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 0, bottom: 100),
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 0,
+              bottom: 100,
+            ),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.6, 
+              childAspectRatio: 0.6,
             ),
             itemCount: _cards.length,
             itemBuilder: (context, index) {
@@ -323,105 +391,156 @@ class _RedeemPageState extends State<RedeemPage> {
         children: [
           Expanded(
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   ImageFiltered(
                     imageFilter: ImageFilter.blur(
-                      sigmaX: isOwned ? 0 : 4.0, 
+                      sigmaX: isOwned ? 0 : 4.0,
                       sigmaY: isOwned ? 0 : 4.0,
                     ),
                     child: Image.network(
                       card.imageUrl,
-                      fit: BoxFit.cover, 
+                      fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return Container(
                           color: AppTheme.surfaceSecondary,
-                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.coolCyan)),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppTheme.coolCyan,
+                            ),
+                          ),
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           color: AppTheme.surfaceSecondary,
-                          child: const Center(child: Icon(Icons.broken_image, color: AppTheme.textSecondary, size: 40)),
+                          child: const Center(
+                            child: Icon(
+                              Icons.broken_image,
+                              color: AppTheme.textSecondary,
+                              size: 40,
+                            ),
+                          ),
                         );
                       },
                     ),
                   ),
-                  
-                  if (!isOwned) 
+
+                  if (!isOwned)
                     Container(
                       color: Colors.black.withValues(alpha: 0.5),
-                      child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 50)),
+                      child: const Center(
+                        child: Icon(Icons.lock, color: Colors.white, size: 50),
+                      ),
                     ),
-                  
+
                   if (isOwned)
                     Positioned(
-                      top: 8, right: 8,
-                      child: const CosmicBadge(text: 'OWNED', color: Colors.green),
+                      top: 8,
+                      right: 8,
+                      child: const CosmicBadge(
+                        text: 'OWNED',
+                        color: Colors.green,
+                      ),
                     ),
                 ],
               ),
             ),
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Column(
               children: [
                 Text(
                   card.name,
-                  style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
                 if (isOwned)
-                  const Text('Sudah Dimiliki', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))
+                  const Text(
+                    'Sudah Dimiliki',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
                 else
                   Column(
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.monetization_on, color: AppTheme.coronaGold, size: 16),
+                          const Icon(
+                            Icons.monetization_on,
+                            color: AppTheme.coronaGold,
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
-                          const Text('1 Kuota Membership', style: TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold)),
+                          const Text(
+                            '1 Kuota Membership',
+                            style: TextStyle(
+                              color: AppTheme.coronaGold,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 2),
                       const Text(
-                        'Tidak memotong poin lagi', 
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)
+                        'Tidak memotong poin lagi',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
                 const SizedBox(height: 12),
-                
+
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isOwned 
-                          ? AppTheme.surfaceSecondary 
-                          : (canRedeem ? AppTheme.eclipseViolet : Colors.grey.shade600),
+                      backgroundColor: isOwned
+                          ? AppTheme.surfaceSecondary
+                          : (canRedeem
+                                ? AppTheme.eclipseViolet
+                                : Colors.grey.shade600),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      minimumSize: Size.zero, 
+                      minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     onPressed: isOwned
                         ? () => _showCardDetail(card)
-                        : (canRedeem ? () => _handleRedeem(card) : _showUpgradeDialog),
+                        : (canRedeem
+                              ? () => _handleRedeem(card)
+                              : _showUpgradeDialog),
                     child: Text(
-                      isOwned 
-                          ? 'Lihat Kartu' 
+                      isOwned
+                          ? 'Lihat Kartu'
                           : (canRedeem ? 'Tukar' : 'Perlu Member'),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, curly_braces_in_flow_control_structures
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -58,9 +60,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   String _formatCurrency(double amount, String currency) {
     String symbol = '';
     int decimals = 0;
-    if (currency == 'IDR')
+    if (currency == 'IDR') {
       symbol = 'Rp ';
-    else if (currency == 'USD') {
+    } else if (currency == 'USD') {
       symbol = '\$ ';
       decimals = 2;
     } else if (currency == 'KRW')
@@ -77,29 +79,28 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     return '$symbol$formatted';
   }
 
-    Future<Map<String, dynamic>?> _prosesBeliLangsung (
-      Product product,
-      int qty,
-    ) async {
+  Future<Map<String, dynamic>?> _prosesBeliLangsung(
+    Product product,
+    int qty,
+  ) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return {'error': 'User belum login'};
 
       // GUNAKAN RPC YANG SAMA DENGAN CART
-      final response = await Supabase.instance.client.rpc(
-        'checkout_merchandise',
-        params: {
-          'p_items': [
-            {
-              'product_id': product.id,
-              'quantity': qty,
-            }
-          ],
-        },
-      ).timeout(const Duration(seconds: 15));
+      final response = await Supabase.instance.client
+          .rpc(
+            'checkout_merchandise',
+            params: {
+              'p_items': [
+                {'product_id': product.id, 'quantity': qty},
+              ],
+            },
+          )
+          .timeout(const Duration(seconds: 15));
 
       final result = Map<String, dynamic>.from(response as Map);
-      
+
       // Kembalikan order_id dari RPC agar notifikasi bisa muncul
       return {'order_id': result['order_id']};
     } catch (e) {

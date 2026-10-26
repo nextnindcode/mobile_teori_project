@@ -18,7 +18,7 @@ class BiometricService {
     try {
       return await _auth.authenticate(
         localizedReason: 'Verifikasi sidik jari untuk membuka EclipseVerse',
-        options: const AuthenticationOptions(biometricOnly: true),
+        biometricOnly: true,
       );
     } catch (_) {
       return false;

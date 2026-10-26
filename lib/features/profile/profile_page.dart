@@ -393,7 +393,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         subtitle: Text(
                           _hasRedeemedCards
                               ? 'Lihat kartu yang sudah kamu kumpulkan'
-                              : 'Jelajahi koleksi photocard';
+                              : 'Jelajahi koleksi photocard',
                           style: TextStyle(
                             color: _hasRedeemedCards
                                 ? AppTheme.textSecondary

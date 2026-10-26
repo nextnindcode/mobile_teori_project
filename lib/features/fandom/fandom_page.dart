@@ -17,7 +17,12 @@ class _FandomPageState extends State<FandomPage> {
   final _search = TextEditingController();
   List<Member> _all = [];
   String _teamFilter = 'Semua';
-  static const _teams = ['Semua', 'Vocal Team', 'Performance Team', 'Hip-Hop Team'];
+  static const _teams = [
+    'Semua',
+    'Vocal Team',
+    'Performance Team',
+    'Hip-Hop Team',
+  ];
 
   bool _loading = true;
   String? _error;
@@ -53,8 +58,7 @@ class _FandomPageState extends State<FandomPage> {
   List<Member> get _filtered {
     final q = _search.text.trim().toLowerCase();
     return _all.where((m) {
-      final matchFilter =
-          _teamFilter == 'Semua' || m.team == _teamFilter;
+      final matchFilter = _teamFilter == 'Semua' || m.team == _teamFilter;
 
       final matchSearch =
           q.isEmpty ||
@@ -197,10 +201,17 @@ class _FandomPageState extends State<FandomPage> {
                         child: Image.asset(
                           m.imageAssetPath,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             color: color.withValues(alpha: 0.25),
                             alignment: Alignment.center,
-                            child: Text(m.initial, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              m.initial,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ),
