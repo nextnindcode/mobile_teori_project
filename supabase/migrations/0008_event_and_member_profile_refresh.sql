@@ -10,6 +10,7 @@ alter table public.members
   add column if not exists hobby text;
 
 update public.members set
+  profile_image_path = 'members/' || upper(stage_name) || '.jpg',
   team = case
     when stage_name in ('Solen','Lunar','Astra','Mira') then 'Vocal Team'
     when stage_name in ('Zephyr','Atlas','Lyra','Rigel') then 'Hip-Hop Team'
