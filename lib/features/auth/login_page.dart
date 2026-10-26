@@ -22,10 +22,17 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _biometricSupported = false;
 
   @override
   void initState() {
     super.initState();
+    _checkBiometricSupport();
+  }
+
+  Future<void> _checkBiometricSupport() async {
+    final supported = await BiometricService.isSupported();
+    if (mounted) setState(() => _biometricSupported = supported);
   }
 
   Future<void> _submit() async {
@@ -44,8 +51,7 @@ class _LoginPageState extends State<LoginPage> {
       await SessionTimeoutService.clearBackgroundTime();
       if (!mounted) return;
 
-      // OTOMATIS SIMPAN KREDENSIAL BIOMETRIC SETELAH LOGIN SUKSES
-      // (Tanpa nanya pop-up, biar langsung siap dipake)
+      // Simpan kredensial terenkripsi hanya jika perangkat mendukung sidik jari.
       final isSupported = await BiometricService.isSupported();
       if (isSupported) {
         await SecureStore.saveCredentials(
@@ -79,7 +85,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!authSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Verifikasi biometrik gagal atau dibatalkan.'),
+          content: Text('Verifikasi sidik jari gagal atau dibatalkan.'),
         ),
       );
       return;
@@ -93,7 +99,7 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Belum ada data sidik jari. Silakan isi email & password dulu.',
+            'Login sidik jari belum disiapkan. Silakan login dengan email dan password dulu.',
           ),
         ),
       );
@@ -240,6 +246,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
 
+                  if (_biometricSupported) ...[
                   // ===== 6. PEMBATAS "ATAU" =====
                   const SizedBox(height: 24),
                   Row(
@@ -265,7 +272,7 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: _isLoading ? null : _loginBiometric,
                       icon: const Icon(Icons.fingerprint, size: 28),
                       label: const Text(
-                        'Gunakan biometrik (wajah/sidik jari)',
+                        'Login dengan sidik jari',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -283,6 +290,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
+                  ],
 
                   const SizedBox(height: 32),
 
