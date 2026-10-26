@@ -22,17 +22,10 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  bool _biometricSupported = false;
 
   @override
   void initState() {
     super.initState();
-    _checkBiometricSupport();
-  }
-
-  Future<void> _checkBiometricSupport() async {
-    final supported = await BiometricService.isSupported();
-    if (mounted) setState(() => _biometricSupported = supported);
   }
 
   Future<void> _submit() async {
@@ -246,7 +239,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
 
-                  if (_biometricSupported) ...[
                   // ===== 6. PEMBATAS "ATAU" =====
                   const SizedBox(height: 24),
                   Row(
@@ -290,8 +282,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-                  ],
-
                   const SizedBox(height: 32),
 
                   // ===== 8. LINK DAFTAR =====
