@@ -80,7 +80,8 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
           ),
         ),
       );
-\n  Widget _content(Member m) {
+
+  Widget _content(Member m) {
     final t = Theme.of(context).textTheme;
     return ListView(
       padding: const EdgeInsets.all(AppTheme.spacingLarge),
