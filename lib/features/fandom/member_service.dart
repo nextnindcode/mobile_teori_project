@@ -11,17 +11,17 @@ class MemberService {
       final rows = await _client
           .from('members')
           .select(
-            'id,stage_name,position,description,fun_fact,profile_image_path',
+            'id,stage_name,position,team,description,fun_fact,profile_image_path,favorite_food,spirit_animal,birth_date,favorite_color,hobby',
           )
           .order('sort_order')
           .timeout(const Duration(seconds: 12));
 
       final data = rows.map((item) {
         final row = Map<String, dynamic>.from(item);
-        final path = row['profile_image_path']?.toString() ?? '';
-        row['image_url'] = path.isEmpty
+        final storagePath = row['profile_image_path']?.toString() ?? '';
+        row['image_url'] = storagePath.isEmpty
             ? null
-            : _client.storage.from('eclipseverse-media').getPublicUrl(path);
+            : _client.storage.from('eclipseverse-media').getPublicUrl(storagePath);
         return row;
       }).toList();
 
@@ -39,16 +39,16 @@ class MemberService {
       final row = await _client
           .from('members')
           .select(
-            'id,stage_name,position,team,description,fun_fact,profile_image_path',
+            'id,stage_name,position,team,description,fun_fact,profile_image_path,favorite_food,spirit_animal,birth_date,favorite_color,hobby',
           )
           .eq('id', id)
           .single()
           .timeout(const Duration(seconds: 12));
       final data = Map<String, dynamic>.from(row);
-      final path = data['profile_image_path']?.toString() ?? '';
-      data['image_url'] = path.isEmpty
+      final storagePath = data['profile_image_path']?.toString() ?? '';
+      data['image_url'] = storagePath.isEmpty
           ? null
-          : _client.storage.from('eclipseverse-media').getPublicUrl(path);
+          : _client.storage.from('eclipseverse-media').getPublicUrl(storagePath);
       return Member.fromJson(data);
     } catch (_) {
       final cached = await LocalDb.getMembers();
