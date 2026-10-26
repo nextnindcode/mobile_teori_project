@@ -19,6 +19,15 @@ class _AiPageState extends State<AiPage> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
+    final previousMessages = _messages.where((msg) => msg['isError'] != true).toList();
+    final history = previousMessages
+        .skip(previousMessages.length > 10 ? previousMessages.length - 10 : 0)
+        .map((msg) => <String, String>{
+              'role': msg['isUser'] == true ? 'user' : 'assistant',
+              'text': msg['text']?.toString() ?? '',
+            })
+        .toList();
+
     setState(() {
       _messages.add({'text': text, 'isUser': true});
       _isLoading = true;
@@ -27,7 +36,7 @@ class _AiPageState extends State<AiPage> {
     _scrollToBottom();
 
     try {
-      final reply = await AiService.kirimPesan(text);
+      final reply = await AiService.kirimPesan(text, history: history);
       setState(() {
         _messages.add({'text': reply, 'isUser': false});
       });
