@@ -20,30 +20,16 @@ class TimeService {
   static const kst = ZoneOption('Korea Selatan (Seoul)', 'Asia/Seoul');
   static const china = ZoneOption('China (Shanghai)', 'Asia/Shanghai');
 
-  /// Eight target countries, with Indonesia represented by WIB, WITA, and WIT.
   static const requiredZones = [
-    wib,
-    wita,
-    wit,
-    malaysia,
-    singapore,
-    thailand,
-    japan,
-    kst,
-    china,
-    london,
+    wib, wita, wit, malaysia, singapore, thailand, japan, kst, china, london,
   ];
-
-  /// Zona tujuan yang selalu ditampilkan.
   static const zones = requiredZones;
-
-  /// Zona asal untuk mode manual.
-  static const originZones = [wib, wita, wit, malaysia, singapore, thailand, japan, kst, china, london];
+  static const originZones = requiredZones;
 
   static bool _ready = false;
   static void _ensure() {
     if (_ready) return;
-    tzdata.initializeTimeZones(); // diinisialisasi lazy, sekali saja
+    tzdata.initializeTimeZones();
     _ready = true;
   }
 
@@ -52,15 +38,35 @@ class TimeService {
     return tz.TZDateTime.from(utc, tz.getLocation(zone));
   }
 
-  /// Waktu dinding [y-m-d h:mi] di zona asal -> UTC.
-  static DateTime toUtc(
-      int y, int m, int d, int h, int mi, String originZone) {
+  static DateTime toUtc(int y, int m, int d, int h, int mi, String originZone) {
     _ensure();
     return tz.TZDateTime(tz.getLocation(originZone), y, m, d, h, mi).toUtc();
   }
 
-  /// Label zona -> waktu di zona itu
   static Map<String, tz.TZDateTime> convertAll(DateTime utc) => {
-        for (final z in requiredZones) z.label: at(utc, z.tzName),
-      };
+    for (final z in requiredZones) z.label: at(utc, z.tzName),
+  };
+
+  static String flag(String zone) {
+    const flags = {
+      'Asia/Jakarta': '🇮🇩',
+      'Asia/Makassar': '🇮🇩',
+      'Asia/Jayapura': '🇮🇩',
+      'Asia/Kuala_Lumpur': '🇲🇾',
+      'Asia/Singapore': '🇸🇬',
+      'Asia/Bangkok': '🇹🇭',
+      'Asia/Tokyo': '🇯🇵',
+      'Asia/Seoul': '🇰🇷',
+      'Asia/Shanghai': '🇨🇳',
+      'Europe/London': '🇬🇧',
+    };
+    return flags[zone] ?? '🌐';
+  }
+
+  static String zoneCode(String label) {
+    for (final zone in requiredZones) {
+      if (zone.label == label) return zone.tzName;
+    }
+    return '';
+  }
 }
