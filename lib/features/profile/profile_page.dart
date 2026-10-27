@@ -222,7 +222,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (user == null) { if (mounted) showSnack(context, 'Silakan login kembali.'); return; }
     try {
       await Supabase.instance.client.from('profiles').update({'display_name': nextName, 'updated_at': DateTime.now().toUtc().toIso8601String()}).eq('id', user.id).timeout(const Duration(seconds: 8));
-      await Supabase.instance.client.auth.updateUser(UserAttributes(data: {'name': nextName}));
       await LocalDb.saveProfile(userId: user.id, name: nextName, email: _email);
       if (!mounted) return;
       setState(() => _name = nextName);
