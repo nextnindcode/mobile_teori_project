@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'eclipse_card_model.dart';
 
 class RedeemService {
@@ -74,22 +75,30 @@ class RedeemService {
     }).toList();
   }
 
-  // 3. Proses Tukar Kartu (Via Supabase RPC)
-  static Future<void> redeemCard(int cardId, int cost) async {
-    // Tangkap balasan dari database (bisa success: true atau false)
+  // 3. Proses tukar kartu melalui Supabase RPC
+  static Future<bool> redeemCard(int cardId) async {
     final response = await _client
         .rpc('redeem_photocard', params: {'p_card_id': cardId})
         .timeout(const Duration(seconds: 12));
 
     debugPrint('Respon Database: $response');
 
-    // Jika database bilang "success: false" (poin kurang/kuota habis), lempar error ke UI
-    if (response is Map && response['success'] == false) {
-      throw Exception(response['message']);
+    if (response is Map) {
+      final success = response['success'] == true;
+
+      if (!success) {
+        throw Exception(
+          response['message']?.toString() ?? 'Gagal menukar photocard.',
+        );
+      }
+
+      return true;
     }
+
+    throw Exception('Respons database tidak valid.');
   }
 
-  // 4. Verifikasi blockchain ledger 
+  // 4. Verifikasi blockchain ledger
   static Future<Map<String, dynamic>> verifyBlockchain() async {
     final result = await _client
         .rpc('verify_blockchain_ledger')

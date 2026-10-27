@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../notification/notification_service.dart';
@@ -66,9 +67,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
       await NotificationService.cancelEventReminder(e.id);
       if (!mounted) return;
       setState(() => _reminderOn = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pengingat dibatalkan')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Pengingat dibatalkan')));
       return;
     }
     try {
@@ -104,14 +104,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.deepSpace,
-      appBar: AppBar(
-        title: Text(_event?.title ?? 'Detail Event'),
-      ),
+      appBar: AppBar(title: Text(_event?.title ?? 'Detail Event')),
       body: _loading
           ? const CosmicLoading(message: 'Memuat informasi detail event...')
           : _error != null
-              ? CosmicErrorView(message: _error!, onRetry: _load)
-              : _buildEventBody(_event!),
+          ? CosmicErrorView(message: _error!, onRetry: _load)
+          : _buildEventBody(_event!),
     );
   }
 
@@ -147,9 +145,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: (e.isPast ? AppTheme.textMuted : AppTheme.coronaGold).withValues(alpha: 0.15),
+                      color:
+                          (e.isPast ? AppTheme.textMuted : AppTheme.coronaGold)
+                              .withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -157,7 +160,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: e.isPast ? AppTheme.textSecondary : AppTheme.coronaGold,
+                        color: e.isPast
+                            ? AppTheme.textSecondary
+                            : AppTheme.coronaGold,
                       ),
                     ),
                   ),
@@ -176,7 +181,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
               const SizedBox(height: 14),
               Row(
                 children: [
-                  const Icon(Icons.schedule, size: 16, color: AppTheme.coronaGold),
+                  const Icon(
+                    Icons.schedule,
+                    size: 16,
+                    color: AppTheme.coronaGold,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     formatEventDate(e.eventDate),
@@ -200,7 +209,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
           decoration: BoxDecoration(
             color: AppTheme.surfaceElevated,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.eclipseViolet.withValues(alpha: 0.4)),
+            border: Border.all(
+              color: AppTheme.eclipseViolet.withValues(alpha: 0.4),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +224,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       color: AppTheme.eclipseViolet.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.public, color: AppTheme.coolCyan, size: 20),
+                    child: const Icon(
+                      Icons.public,
+                      color: AppTheme.coolCyan,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -257,7 +272,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         labelStyle: TextStyle(
                           color: isSel ? Colors.white : AppTheme.textSecondary,
                           fontSize: 11,
-                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isSel
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                         onSelected: (_) {
                           setState(() => _selectedTzName = z.tzName);
@@ -289,7 +306,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      DateFormat('EEEE, dd MMMM yyyy · HH:mm').format(convertedTime),
+                      DateFormat('EEEE, dd MMMM yyyy · HH:mm')
+                          .format(convertedTime),
                       style: const TextStyle(
                         color: AppTheme.coronaGold,
                         fontSize: 16,
@@ -298,7 +316,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Zona IANA: ${_selectedTzName} (Offset: ${convertedTime.timeZoneOffset.isNegative ? '-' : '+'}${convertedTime.timeZoneOffset.inHours} Jam)',
+                      'Zona IANA: $_selectedTzName (Offset: ${convertedTime.timeZoneOffset.isNegative ? '-' : '+'}${convertedTime.timeZoneOffset.inHours} Jam)',
                       style: const TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: 11,
@@ -331,7 +349,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       color: AppTheme.nebulaIndigo.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.place_outlined, color: AppTheme.coolCyan, size: 20),
+                    child: const Icon(
+                      Icons.place_outlined,
+                      color: AppTheme.coolCyan,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -340,7 +362,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       children: [
                         const Text(
                           'Lokasi & Venue',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -365,7 +390,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       color: AppTheme.eclipseViolet.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.my_location_rounded, color: AppTheme.eclipseViolet, size: 20),
+                    child: const Icon(
+                      Icons.my_location_rounded,
+                      color: AppTheme.eclipseViolet,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -374,7 +403,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       children: [
                         const Text(
                           'Koordinat GPS',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -417,7 +449,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                e.description.isEmpty ? 'Tidak ada keterangan tambahan.' : e.description,
+                e.description.isEmpty
+                    ? 'Tidak ada keterangan tambahan.'
+                    : e.description,
                 style: const TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 13,
@@ -435,7 +469,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: e.isPast
                 ? AppTheme.surfaceSecondary
-                : (_reminderOn ? AppTheme.surfaceSecondary : AppTheme.eclipseViolet),
+                : (_reminderOn
+                      ? AppTheme.surfaceSecondary
+                      : AppTheme.eclipseViolet),
             foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
@@ -444,13 +480,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
           onPressed: e.isPast ? null : () => _toggleReminder(e),
           icon: Icon(
-            _reminderOn ? Icons.notifications_off_outlined : Icons.notification_add_outlined,
+            _reminderOn
+                ? Icons.notifications_off_outlined
+                : Icons.notification_add_outlined,
             size: 20,
           ),
           label: Text(
             e.isPast
                 ? 'Event Sudah Berakhir'
-                : (_reminderOn ? 'Batalkan Pengingat Notifikasi' : 'Ingatkan Saya (Notifikasi)'),
+                : (_reminderOn
+                      ? 'Batalkan Pengingat Notifikasi'
+                      : 'Ingatkan Saya (Notifikasi)'),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
