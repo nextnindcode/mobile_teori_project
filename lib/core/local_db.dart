@@ -209,6 +209,19 @@ class LocalDb {
 
   static Future<Map<String, dynamic>?> getUserProfile(String userId) => getProfile(userId);
 
+  /// Clears data that must never carry over to another signed-in account.
+  /// Device-level settings (including biometric preferences) are intentionally preserved.
+  static Future<void> clearAccountData() async {
+    final db = await database;
+    await db.delete('cart_local');
+    await db.delete('user_profile');
+    await db.delete(
+      'preferences',
+      where: 'key IN (?, ?)',
+      whereArgs: ['best_score', 'active_user_id'],
+    );
+  }
+
   static Future<void> clearAll() async {
     final db = await database;
     await db.delete('cart_local');
