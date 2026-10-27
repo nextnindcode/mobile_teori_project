@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
-import '../../theme/cosmic_widgets.dart'; 
+import '../../theme/cosmic_widgets.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -55,8 +57,10 @@ class _NotificationPageState extends State<NotificationPage> {
   // Fungsi untuk merapikan format tanggal (misal: "25 Okt 2026, 15:30")
   String _formatDate(String? dateStr) {
     if (dateStr == null) return '';
-    final date = DateTime.tryParse(dateStr)?.toLocal();
-    if (date == null) return '';
+    final parsed = DateTime.tryParse(dateStr);
+    if (parsed == null) return '';
+    tzdata.initializeTimeZones();
+    final date = tz.TZDateTime.from(parsed.toUtc(), tz.getLocation('Asia/Jakarta'));
     
     final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
     return '${date.day} ${months[date.month - 1]} ${date.year}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
