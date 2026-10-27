@@ -87,16 +87,6 @@ class _RedeemPageState extends State<RedeemPage> {
       return;
     }
 
-    if (_userPoints < card.cost) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Poin tidak mencukupi untuk redeem kartu ini!'),
-          backgroundColor: AppTheme.error,
-        ),
-      );
-      return;
-    }
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -107,7 +97,7 @@ class _RedeemPageState extends State<RedeemPage> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Gunakan ${card.cost} poin dan 1 kuota untuk membuka kartu "${card.name}"?',
+          'Gunakan 1 kuota membership untuk membuka kartu "${card.name}"? Poin tidak dipotong.',
           style: const TextStyle(color: AppTheme.textSecondary),
         ),
         actions: [
