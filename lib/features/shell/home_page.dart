@@ -317,11 +317,22 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(width: 6),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadAllData,
-        color: AppTheme.eclipseViolet,
-        backgroundColor: AppTheme.surfaceElevated,
-        child: ListView(
+      body: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) => Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 14 * (1 - value)),
+            child: child,
+          ),
+        ),
+        child: RefreshIndicator(
+          onRefresh: _loadAllData,
+          color: AppTheme.eclipseViolet,
+          backgroundColor: AppTheme.surfaceElevated,
+          child: ListView(
           padding: const EdgeInsets.only(bottom: 36),
           children: [
             _buildHeroHeader(),
@@ -357,6 +368,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 28),
             _buildFeaturedProductsSection(),
           ],
+          ),
         ),
       ),
     );
