@@ -48,7 +48,78 @@ class _NearbyPageState extends State<NearbyPage> {
   void initState() {
     super.initState();
     _initCompass();
-    _loadNearbyData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prepareLocationAndLoad());
+  }
+
+  Future<void> _prepareLocationAndLoad() async {
+    var shouldTryLocation = true;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final permission = await Geolocator.checkPermission();
+      if (!serviceEnabled ||
+          permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        final proceed = await showModalBottomSheet<bool>(
+          context: context,
+          backgroundColor: AppTheme.surfaceElevated,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          builder: (ctx) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.location_on_outlined, size: 36, color: AppTheme.coolCyan),
+                  const SizedBox(height: 12),
+                  Text('Aktifkan lokasi?', style: Theme.of(ctx).textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  const Text('EclipseVerse menggunakan lokasi perangkat untuk mengurutkan event terdekat dan membantu navigasi. Kamu tetap bisa melihat event tanpa mengaktifkan lokasi.'),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Lanjutkan'),
+                    ),
+                  ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Nanti saja'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        if (proceed != true) {
+          shouldTryLocation = false;
+        } else {
+          if (!serviceEnabled) {
+            await Geolocator.openLocationSettings();
+          }
+          if (permission == LocationPermission.denied) {
+            final requested = await Geolocator.requestPermission();
+            shouldTryLocation = requested == LocationPermission.whileInUse ||
+                requested == LocationPermission.always;
+          } else if (permission == LocationPermission.deniedForever) {
+            await Geolocator.openAppSettings();
+            final refreshed = await Geolocator.checkPermission();
+            shouldTryLocation = refreshed == LocationPermission.whileInUse ||
+                refreshed == LocationPermission.always;
+          }
+        }
+      }
+    } catch (error) {
+      debugPrint('Location permission prompt failed: $error');
+    }
+    if (mounted) await _loadNearbyData(tryLocation: shouldTryLocation);
   }
 
   void _initCompass() {
@@ -73,7 +144,7 @@ class _NearbyPageState extends State<NearbyPage> {
     super.dispose();
   }
 
-  Future<void> _loadNearbyData() async {
+  Future<void> _loadNearbyData({bool tryLocation = true}) async {
     setState(() {
       _loading = true;
       _error = null;
@@ -81,10 +152,14 @@ class _NearbyPageState extends State<NearbyPage> {
 
     try {
       // 1. Fetch user location (graceful fallback)
-      try {
-        _userPosition = await LocationService.getCurrentLocation();
-      } catch (locErr) {
-        debugPrint('Location service note: $locErr');
+      if (tryLocation) {
+        try {
+          _userPosition = await LocationService.getCurrentLocation();
+        } catch (locErr) {
+          debugPrint('Location service note: $locErr');
+        }
+      } else {
+        _userPosition = null;
       }
 
       // 2. Fetch events and filter upcoming/ongoing only
