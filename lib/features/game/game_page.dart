@@ -113,7 +113,7 @@ class _GamePageState extends State<GamePage> {
       _isCorrect = isCorrect;
     });
 
-    await Future.delayed(const Duration(milliseconds: 1000));
+    await Future.delayed(const Duration(milliseconds: 2200));
     if (!mounted) return;
 
     await controller.answerQuestion(option);
@@ -340,6 +340,26 @@ class _GamePageState extends State<GamePage> {
               ],
             ),
           ),
+          if (_isAnswered && question.explanation.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.coolCyan.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.coolCyan.withValues(alpha: 0.35)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Penjelasan', style: TextStyle(color: AppTheme.coolCyan, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(question.explanation, style: const TextStyle(color: AppTheme.textPrimary, height: 1.35)),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           Expanded(
             child: Row(
