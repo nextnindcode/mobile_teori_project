@@ -189,7 +189,7 @@ class _OrdersPageState extends State<OrdersPage> {
                               : fullId;
 
                           return Card(
-                            color: Colors.white,
+                            color: AppTheme.surfaceElevated,
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
@@ -227,7 +227,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                                   .textTheme
                                                   .bodySmall
                                                   ?.copyWith(
-                                                    color: Colors.grey,
+                                                    color: AppTheme.textSecondary,
                                                   ),
                                             ),
                                           ],
@@ -250,7 +250,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                           style: const TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w800,
-                                            color: AppTheme.surfaceSecondary,
+                                            color: AppTheme.textPrimary,
                                           ),
                                         ),
                                       ),
@@ -268,12 +268,10 @@ class _OrdersPageState extends State<OrdersPage> {
                                           prod['cover_image_path'];
 
                                       // Gambar dari Supabase Storage
-                                      final imageUrl =
-                                          (imagePath != null &&
-                                              imagePath.isNotEmpty)
-                                          ? Supabase.instance.client.storage
-                                                .from('eclipseverse-media')
-                                                .getPublicUrl(imagePath)
+                                      final imageUrl = (imagePath != null && imagePath.toString().isNotEmpty)
+                                          ? (imagePath.toString().startsWith('http')
+                                              ? imagePath.toString()
+                                              : Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(imagePath.toString()))
                                           : null;
 
                                       return Padding(
