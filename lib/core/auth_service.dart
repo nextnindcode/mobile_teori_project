@@ -30,6 +30,11 @@ class AuthService {
 
   /// Cache only presentation data locally. Supabase remains the source of truth.
   static Future<void> cacheUserLocally(User user) async {
+    final previousUserId = await LocalDb.getPref('active_user_id');
+    if (previousUserId != null && previousUserId.isNotEmpty && previousUserId != user.id) {
+      await LocalDb.clearAccountData();
+    }
+
     Map<String, dynamic> profile = <String, dynamic>{};
 
     try {
@@ -69,12 +74,16 @@ class AuthService {
       'user_role',
       profile['role'] == 'admin' ? 'admin' : 'user',
     );
+    await LocalDb.setPref('active_user_id', user.id);
   }
 
   static Future<void> logout() async {
     try {
       await _client.auth.signOut();
     } finally {
+      // Clear account-owned local data without touching device-level biometric settings.
+      await LocalDb.clearAccountData();
+      await LocalDb.setPref('active_user_id', '');
       // Remove any legacy API token left by an earlier app version.
       await SecureStore.deleteToken();
     }
