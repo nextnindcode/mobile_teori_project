@@ -29,15 +29,5 @@ VALUES
   ('Siapa yang bermain gitar sejak usia 7 tahun?', '{"A":"Altair","B":"Cassio"}', 'A', 'Altair bermain gitar sejak usia 7 tahun.', 'normal', 15, true),
   ('Siapa anggota termuda yang hobi merakit puzzle 1000 keping?', '{"A":"Mira","B":"Lunar"}', 'A', 'Mira adalah maknae yang hobi merakit puzzle 1000 keping.', 'normal', 15, true);
 
--- Keep the server-side contract aligned with the Flutter game.
-ALTER TABLE public.game_scores
-  DROP CONSTRAINT IF EXISTS game_scores_correct_count_check;
-ALTER TABLE public.game_scores
-  ADD CONSTRAINT game_scores_correct_count_check
-  CHECK (correct_count BETWEEN 0 AND 10);
-
-ALTER TABLE public.game_scores
-  DROP CONSTRAINT IF EXISTS game_scores_question_count_check;
-ALTER TABLE public.game_scores
-  ADD CONSTRAINT game_scores_question_count_check
-  CHECK (question_count = 10);
+-- Do not rewrite game_scores constraints here: existing historical scores must remain valid.
+-- The submit RPC itself enforces exactly 10 answers per new session.
