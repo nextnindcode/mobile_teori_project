@@ -16,7 +16,7 @@ class GameController extends ChangeNotifier {
   int _bestScore = 0;
   bool _isSubmitting = false;
 
-  // Mencegah /10 -> /20 dan poin hilang 
+  // Menjaga satu sesi tetap berisi 10 soal 
   int _session = 0;
   bool _isTransitioning = false;
 
@@ -35,8 +35,8 @@ class GameController extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   GameQuestion get currentQuestion => _questions[_currentRound];
 
-  // Jawaban benar soal aktif ('A'/'B')
-  // Null = tidak tersedia 
+  // Kunci jawaban tidak dikirim ke client; validasi dilakukan oleh Supabase.
+  // Null berarti UI tidak boleh menentukan benar/salah sebelum hasil server. 
   String? get currentCorrectAnswer {
     if (_questions.isEmpty || _currentRound >= _questions.length) return null;
     return _questions[_currentRound].correctAnswer;
@@ -69,7 +69,7 @@ class GameController extends ChangeNotifier {
           id: (row['id'] as num).toInt(),
           funFact: '${row['question_text']}',
           options: labels,
-          correctAnswer: row['correct_option']?.toString(),
+          correctAnswer: null, // Kunci jawaban tetap rahasia di server.
           explanation: row['explanation']?.toString() ?? '',
         );
       }).toList();
