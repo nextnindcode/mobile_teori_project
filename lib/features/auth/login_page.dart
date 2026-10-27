@@ -113,6 +113,14 @@ class _LoginPageState extends State<LoginPage> {
       await SessionTimeoutService.clearBackgroundTime();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
+    } on AuthException catch (e) {
+      await SecureStore.deleteCredentials();
+      await LocalDb.setPref('biometric_enabled', '0');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Kredensial biometrik sudah tidak valid. Silakan login dengan email dan password terbaru. (${e.message})')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
