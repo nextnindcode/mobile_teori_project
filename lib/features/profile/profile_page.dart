@@ -238,35 +238,80 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _changePassword() async {
-    final controller = TextEditingController();
-    final nextPassword = await showDialog<String>(
+    final passwordController = TextEditingController();
+    final confirmController = TextEditingController();
+    bool obscurePassword = true;
+    bool obscureConfirm = true;
+
+    final values = await showDialog<List<String>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Ubah password'),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          decoration: const InputDecoration(labelText: 'Password baru (min. 6 karakter)'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Simpan password'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.surfaceElevated,
+          title: const Text('Ubah password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: passwordController,
+                obscureText: obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password baru (min. 6 karakter)',
+                  suffixIcon: IconButton(
+                    onPressed: () => setDialogState(() => obscurePassword = !obscurePassword),
+                    icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmController,
+                obscureText: obscureConfirm,
+                decoration: InputDecoration(
+                  labelText: 'Konfirmasi password baru',
+                  suffixIcon: IconButton(
+                    onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                    icon: Icon(obscureConfirm ? Icons.visibility : Icons.visibility_off),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, [passwordController.text, confirmController.text]),
+              child: const Text('Simpan password'),
+            ),
+          ],
+        ),
       ),
     );
-    controller.dispose();
-    if (nextPassword == null) return;
+    passwordController.dispose();
+    confirmController.dispose();
+    if (values == null) return;
+
+    final nextPassword = values[0];
+    final confirmPassword = values[1];
+    if (nextPassword.trim().isEmpty || confirmPassword.trim().isEmpty) {
+      if (mounted) showSnack(context, 'Password dan konfirmasi tidak boleh kosong.');
+      return;
+    }
     if (nextPassword.length < 6) {
       if (mounted) showSnack(context, 'Password minimal 6 karakter.');
       return;
     }
+    if (nextPassword != confirmPassword) {
+      if (mounted) showSnack(context, 'Konfirmasi password tidak cocok.');
+      return;
+    }
+
     try {
-      await Supabase.instance.client.auth.updateUser(
-        UserAttributes(password: nextPassword),
-      );
+      await Supabase.instance.client.auth.updateUser(UserAttributes(password: nextPassword));
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user?.email != null) {
+        await SecureStore.saveCredentials(user!.email!, nextPassword);
+      }
       if (mounted) showSnack(context, 'Password berhasil diperbarui.');
     } on AuthException catch (e) {
       if (mounted) showSnack(context, 'Password belum dapat diubah: ${e.message}');
