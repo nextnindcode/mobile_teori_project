@@ -341,7 +341,12 @@ class _ProfilePageState extends State<ProfilePage> {
       await Supabase.instance.client.auth.updateUser(UserAttributes(password: nextPassword));
       final user = Supabase.instance.client.auth.currentUser;
       if (_bioEnabled && user?.email != null) {
-        await SecureStore.saveCredentials(user!.email!, nextPassword);
+        try {
+          await SecureStore.saveCredentials(user!.email!, nextPassword);
+        } catch (_) {
+          // The password update already succeeded; a local biometric-cache failure
+          // must not be reported as a failed Supabase password update.
+        }
       }
       if (mounted) showSnack(context, 'Password berhasil diperbarui.');
     } on AuthException catch (e) {
