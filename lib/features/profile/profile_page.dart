@@ -345,16 +345,59 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
-      // Ambil email & password dari session Supabase
       final user = Supabase.instance.client.auth.currentUser;
-      if (user != null && user.email != null) {}
-    } else {
-      // Jika dimatikan, hapus kredensial
-      await SecureStore.deleteCredentials();
-    }
+      final email = user?.email?.trim() ?? '';
+      if (email.isEmpty) {
+        showSnack(context, 'Email akun tidak tersedia. Login kembali terlebih dahulu.');
+        return;
+      }
 
-    await LocalDb.setPref('biometric_enabled', on ? '1' : '0');
-    if (mounted) setState(() => _bioEnabled = on);
+      final passwordController = TextEditingController();
+      final password = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.surfaceElevated,
+          title: const Text('Aktifkan login biometrik'),
+          content: TextField(
+            controller: passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Masukkan password akun saat ini'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, passwordController.text),
+              child: const Text('Verifikasi'),
+            ),
+          ],
+        ),
+      );
+      passwordController.dispose();
+      if (password == null) return;
+      if (password.trim().isEmpty) {
+        if (mounted) showSnack(context, 'Password tidak boleh kosong.');
+        return;
+      }
+
+      try {
+        await Supabase.instance.client.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+        await SecureStore.saveCredentials(email, password);
+        await LocalDb.setPref('biometric_enabled', '1');
+        if (mounted) setState(() => _bioEnabled = true);
+        if (mounted) showSnack(context, 'Login biometrik berhasil diaktifkan.');
+      } on AuthException catch (e) {
+        if (mounted) showSnack(context, 'Verifikasi akun gagal: ${e.message}');
+      } catch (_) {
+        if (mounted) showSnack(context, 'Gagal mengaktifkan login biometrik.');
+      }
+    } else {
+      await SecureStore.deleteCredentials();
+      await LocalDb.setPref('biometric_enabled', '0');
+      if (mounted) setState(() => _bioEnabled = false);
+    }
   }
 
   Future<void> _toggleNotification(bool on) async {
