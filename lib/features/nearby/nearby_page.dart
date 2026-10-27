@@ -138,9 +138,12 @@ class _NearbyPageState extends State<NearbyPage> {
         _activeEvents = filtered;
         _loading = false;
         if (filtered.isNotEmpty) {
-          _selectedEvent = requestedId == null
-              ? filtered.first
-              : filtered.where((event) => event.id == requestedId).firstOrNull;
+          if (requestedId == null) {
+            _selectedEvent = filtered.first;
+          } else {
+            final requestedEvents = filtered.where((event) => event.id == requestedId).toList();
+            _selectedEvent = requestedEvents.isEmpty ? null : requestedEvents.first;
+          }
         }
       });
 
