@@ -49,6 +49,7 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
   }
 
   void _flip() {
+    if (!widget.isOwned) return;
     if (_controller.isAnimating) return;
     if (_controller.isCompleted) {
       _controller.reverse();
@@ -98,7 +99,7 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
           ),
           const SizedBox(height: 12),
           GestureDetector(
-            onTap: _flip,
+            onTap: widget.isOwned ? _flip : null,
             child: AnimatedBuilder(
               animation: _animation,
               builder: (context, child) {
