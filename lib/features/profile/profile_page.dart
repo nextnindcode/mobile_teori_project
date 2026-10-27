@@ -23,7 +23,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with RouteAware {
   String _name = '';
   String _email = '';
   String? _avatarPath;
@@ -42,6 +42,15 @@ class _ProfilePageState extends State<ProfilePage> {
     _load();
     _checkMembership();
     _checkCardStatus();
+    // refresh tiap masuk profil
+    WidgetsBinding.instance.addPersistentFrameCallback((_) {
+      _refreshData();
+    });
+  }
+
+  Future<void> _refreshData() async {
+    await _checkMembership();
+    await _checkCardStatus();
   }
 
   Future<void> _checkMembership() async {
@@ -245,15 +254,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Future<void> _testNotification() async {
-  //   if (!_notifEnabled) {
-  //     showSnack(context, 'Aktifkan notifikasi terlebih dahulu');
-  //     return;
-  //   }
-  //   await NotificationService.showTest();
-  //   if (mounted) showSnack(context, 'Notifikasi akan muncul 10 detik lagi');
-  // }
-
   ImageProvider? get _avatarImage {
     final p = _avatarPath;
     if (p == null) return null;
@@ -369,9 +369,24 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () async {
+                          // buka halaman membership
                           await Navigator.pushNamed(context, Routes.membership);
-                          _checkMembership();
-                          _checkCardStatus();
+
+                          // // efek loading soalnya lagi refresh
+                          // if (!mounted) return;
+                          // setState(() {
+                          //   _loading = true;
+                          // });
+
+                          // // ambil data dari supabase
+                          // await _checkMembership();
+                          // await _checkCardStatus();
+
+                          // // matikan loadinh
+                          // if (!mounted) return;
+                          // setState(() {
+                          //   _loading = false;
+                          // });
                         },
                       ),
 
