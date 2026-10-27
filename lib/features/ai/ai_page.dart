@@ -33,11 +33,12 @@ class _AiPageState extends State<AiPage> {
       ]);
       if (!mounted) return;
       final membership = results[0] as Map<String, dynamic>?;
+      final plan = membership?['membership_plans'];
       final isActive = await MembershipService.isActive();
       if (!mounted) return;
       setState(() {
         _membershipLabel = isActive
-            ? '${membership?['plan_name'] ?? membership?['name'] ?? 'Member aktif'}'
+            ? (plan is Map ? '${plan['name'] ?? 'Member aktif'}' : 'Member aktif')
             : 'Belum menjadi member';
         _bestScore = results[1] as int? ?? 0;
       });
@@ -99,9 +100,9 @@ class _AiPageState extends State<AiPage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.auto_awesome, color: AppTheme.white),
+            const Icon(Icons.auto_awesome, color: AppTheme.textPrimary),
             const SizedBox(width: 8),
-            Text('Eclipse AI', style: AppTheme.textTheme.titleMedium?.copyWith(color: AppTheme.white, fontWeight: FontWeight.bold)),
+            Text('Eclipse AI', style: AppTheme.textTheme.titleMedium?.copyWith(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
           ],
         ),
         backgroundColor: AppTheme.deepSpace,
@@ -130,7 +131,7 @@ class _AiPageState extends State<AiPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppTheme.background,
+                color: AppTheme.deepSpace,
                 border: Border(top: BorderSide(color: AppTheme.borderSubtle, width: 1)),
               ),
               child: Row(
@@ -138,7 +139,7 @@ class _AiPageState extends State<AiPage> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: AppTheme.white,
+                        color: AppTheme.surfaceElevated,
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
@@ -168,7 +169,7 @@ class _AiPageState extends State<AiPage> {
                   // Tombol Kirim Bulat
                   Container(
                     decoration: const BoxDecoration(
-                      color: AppTheme.primaryDark,
+                      color: AppTheme.eclipseViolet,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
