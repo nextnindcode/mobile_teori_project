@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'ai_service.dart';
+import '../membership/membership_service.dart';
+import '../game/game_service.dart';
 
 class AiPage extends StatefulWidget {
   const AiPage({super.key});
@@ -14,6 +16,8 @@ class _AiPageState extends State<AiPage> {
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
+  String _membershipLabel = 'Memeriksa membership...';
+  int _bestScore = 0;
 
   Future<void> _sendMessage() async {
     final text = _textController.text.trim();
@@ -63,7 +67,7 @@ class _AiPageState extends State<AiPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background, 
+      backgroundColor: AppTheme.deepSpace, 
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -73,7 +77,7 @@ class _AiPageState extends State<AiPage> {
             Text('Eclipse AI', style: AppTheme.textTheme.titleMedium?.copyWith(color: AppTheme.white, fontWeight: FontWeight.bold)),
           ],
         ),
-        backgroundColor: AppTheme.primaryDark,
+        backgroundColor: AppTheme.deepSpace,
         elevation: 0,
       ),
       body: Column(
@@ -100,7 +104,7 @@ class _AiPageState extends State<AiPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: AppTheme.background,
-                border: Border(top: BorderSide(color: AppTheme.greyLight, width: 1)),
+                border: Border(top: BorderSide(color: AppTheme.borderSubtle, width: 1)),
               ),
               child: Row(
                 children: [
@@ -126,7 +130,7 @@ class _AiPageState extends State<AiPage> {
                           counterText: '', // Sembunyikan hitungan
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          hintStyle: AppTheme.textTheme.bodyMedium?.copyWith(color: AppTheme.grey),
+                          hintStyle: AppTheme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
                         ),
                         onSubmitted: (_) => _isLoading ? null : _sendMessage(),
                       ),
@@ -166,7 +170,7 @@ class _AiPageState extends State<AiPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.smart_toy_rounded, size: 80, color: AppTheme.primaryLight),
+          Icon(Icons.smart_toy_rounded, size: 80, color: AppTheme.eclipseViolet),
           const SizedBox(height: 16),
           Text(
             'Halo, Eclipse Lovers!',
