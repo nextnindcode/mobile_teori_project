@@ -40,9 +40,7 @@ class MemberService {
     try {
       final row = await _client
           .from('members')
-          .select(
-            'id,stage_name,position,team,description,fun_fact,profile_image_path',
-          )
+          .select('*')
           .eq('id', id)
           .single()
           .timeout(const Duration(seconds: 12));
