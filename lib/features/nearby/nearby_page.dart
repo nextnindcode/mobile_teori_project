@@ -464,7 +464,7 @@ class _NearbyPageState extends State<NearbyPage> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        Navigator.pushNamed(
+                        Navigator.pushReplacementNamed(
                           context,
                           Routes.eventDetail,
                           arguments: event.id,
