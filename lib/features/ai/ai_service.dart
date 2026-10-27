@@ -10,7 +10,7 @@ class AiService {
       final context = await _buildKnowledgeContext();
       final contextualPrompt = context.isEmpty
           ? prompt
-          : 'KONTEKS DATA APLIKASI (gunakan sebagai sumber utama; jangan mengarang stok/harga):\\n$context\\n\\nPERTANYAAN PENGGUNA: $prompt';
+          : 'KONTEKS DATA APLIKASI (gunakan sebagai sumber utama; jangan mengarang stok/harga):\n$context\n\nPERTANYAAN PENGGUNA: $prompt';
       final response = await _client.functions
           .invoke('eclipse-ai', body: {'message': contextualPrompt})
           .timeout(const Duration(seconds: 28));
@@ -49,8 +49,8 @@ class AiService {
             ? (row['categories']['name']?.toString() ?? 'Merchandise')
             : 'Merchandise';
         return '- ${row['name']}; kategori: $category; harga: Rp${row['price_idr'] ?? 'tidak tersedia'}; stok: ${row['stock'] ?? 'tidak tersedia'}; deskripsi: ${row['description'] ?? '-'}';
-      }).join('\\n');
-      if (lines.isNotEmpty) sections.add('PRODUK YANG TERSEDIA:\\n$lines');
+      }).join('\n');
+      if (lines.isNotEmpty) sections.add('PRODUK YANG TERSEDIA:\n$lines');
     } catch (_) {}
     try {
       final members = await _client
@@ -62,9 +62,9 @@ class AiService {
       final lines = members.map((raw) {
         final row = Map<String, dynamic>.from(raw);
         return '- ${row['stage_name']}; posisi: ${row['position'] ?? '-'}; tim: ${row['team'] ?? '-'}; deskripsi: ${row['description'] ?? '-'}; fakta: ${row['fun_fact'] ?? '-'}';
-      }).join('\\n');
-      if (lines.isNotEmpty) sections.add('DATA MEMBER ECLIPSE:\\n$lines');
+      }).join('\n');
+      if (lines.isNotEmpty) sections.add('DATA MEMBER ECLIPSE:\n$lines');
     } catch (_) {}
-    return sections.join('\\n\\n');
+    return sections.join('\n\n');
   }
 }
