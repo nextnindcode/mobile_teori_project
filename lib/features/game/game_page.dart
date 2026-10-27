@@ -387,10 +387,15 @@ class _GamePageState extends State<GamePage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.only(top: 10, left: 12, right: 12),
             child: Text(
-              'Miring ke Atas/Bawah: Geser Jawaban • Anggukkan: Konfirmasi Jawaban',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+              'Miringkan HP ke atas/bawah untuk memilih jawaban. Anggukkan HP untuk konfirmasi.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
           ),
         ],
