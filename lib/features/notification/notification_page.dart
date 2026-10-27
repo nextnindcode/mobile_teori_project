@@ -32,6 +32,7 @@ class _NotificationPageState extends State<NotificationPage> {
       final user = client.auth.currentUser;
       if (user == null) throw Exception('Silakan login kembali.');
       
+      // Mengambil data notifikasi khusus untuk user ini, diurutkan dari yang terbaru 
       final rows = await client.from('notifications')
           .select('id,title,message,type,is_read,created_at')
           .eq('user_id', user.id)
@@ -110,6 +111,7 @@ class _NotificationPageState extends State<NotificationPage> {
         itemBuilder: (context, index) {
           final notif = _notifications[index];
           final isOrder = notif['type'] == 'order';
+          // 2. Logika UI untuk Titik Biru
           final isRead = notif['is_read'] == true || notif['is_read'] == 1;
 
           return Padding(

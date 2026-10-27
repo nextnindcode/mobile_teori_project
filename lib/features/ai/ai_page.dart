@@ -19,7 +19,10 @@ class _AiPageState extends State<AiPage> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
+    // 1. Ambil pesan sebelumnya (abaikan pesan error) 
     final previousMessages = _messages.where((msg) => msg['isError'] != true).toList();
+    
+    // 2. Batasi hanya 10 pesan terakhir (mencegah payload terlalu besar) 
     final history = previousMessages
         .skip(previousMessages.length > 10 ? previousMessages.length - 10 : 0)
         .map((msg) => <String, String>{
@@ -36,6 +39,7 @@ class _AiPageState extends State<AiPage> {
     _scrollToBottom();
 
     try {
+      // 3. Kirim pesan beserta riwayatnya ke service 
       final reply = await AiService.kirimPesan(text, history: history);
       setState(() {
         _messages.add({'text': reply, 'isUser': false});
@@ -58,6 +62,7 @@ class _AiPageState extends State<AiPage> {
   }
 
   void _scrollToBottom() {
+    // addPostFrameCallback memastikan UI selesai di-render dulu 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(

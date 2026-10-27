@@ -34,33 +34,6 @@ class NotificationService {
     return _initialized;
   }
 
-  // Menampilkan notifikasi uji coba 10 detik kemudian.
-  // static Future<void> showTest() async {
-  //   final granted = await init();
-  //   if (!granted) return;
-  //   final isEnabled = (await LocalDb.getPref('notification_enabled')) == '1';
-  //   if (!isEnabled) return;
-
-  //   final scheduledTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
-
-  //   const androidDetails = AndroidNotificationDetails(
-  //     'eclipse_test_channel',
-  //     'Test Notifications',
-  //     channelDescription: 'Uji coba notifikasi EclipseVerse',
-  //     importance: Importance.max,
-  //     priority: Priority.high,
-  //   );
-
-  //   await _notificationsPlugin.zonedSchedule(
-  //     id: 9999,
-  //     title: 'Uji Notifikasi EclipseVerse',
-  //     body: 'Notifikasi berhasil muncul setelah 10 detik! Fandom Eclipse siap menyapamu.',
-  //     scheduledDate: scheduledTime,
-  //     notificationDetails: const NotificationDetails(android: androidDetails),
-  //     androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-  //   );
-  // }
-
   // Menampilkan notifikasi order berhasil dibuat.
   static Future<void> showOrderConfirmed(dynamic orderId) async {
     await init();

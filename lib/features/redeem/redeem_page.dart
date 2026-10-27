@@ -44,6 +44,7 @@ class _RedeemPageState extends State<RedeemPage> {
       final quota = (membership?['redeem_quota'] as num?)?.toInt() ?? 0;
 
       // 2. SELALU ambil data stats user dan katalog kartu (jangan pedulikan kuota dulu)
+      // MENJALANKAN DUA REQUEST API SECARA PARALEL (Bersamaan)
       final results = await Future.wait([
         RedeemService.getUserStats(),
         RedeemService.getCards(),

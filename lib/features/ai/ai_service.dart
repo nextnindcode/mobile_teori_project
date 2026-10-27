@@ -10,9 +10,10 @@ class AiService {
     final prompt = pesan.trim();
     if (prompt.isEmpty) throw Exception('Pesan tidak boleh kosong.');
     try {
+      // Memanggil Edge Function 'eclipse-ai' di Supabase 
       final response = await _client.functions
-          .invoke('eclipse-ai', body: {'message': prompt, 'history': history})
-          .timeout(const Duration(seconds: 28));
+          .invoke('eclipse-ai', body: {'message': prompt, 'history': history}) // Mengirim riwayat chat 
+          .timeout(const Duration(seconds: 28)); // Batas waktu 28 detik 
       if (response.status < 200 || response.status >= 300) {
         throw Exception('Eclipse AI belum dapat menjawab. Coba lagi nanti.');
       }
