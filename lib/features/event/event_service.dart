@@ -13,7 +13,7 @@ class EventService {
       path = path.substring('eclipseverse-media/'.length);
     }
     // Semua poster event pada bucket disimpan di folder events/.
-    if (!path.startsWith('events/')) path = 'events/\${path.split('/').last}';
+    if (!path.startsWith('events/')) path = 'events/' + path.split('/').last;
     return _client.storage.from('eclipseverse-media').getPublicUrl(path);
   }
 
