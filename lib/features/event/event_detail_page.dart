@@ -155,7 +155,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: () =>
-                Navigator.pushNamed(context, Routes.nearby, arguments: e.id),
+                Navigator.pushReplacementNamed(context, Routes.nearby, arguments: e.id),
             icon: const Icon(Icons.directions),
             label: const Text('Lihat rute di peta'),
           ),
