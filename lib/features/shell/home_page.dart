@@ -55,7 +55,9 @@ class _HomePageState extends State<HomePage> {
           ? null
           : await LocalDb.getUserProfile(user.id);
 
-      final avatar = await LocalDb.getPref('avatar_path');
+      final avatar = user == null
+          ? await LocalDb.getPref('avatar_path')
+          : await LocalDb.getPref('avatar_path_${user.id}');
 
       if (mounted) {
         setState(() {
@@ -72,15 +74,24 @@ class _HomePageState extends State<HomePage> {
 
       final profile = await Supabase.instance.client
           .from('profiles')
-          .select('display_name')
+          .select('display_name, avatar_path')
           .eq('id', user.id)
           .maybeSingle()
           .timeout(const Duration(seconds: 8));
 
       final name = profile?['display_name']?.toString().trim() ?? '';
+      final remoteAvatar = profile?['avatar_path']?.toString().trim() ?? '';
+      final avatarUrl = remoteAvatar.isEmpty
+          ? null
+          : (remoteAvatar.startsWith('http')
+              ? remoteAvatar
+              : Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(remoteAvatar));
 
-      if (mounted && name.isNotEmpty) {
-        setState(() => _userName = name);
+      if (mounted) {
+        setState(() {
+          if (name.isNotEmpty) _userName = name;
+          if (avatarUrl != null && avatarUrl.isNotEmpty) _avatarPath = avatarUrl;
+        });
       }
     } catch (_) {}
   }
@@ -190,6 +201,9 @@ class _HomePageState extends State<HomePage> {
   ImageProvider? get _avatarImage {
     final p = _avatarPath;
     if (p == null) return null;
+    if (p.startsWith('https://') || p.startsWith('http://')) {
+      return NetworkImage(p);
+    }
     final f = File(p);
     return f.existsSync() ? FileImage(f) : null;
   }
@@ -375,8 +389,9 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(height: 2),
                         const Text(
                           'Selamat datang di semesta Eclipse',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
                           style: TextStyle(
                             color: AppTheme.textSecondary,
                             fontSize: 12,
