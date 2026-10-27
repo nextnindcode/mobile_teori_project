@@ -6,9 +6,10 @@ class GameService {
   static final _client = Supabase.instance.client;
 
   static Future<int> getBestScore() async {
-    final local =
-        int.tryParse(await LocalDb.getPreference('best_score') ?? '0') ?? 0;
     final user = _client.auth.currentUser;
+    final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
+    final local =
+        int.tryParse(await LocalDb.getPreference(scoreKey) ?? '0') ?? 0;
     if (user == null) return local;
     try {
       final row = await _client
@@ -27,7 +28,9 @@ class GameService {
   }
 
   static Future<void> saveBestScore(int score) async {
-    await LocalDb.setPreference('best_score', score.toString());
+    final user = _client.auth.currentUser;
+    final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
+    await LocalDb.setPreference(scoreKey, score.toString());
   }
 
   static Future<List<Map<String, dynamic>>> fetchQuestions() async {
@@ -72,7 +75,9 @@ class GameService {
   }
 
   static Future<void> saveUnverifiedScoreLocally(int score) async {
-    await LocalDb.setPreference('best_score', score.toString());
+    final user = _client.auth.currentUser;
+    final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
+    await LocalDb.setPreference(scoreKey, score.toString());
   }
 
   static void logFailure(Object error) =>
