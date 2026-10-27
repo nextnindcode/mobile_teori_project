@@ -125,6 +125,25 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        if (e.imageUrl != null && e.imageUrl!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.network(
+                e.imageUrl!,
+                height: 220,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 120,
+                  color: AppTheme.surfaceElevated,
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.image_not_supported_outlined, color: AppTheme.textSecondary),
+                ),
+              ),
+            ),
+          ),
         // Hero Card
         Container(
           padding: const EdgeInsets.all(22),

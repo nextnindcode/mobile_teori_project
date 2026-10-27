@@ -12,7 +12,14 @@ class EventService {
         .order('event_date')
         .limit(100)
         .timeout(const Duration(seconds: 12));
-    return rows.map((row) => Event.fromJson(Map<String, dynamic>.from(row))).toList();
+    return rows.map((row) {
+      final data = Map<String, dynamic>.from(row);
+      final path = data['poster_path']?.toString() ?? '';
+      if (path.isNotEmpty && !path.startsWith('http')) {
+        data['poster_path'] = _client.storage.from('eclipseverse-media').getPublicUrl(path);
+      }
+      return Event.fromJson(data);
+    }).toList();
   }
 
   static Future<Event> fetchEventDetail(int id) async {
@@ -22,6 +29,11 @@ class EventService {
         .eq('id', id)
         .single()
         .timeout(const Duration(seconds: 12));
-    return Event.fromJson(Map<String, dynamic>.from(row));
+    final data = Map<String, dynamic>.from(row);
+    final path = data['poster_path']?.toString() ?? '';
+    if (path.isNotEmpty && !path.startsWith('http')) {
+      data['poster_path'] = _client.storage.from('eclipseverse-media').getPublicUrl(path);
+    }
+    return Event.fromJson(data);
   }
 }
