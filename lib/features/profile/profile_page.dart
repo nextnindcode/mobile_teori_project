@@ -202,6 +202,38 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
 
+  Future<void> _editName() async {
+    final controller = TextEditingController(text: _name);
+    final nextName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceElevated,
+        title: const Text('Ubah nama akun'),
+        content: TextField(controller: controller, maxLength: 60, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Nama akun')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('Simpan')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (nextName == null || nextName.trim().isEmpty || nextName == _name) return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) { if (mounted) showSnack(context, 'Silakan login kembali.'); return; }
+    try {
+      await Supabase.instance.client.from('profiles').update({'display_name': nextName, 'updated_at': DateTime.now().toUtc().toIso8601String()}).eq('id', user.id).timeout(const Duration(seconds: 8));
+      await Supabase.instance.client.auth.updateUser(UserAttributes(data: {'name': nextName}));
+      await LocalDb.saveProfile(userId: user.id, name: nextName, email: _email);
+      if (!mounted) return;
+      setState(() => _name = nextName);
+      showSnack(context, 'Nama akun berhasil diperbarui.');
+    } on AuthException catch (e) {
+      if (mounted) showSnack(context, 'Nama akun belum dapat diubah: ${e.message}');
+    } catch (_) {
+      if (mounted) showSnack(context, 'Gagal memperbarui nama akun. Periksa koneksi dan coba lagi.');
+    }
+  }
+
   Future<void> _editEmail() async {
     final controller = TextEditingController(text: _email);
     final nextEmail = await showDialog<String>(
@@ -525,6 +557,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 Card(
                   child: Column(
                     children: [
+                      ListTile(
+                        leading: const Icon(Icons.edit_outlined),
+                        title: const Text('Ubah nama akun'),
+                        subtitle: const Text('Perbarui nama yang ditampilkan di profil'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _editName,
+                      ),
+                      const Divider(height: 1),
                       ListTile(
                         leading: const Icon(Icons.alternate_email),
                         title: const Text('Ubah email'),
