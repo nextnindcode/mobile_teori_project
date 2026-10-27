@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../theme/app_theme.dart';
+import '../../core/routes.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../notification/notification_service.dart';
 import '../tools/time_service.dart';
@@ -144,6 +145,20 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
             ),
           ),
+        // Route shortcut to LBS, carrying the selected event ID.
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => Navigator.pushNamed(
+              context,
+              Routes.nearby,
+              arguments: e.id,
+            ),
+            icon: const Icon(Icons.directions),
+            label: const Text('Lihat rute di peta'),
+          ),
+        ),
+        const SizedBox(height: 12),
         // Hero Card
         Container(
           padding: const EdgeInsets.all(22),

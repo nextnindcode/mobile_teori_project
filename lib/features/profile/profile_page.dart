@@ -36,6 +36,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _membershipData;
 
   bool _hasRedeemedCards = false;
+  bool _hasMembershipHistory = false;
   String _locationText = 'Belum diperbarui';
   bool _locationLoading = false;
 
@@ -44,6 +45,7 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     _load();
     _checkMembership();
+    _checkMembershipHistory();
     _checkCardStatus();
   }
 
@@ -59,6 +61,21 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       debugPrint('Gagal memuat status membership: $e');
+    }
+  }
+
+  Future<void> _checkMembershipHistory() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final rows = await Supabase.instance.client
+          .from('user_memberships')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+      if (mounted) setState(() => _hasMembershipHistory = rows.isNotEmpty);
+    } catch (e) {
+      debugPrint('Gagal cek riwayat membership: $e');
     }
   }
 
@@ -535,7 +552,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           // Koleksi tetap bisa dibuka walau kuota habis atau membership berakhir.
-                          Navigator.pushNamed(context, Routes.redeem);
+                          if (_hasMembershipHistory || _hasRedeemedCards || _isMember) {
+                            Navigator.pushNamed(context, Routes.redeem);
+                          } else {
+                            Navigator.pushNamed(context, Routes.membership);
+                          }
                         },
                       ),
                     ],

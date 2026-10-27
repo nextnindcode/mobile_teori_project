@@ -18,7 +18,8 @@ import 'compass_widget.dart';
 import 'location_service.dart';
 
 class NearbyPage extends StatefulWidget {
-  const NearbyPage({super.key});
+  final int? initialEventId;
+  const NearbyPage({super.key, this.initialEventId});
 
   @override
   State<NearbyPage> createState() => _NearbyPageState();
@@ -121,7 +122,12 @@ class _NearbyPageState extends State<NearbyPage> {
         _activeEvents = filtered;
         _loading = false;
         if (filtered.isNotEmpty) {
-          _selectedEvent = filtered.first;
+          final routeArg = ModalRoute.of(context)?.settings.arguments;
+          final requestedId = widget.initialEventId ?? (routeArg is int ? routeArg : null);
+          _selectedEvent = filtered.firstWhere(
+            (event) => event.id == requestedId,
+            orElse: () => filtered.first,
+          );
         }
       });
 
