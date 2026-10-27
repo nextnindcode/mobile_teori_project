@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:eclipseverse/theme/app_theme.dart';
 
 import '../fandom/shared/state_views.dart';
@@ -137,9 +138,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
         final rating = int.tryParse(review['rating'].toString()) ?? 0;
         final impression = (review['impression'] ?? '').toString();
         final suggestion = (review['suggestion'] ?? '').toString();
-        final createdAt = (review['created_at'] ?? '').toString();
+        final rawCreatedAt = (review['created_at'] ?? '').toString();
+        final parsedDate = DateTime.tryParse(rawCreatedAt);
+        final createdAt = parsedDate == null ? rawCreatedAt : DateFormat('d MMM yyyy, HH:mm').format(parsedDate.toLocal());
 
         return Card(
+          color: AppTheme.surfaceElevated,
           margin: const EdgeInsets.only(bottom: 12),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -151,10 +155,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     Expanded(
                       child: Text(
                         name,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.textPrimary),
                       ),
                     ),
-                    Text('⭐ $rating/5'),
+                    Text('⭐ $rating/5', style: const TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 if (createdAt.isNotEmpty)
@@ -162,7 +166,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       createdAt,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
                     ),
                   ),
                 const SizedBox(height: 10),
