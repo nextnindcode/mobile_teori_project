@@ -409,7 +409,7 @@ class _HomePageState extends State<HomePage> {
                       const Text('Gerhana berikutnya', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                       if (upcoming != null) ...[
                         Text(upcoming['name']!, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-                        Text(DateFormat('d MMMM yyyy', 'id_ID').format(DateTime.parse(upcoming['date']!)), style: const TextStyle(color: AppTheme.coronaGold)),
+                        Text(DateFormat('d MMM yyyy').format(DateTime.parse(upcoming['date']!)), style: const TextStyle(color: AppTheme.coronaGold)),
                         Text(upcoming['visibility']!, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                       ] else
                         const Text('Jadwal gerhana yang terlihat dari Indonesia belum tersedia.', style: TextStyle(color: AppTheme.textSecondary)),
