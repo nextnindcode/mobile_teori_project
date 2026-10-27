@@ -331,7 +331,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                         '${order['item_count'] ?? 0} item',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
-                                          color: AppTheme.surfaceSecondary, // 👈 Warnanya diubah
+                                          color: AppTheme.textPrimary, // 👈 Warnanya diubah
                                         ),
                                       ),
                                       Text(
