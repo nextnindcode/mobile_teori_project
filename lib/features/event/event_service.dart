@@ -40,10 +40,7 @@ class EventService {
         .single()
         .timeout(const Duration(seconds: 12));
     final data = Map<String, dynamic>.from(row);
-    final path = data['poster_path']?.toString() ?? '';
-    if (path.isNotEmpty && !path.startsWith('http')) {
-      data['poster_path'] = _client.storage.from('eclipseverse-media').getPublicUrl(path);
-    }
+    data['poster_path'] = _posterUrl(data['poster_path']);
     return Event.fromJson(data);
   }
 }
