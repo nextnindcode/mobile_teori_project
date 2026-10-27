@@ -19,13 +19,13 @@ Deno.serve(async (req) => {
 
   // Use the authenticated user's session for RLS-protected application data.
   const [events, products, members, cards, plans, points, memberships] = await Promise.all([
-    supabase.from("events").select("title,description,event_date,venue,city,status,poster_path")
+    supabase.from("events").select("*")
       .neq("status", "draft").order("event_date").limit(40),
-    supabase.from("products").select("name,description,price_idr,stock,cover_image_path,categories(name)")
+    supabase.from("products").select("*,categories(name)")
       .eq("is_published", true).limit(60),
-    supabase.from("members").select("stage_name,position,description,fun_fact,team,profile_image_path")
+    supabase.from("members").select("*")
       .order("sort_order").limit(30),
-    supabase.from("cards").select("card_name,rarity,points_cost,is_available,image_path,members(stage_name)")
+    supabase.from("cards").select("*,members(stage_name)")
       .eq("is_available", true).limit(40),
     supabase.from("membership_plans").select("name,description,price_points,quota_amount,benefits")
       .eq("is_active", true).limit(10),
@@ -48,6 +48,11 @@ Deno.serve(async (req) => {
       "Harga merchandise dalam IDR.",
       "Tanggal event berasal dari event_date database.",
       "Jangan menyimpulkan membership aktif hanya dari riwayat membership.",
+      "Jangan mengaku mengetahui skor kuis pribadi, jawaban, riwayat percobaan kuis, atau koleksi photocard milik pengguna. Data tersebut tidak diberikan ke AI demi privasi.",
+      "Untuk biodata anggota, gunakan tanggal lahir, hobi, posisi vokal/dance/rap, dan cerita lagu hanya jika kolom atau sumber data memang tersedia. Jangan mengarang detail yang tidak tersedia.",
+      "Untuk jadwal event dan astronomi, gunakan tanggal dari database jika tersedia. Jangan membuat tanggal gerhana atau event sendiri.",
+      "Untuk pertanyaan tentang album pertama, jumlah produk, stok, hoodie, payung, atau merchandise tertentu, periksa katalog aktual. Jika produk tidak ada atau stoknya nol, katakan dengan sopan bahwa produk belum tersedia dan rekomendasikan hanya produk lain yang benar-benar ada dalam katalog.",
+      "Gunakan bahasa yang ramah pengguna dan hindari jargon backend/blockchain. Jangan mengatakan transaksi sudah dicatat di blockchain; jelaskan hasilnya dengan sederhana.",
       "Jika data tidak tersedia, jelaskan bahwa data belum tersedia.",
     ],
   };
