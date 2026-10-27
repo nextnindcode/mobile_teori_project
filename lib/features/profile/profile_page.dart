@@ -14,6 +14,7 @@ import 'biometric_service.dart';
 import '../../core/routes.dart';
 import '../../core/secure_store.dart';
 import '../membership/membership_service.dart';
+import '../nearby/location_service.dart';
 
 class ProfilePage extends StatefulWidget {
   final Future<void> Function()? onLogout;
@@ -35,6 +36,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _membershipData;
 
   bool _hasRedeemedCards = false;
+  String _locationText = 'Belum diperbarui';
+  bool _locationLoading = false;
 
   @override
   void initState() {
@@ -181,6 +184,96 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+
+  Future<void> _editEmail() async {
+    final controller = TextEditingController(text: _email);
+    final nextEmail = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ubah email'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: 'Email baru'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Kirim konfirmasi'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (nextEmail == null || nextEmail.isEmpty || nextEmail == _email) return;
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(email: nextEmail),
+      );
+      if (!mounted) return;
+      showSnack(context, 'Permintaan perubahan email dikirim. Periksa email untuk konfirmasi.');
+    } on AuthException catch (e) {
+      if (mounted) showSnack(context, 'Email belum dapat diubah: ${e.message}');
+    } catch (_) {
+      if (mounted) showSnack(context, 'Gagal mengirim permintaan perubahan email.');
+    }
+  }
+
+  Future<void> _changePassword() async {
+    final controller = TextEditingController();
+    final nextPassword = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ubah password'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'Password baru (min. 6 karakter)'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Simpan password'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (nextPassword == null) return;
+    if (nextPassword.length < 6) {
+      if (mounted) showSnack(context, 'Password minimal 6 karakter.');
+      return;
+    }
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: nextPassword),
+      );
+      if (mounted) showSnack(context, 'Password berhasil diperbarui.');
+    } on AuthException catch (e) {
+      if (mounted) showSnack(context, 'Password belum dapat diubah: ${e.message}');
+    } catch (_) {
+      if (mounted) showSnack(context, 'Gagal memperbarui password.');
+    }
+  }
+
+  Future<void> _refreshLocation() async {
+    setState(() => _locationLoading = true);
+    try {
+      final position = await LocationService.getCurrentLocation();
+      if (!mounted || position == null) return;
+      setState(() {
+        _locationText =
+            '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+      });
+    } catch (e) {
+      if (mounted) showSnack(context, e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _locationLoading = false);
+    }
+  }
+
   Future<void> _toggleBiometric(bool on) async {
     if (on) {
       final ok = await BiometricService.authenticate();
@@ -322,6 +415,41 @@ class _ProfilePageState extends State<ProfilePage> {
                   _email,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: AppTheme.spacingMedium),
+                Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.alternate_email),
+                        title: const Text('Ubah email'),
+                        subtitle: const Text('Email baru perlu dikonfirmasi'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _editEmail,
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.lock_reset),
+                        title: const Text('Ubah password'),
+                        subtitle: const Text('Perbarui kata sandi akun'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _changePassword,
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.location_on_outlined),
+                        title: const Text('Lokasi perangkat'),
+                        subtitle: Text(_locationText),
+                        trailing: _locationLoading
+                            ? const SizedBox(
+                                width: 20, height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.my_location),
+                        onTap: _locationLoading ? null : _refreshLocation,
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: AppTheme.spacingMedium),
                 Card(
