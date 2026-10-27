@@ -44,7 +44,7 @@ class _RedeemPageState extends State<RedeemPage> {
       final membership = await MembershipService.currentMembership();
       final quota = (membership?['redeem_quota'] as num?)?.toInt() ?? 0;
 
-      // 2. SELALU ambil data stats user dan katalog kartu
+      // 2. Ambil data stats user dan katalog kartu
       final results = await Future.wait([
         RedeemService.getUserStats(),
         RedeemService.getCards(),
@@ -87,6 +87,7 @@ class _RedeemPageState extends State<RedeemPage> {
       return;
     }
 
+    // (Opsional) Pengecekan poin bisa dihapus kalau sistemnya murni pakai kuota
     if (_userPoints < card.cost) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -107,13 +108,22 @@ class _RedeemPageState extends State<RedeemPage> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Gunakan ${card.cost} poin dan 1 kuota untuk membuka kartu "${card.name}"?',
-          style: const TextStyle(color: AppTheme.textSecondary),
+          'Gunakan 1 kuota untuk membuka kartu "${card.name}"?',
+          style: const TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: AppTheme.fontSizeBody,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            child: const Text(
+              'Batal',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: AppTheme.fontSizeBody,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -241,7 +251,6 @@ class _RedeemPageState extends State<RedeemPage> {
       return CosmicErrorView(message: _errorMessage!, onRetry: _loadData);
     }
 
-    // Jika data kosong atau tidak ada kartu, tampilkan Empty View
     if (_cards.isEmpty && _ownedCardIds.isEmpty) {
       return const CosmicEmptyView(
         title: 'Belum Ada Kartu',
@@ -252,60 +261,11 @@ class _RedeemPageState extends State<RedeemPage> {
 
     return Column(
       children: [
-        // Banner Peringatan jika kuota habis
-        if (!_isMember || _redeemQuota <= 0)
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(top: 20, left: 20, right: 20),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.error.withValues(alpha: 0.1),
-              border: Border.all(color: AppTheme.error.withValues(alpha: 0.5)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                const Icon(Icons.info_outline, color: AppTheme.error, size: 32),
-                const SizedBox(height: 8),
-                const Text(
-                  'Kuota Redeem Habis',
-                  style: TextStyle(
-                    color: AppTheme.error,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Kartu yang sudah dimiliki tetap bisa dilihat & di-flip di bawah. Untuk menukar kartu baru, silakan perpanjang membership.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.eclipseViolet,
-                    ),
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        Routes.membership,
-                      ).then((_) => _loadData());
-                    },
-                    child: const Text('Beli Membership Lagi'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-        // Header Poin dan Kuota
+        // Header Kuota
         Container(
           width: double.infinity,
           margin: const EdgeInsets.all(20),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
             borderRadius: BorderRadius.circular(20),
@@ -316,46 +276,74 @@ class _RedeemPageState extends State<RedeemPage> {
               ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          child: Column(
             children: [
-              Column(
-                children: [
-                  const Text(
-                    'Total Poin',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$_userPoints',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              const Text(
+                'Peluang Redeem Kamu',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
-              Container(width: 1, height: 40, color: Colors.white54),
-              Column(
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
-                    'Sisa Kuota',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
                   Text(
                     '$_redeemQuota',
                     style: TextStyle(
                       color: _redeemQuota > 0
                           ? AppTheme.coronaGold
                           : AppTheme.error,
-                      fontSize: 32,
+                      fontSize: 42,
                       fontWeight: FontWeight.bold,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      'Kali',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 4),
+              Text(
+                _redeemQuota > 0
+                    ? 'Sisa kuota untuk menukar kartu'
+                    : 'Kuota habis, silakan beli membership lagi',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              if (_redeemQuota <= 0) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.coronaGold,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        Routes.membership,
+                      ).then((_) => _loadData());
+                    },
+                    child: const Text(
+                      'Beli Membership Lagi',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -508,37 +496,15 @@ class _RedeemPageState extends State<RedeemPage> {
                       ),
                     )
                   else
-                    Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.monetization_on,
-                              color: AppTheme.coronaGold,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${card.cost} Poin',
-                              style: const TextStyle(
-                                color: AppTheme.coronaGold,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Butuh 1 Kuota',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                    const Text(
+                      'Butuh 1 Kuota',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+
                   const SizedBox(height: 10),
 
                   SizedBox(
