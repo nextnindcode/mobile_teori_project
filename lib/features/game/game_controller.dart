@@ -69,7 +69,8 @@ class GameController extends ChangeNotifier {
           id: (row['id'] as num).toInt(),
           funFact: '${row['question_text']}',
           options: labels,
-          correctAnswer: row['correct_option']?.toString(),  
+          correctAnswer: row['correct_option']?.toString(),
+          explanation: row['explanation']?.toString() ?? '',
         );
       }).toList();
 
