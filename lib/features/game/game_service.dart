@@ -31,24 +31,15 @@ class GameService {
   }
 
   static Future<List<Map<String, dynamic>>> fetchQuestions() async {
-    List<Map<String, dynamic>> rows;
-
-    try {
-      rows = await _client
-          .from('quiz_questions_public')
-          .select('id,question_text,options,difficulty,points,correct_option')
-          .limit(50)
-          .timeout(const Duration(seconds: 8));
-    } catch (_) {
-      rows = await _client
-          .from('quiz_questions_public')
-          .select('id,question_text,options,difficulty,points')
-          .limit(50)
-          .timeout(const Duration(seconds: 8));
-    }
+    final rows = await _client
+        .from('quiz_questions_public')
+        .select('id,question_text,options,difficulty,points')
+        .eq('is_active', true)
+        .limit(50)
+        .timeout(const Duration(seconds: 8));
 
     if (rows.length < 10) {
-      throw Exception('Data soal Supabase belum cukup. Jalankan seed demo.');
+      throw Exception('Data soal Supabase belum cukup. Minimal 10 soal aktif diperlukan.');
     }
 
     final list = rows.map((row) => Map<String, dynamic>.from(row)).toList()
@@ -60,6 +51,10 @@ class GameService {
     List<Map<String, dynamic>> answers, {
     bool memberChallenge = false,
   }) async {
+    if (answers.length != 10) {
+      throw Exception('Sesi kuis harus mengirim tepat 10 jawaban.');
+    }
+
     final result = await _client
         .rpc(
           memberChallenge
