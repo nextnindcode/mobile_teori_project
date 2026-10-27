@@ -77,7 +77,7 @@ class NotificationService {
     await _notificationsPlugin.show(
       id: 1000 + (int.tryParse('$orderId') ?? 0),
       title: 'Pesanan Berhasil Dikonfirmasi',
-      body: 'Pesanan #$orderId berhasil dibuat dan tercatat di blockchain.',
+      body: 'Pesanan #$orderId berhasil dibuat. Terima kasih telah berbelanja di EclipseVerse!',
       notificationDetails: const NotificationDetails(android: androidDetails),
     );
   }
