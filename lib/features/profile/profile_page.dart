@@ -94,6 +94,7 @@ class _ProfilePageState extends State<ProfilePage> {
       final savedFile = await File(x.path).copy(savedPath);
       await LocalDb.setPref('avatar_path', savedFile.path);
       var displayedPath = savedFile.path;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         try {
           final storagePath = 'avatars/${user.id}/profile$extension';
@@ -137,17 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _confirmLogout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Keluar dari EclipseVerse?'),
-        content: const Text('Sesi akun di perangkat ini akan diakhiri.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Batal')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Logout')),
-        ],
-      ),
-    );
+    final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(title: const Text('Keluar dari EclipseVerse?'), content: const Text('Sesi akun di perangkat ini akan diakhiri.'), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Batal')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Logout'))]));
     if (confirmed == true && mounted) await widget.onLogout?.call();
   }
 
@@ -163,32 +154,29 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
-      body: _loading ? const LoadingView() : ListView(
-        padding: const EdgeInsets.all(AppTheme.spacingLarge),
-        children: [
-          Center(child: Stack(children: [
-            CircleAvatar(radius: 56, backgroundColor: AppTheme.primaryDark, backgroundImage: _avatarImage, child: _avatarImage == null ? Text(_name.isEmpty ? '?' : _name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.bold)) : null),
-            Positioned(right: 0, bottom: 0, child: CircleAvatar(backgroundColor: AppTheme.primaryLight, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.photo_library, size: 18), onPressed: _pickPhoto))),
-          ])),
-          const SizedBox(height: AppTheme.spacingMedium),
-          Text(_name, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
-          Text(_email, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge),
-          const SizedBox(height: AppTheme.spacingMedium),
-          Card(child: Column(children: [
-            SwitchListTile(title: const Text('Login biometric'), subtitle: Text(_bioSupported ? 'Gunakan sidik jari saat membuka aplikasi' : 'Perangkat tidak mendukung'), value: _bioEnabled, onChanged: _bioSupported ? _toggleBiometric : null),
-            const Divider(height: 1),
-            SwitchListTile(title: const Text('Notifikasi'), subtitle: const Text('Pengingat event dan info pesanan'), value: _notifEnabled, onChanged: _toggleNotification),
-          ])),
-          const SizedBox(height: AppTheme.spacingMedium),
-          Card(child: Column(children: [
-            ListTile(leading: Icon(Icons.workspace_premium, color: _isMember ? Colors.amber : AppTheme.primaryLight), title: Text(_isMember ? 'VIP Member Aktif' : 'Membership EclipseVerse'), subtitle: Text(_isMember ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali' : 'Akses fitur redeem kartu'), trailing: const Icon(Icons.chevron_right), onTap: () async { await Navigator.pushNamed(context, Routes.membership); _checkMembership(); _checkCardStatus(); }),
-            ListTile(leading: Icon(Icons.style, color: _hasRedeemedCards ? Colors.amber : Colors.grey), title: Text('Koleksi Kartu', style: TextStyle(color: _hasRedeemedCards ? AppTheme.textPrimary : Colors.grey)), subtitle: Text(_hasRedeemedCards ? 'Lihat kartu yang sudah kamu kumpulkan' : 'Belum ada kartu yang diklaim', style: TextStyle(color: _hasRedeemedCards ? AppTheme.textSecondary : Colors.grey)), trailing: const Icon(Icons.chevron_right), onTap: () { if (_hasRedeemedCards || _isMember) { Navigator.pushNamed(context, Routes.redeem); } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kamu harus jadi Member dan redeem kartu terlebih dahulu!'), backgroundColor: Colors.red)); Navigator.pushNamed(context, Routes.membership); } }),
-          ])),
+      body: _loading ? const LoadingView() : ListView(padding: const EdgeInsets.all(AppTheme.spacingLarge), children: [
+        Center(child: Stack(children: [
+          CircleAvatar(radius: 56, backgroundColor: AppTheme.primaryDark, backgroundImage: _avatarImage, child: _avatarImage == null ? Text(_name.isEmpty ? '?' : _name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.bold)) : null),
+          Positioned(right: 0, bottom: 0, child: CircleAvatar(backgroundColor: AppTheme.primaryLight, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.photo_library, size: 18), onPressed: _pickPhoto))),
+        ])),
+        const SizedBox(height: AppTheme.spacingMedium),
+        Text(_name, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
+        Text(_email, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge),
+        const SizedBox(height: AppTheme.spacingMedium),
+        Card(child: Column(children: [
+          SwitchListTile(title: const Text('Login biometric'), subtitle: Text(_bioSupported ? 'Gunakan sidik jari saat membuka aplikasi' : 'Perangkat tidak mendukung'), value: _bioEnabled, onChanged: _bioSupported ? _toggleBiometric : null),
           const Divider(height: 1),
-          const SizedBox(height: AppTheme.spacingMedium),
-          OutlinedButton.icon(onPressed: widget.onLogout == null ? null : _confirmLogout, icon: const Icon(Icons.logout), label: const Text('Logout')),
-        ],
-      ),
+          SwitchListTile(title: const Text('Notifikasi'), subtitle: const Text('Pengingat event dan info pesanan'), value: _notifEnabled, onChanged: _toggleNotification),
+        ])),
+        const SizedBox(height: AppTheme.spacingMedium),
+        Card(child: Column(children: [
+          ListTile(leading: Icon(Icons.workspace_premium, color: _isMember ? Colors.amber : AppTheme.primaryLight), title: Text(_isMember ? 'VIP Member Aktif' : 'Membership EclipseVerse'), subtitle: Text(_isMember ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali' : 'Akses fitur redeem kartu'), trailing: const Icon(Icons.chevron_right), onTap: () async { await Navigator.pushNamed(context, Routes.membership); _checkMembership(); _checkCardStatus(); }),
+          ListTile(leading: Icon(Icons.style, color: _hasRedeemedCards ? Colors.amber : Colors.grey), title: Text('Koleksi Kartu', style: TextStyle(color: _hasRedeemedCards ? AppTheme.textPrimary : Colors.grey)), subtitle: Text(_hasRedeemedCards ? 'Lihat kartu yang sudah kamu kumpulkan' : 'Belum ada kartu yang diklaim', style: TextStyle(color: _hasRedeemedCards ? AppTheme.textSecondary : Colors.grey)), trailing: const Icon(Icons.chevron_right), onTap: () { if (_hasRedeemedCards || _isMember) { Navigator.pushNamed(context, Routes.redeem); } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kamu harus jadi Member dan redeem kartu terlebih dahulu!'), backgroundColor: Colors.red)); Navigator.pushNamed(context, Routes.membership); } }),
+        ])),
+        const Divider(height: 1),
+        const SizedBox(height: AppTheme.spacingMedium),
+        OutlinedButton.icon(onPressed: widget.onLogout == null ? null : _confirmLogout, icon: const Icon(Icons.logout), label: const Text('Logout')),
+      ]),
     );
   }
 }
