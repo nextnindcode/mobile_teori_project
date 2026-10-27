@@ -20,10 +20,11 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
+  Key _homeKey = UniqueKey();
   bool _checkingTimeout = false;
 
   List<Widget> get _pages => [
-        const HomePage(),
+        HomePage(key: _homeKey),
         const FandomPage(),
         const FeedbackPage(),
         ProfilePage(onLogout: widget.onLogout),
@@ -84,7 +85,12 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   }
 
   void _onTabTapped(int index) {
-    setState(() => _currentIndex = index);
+    setState(() {
+      if (index == 0 && _currentIndex != 0) {
+        _homeKey = UniqueKey();
+      }
+      _currentIndex = index;
+    });
   }
 
   @override
