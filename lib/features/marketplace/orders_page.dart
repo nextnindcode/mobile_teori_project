@@ -190,6 +190,10 @@ class _OrdersPageState extends State<OrdersPage> {
 
                           return Card(
                             color: AppTheme.surfaceElevated,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: const BorderSide(color: AppTheme.borderSubtle),
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
