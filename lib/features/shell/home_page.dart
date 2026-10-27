@@ -125,15 +125,29 @@ class _HomePageState extends State<HomePage> {
       final rows = await Supabase.instance.client
           .from('events')
           .select(
-            'id, title, description, event_date, venue, city, latitude, longitude',
+            'id, title, description, event_date, venue, city, latitude, longitude, poster_path',
           )
           .eq('status', 'scheduled')
           .order('event_date')
           .limit(3)
           .timeout(const Duration(seconds: 8));
-      final events = (rows as List)
-          .map((row) => Event.fromJson(Map<String, dynamic>.from(row)))
-          .toList();
+      final events = (rows as List).map((row) {
+        final data = Map<String, dynamic>.from(row);
+        final rawPath = data['poster_path']?.toString().trim() ?? '';
+        if (rawPath.isNotEmpty) {
+          if (rawPath.startsWith('http')) {
+            data['poster_path'] = rawPath;
+          } else {
+            final normalized = rawPath.startsWith('events/')
+                ? rawPath
+                : 'events/' + rawPath.split('/').last;
+            data['poster_path'] = Supabase.instance.client.storage
+                .from('eclipseverse-media')
+                .getPublicUrl(normalized);
+          }
+        }
+        return Event.fromJson(data);
+      }).toList();
       if (mounted) {
         setState(() {
           _upcomingEvents = events;
