@@ -48,12 +48,11 @@ class CurrencyRates {
 }
 
 class CurrencyService {
-  static const preferredCodes = ['IDR', 'USD', 'SGD', 'MYR', 'JPY', 'KRW', 'THB'];
+  static const preferredCodes = ['IDR', 'MYR', 'SGD', 'THB', 'JPY', 'KRW', 'CNY', 'GBP'];
   static List<String> codesFor(CurrencyRates rates) {
     final available = rates.rates.keys.toSet();
     final preferred = preferredCodes.where(available.contains).toList();
-    final remaining = available.difference(preferred.toSet()).toList()..sort();
-    return [...preferred, ...remaining];
+    return preferred;
   }
   static const _cacheKey = 'currency_rates_cache';
   static const _apiUrl = 'https://open.er-api.com/v6/latest/USD';
