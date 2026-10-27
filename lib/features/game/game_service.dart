@@ -36,24 +36,24 @@ class GameService {
     try {
       rows = await _client
           .from('quiz_questions_public')
-          .select('id,question_text,options,difficulty,points,correct_option')
+          .select('id,question_text,options,difficulty,points,explanation')
           .limit(50)
           .timeout(const Duration(seconds: 8));
     } catch (_) {
       rows = await _client
           .from('quiz_questions_public')
-          .select('id,question_text,options,difficulty,points')
+          .select('id,question_text,options,difficulty,points,explanation')
           .limit(50)
           .timeout(const Duration(seconds: 8));
     }
 
-    if (rows.length < 20) {
-      throw Exception('Data soal Supabase belum cukup. Jalankan migrasi kuis terbaru.');
+    if (rows.length < 15) {
+      throw Exception('Data soal Supabase belum cukup. Minimal 15 soal aktif diperlukan.');
     }
 
     final list = rows.map((row) => Map<String, dynamic>.from(row)).toList()
       ..shuffle();
-    return list.take(20).toList();
+    return list.take(15).toList();
   }
 
   static Future<Map<String, dynamic>> submitAnswers(
