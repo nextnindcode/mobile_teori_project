@@ -17,6 +17,14 @@ class _TimeTabState extends State<TimeTab> {
   ZoneOption _origin = TimeService.wib;
   String? _error;
 
+  @override
+  void initState() {
+    super.initState();
+    final nowWib = TimeService.at(DateTime.now().toUtc(), TimeService.wib.tzName);
+    _date = DateTime(nowWib.year, nowWib.month, nowWib.day);
+    _time = TimeOfDay(hour: nowWib.hour, minute: nowWib.minute);
+  }
+
   Map<String, tz.TZDateTime> _result() {
     final utc = TimeService.toUtc(
       _date.year, _date.month, _date.day,
@@ -81,12 +89,30 @@ class _TimeTabState extends State<TimeTab> {
           Text(_error!, style: const TextStyle(color: AppTheme.error)),
         ],
         const SizedBox(height: AppTheme.spacingMedium),
-        for (final entry in results.entries)
-          Card(child: ListTile(
-            title: Text(entry.key, style: Theme.of(context).textTheme.titleMedium),
-            subtitle: Text('${DateFormat('EEE, d MMM yyyy').format(entry.value)} • ${entry.value.timeZoneName}'),
-            trailing: Text(DateFormat('HH:mm').format(entry.value), style: Theme.of(context).textTheme.titleLarge),
-          )),
+        for (var i = 0; i < results.entries.length; i += 2)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: results.entries.skip(i).take(2).map((entry) => Expanded(
+              child: Card(
+                color: AppTheme.surfaceElevated,
+                margin: const EdgeInsets.all(5),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(entry.key, style: Theme.of(context).textTheme.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 8),
+                      Text(DateFormat('HH:mm').format(entry.value), style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.coolCyan, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(DateFormat('EEE, d MMM yyyy').format(entry.value), style: Theme.of(context).textTheme.bodySmall),
+                      Text(entry.value.timeZoneName, style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+              ),
+            )).toList(),
+          ),
       ],
     );
   }
