@@ -81,10 +81,11 @@ class AuthService {
     try {
       await _client.auth.signOut();
     } finally {
-      // Clear account-owned local data without touching device-level biometric settings.
+      // Do not leave a previous account's cart, profile, score, or biometric credentials on a shared device.
       await LocalDb.clearAccountData();
       await LocalDb.setPref('active_user_id', '');
-      // Remove any legacy API token left by an earlier app version.
+      await LocalDb.setPref('biometric_enabled', '0');
+      await SecureStore.deleteCredentials();
       await SecureStore.deleteToken();
     }
   }
