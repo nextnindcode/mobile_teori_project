@@ -20,8 +20,7 @@ class TimeService {
   static const kst = ZoneOption('Korea Selatan (Seoul)', 'Asia/Seoul');
   static const china = ZoneOption('China (Shanghai)', 'Asia/Shanghai');
 
-  /// 8 zona wajib per requirement Master Prompt:
-  /// WIB, WITA, WIT, London, Jepang, Singapura, Malaysia, Thailand
+  /// Eight target countries, with Indonesia represented by WIB, WITA, and WIT.
   static const requiredZones = [
     wib,
     wita,
