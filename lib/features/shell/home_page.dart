@@ -198,6 +198,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.deepSpace,
+      floatingActionButton: _buildFloatingMiniGameButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: Row(
@@ -281,12 +283,10 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 28),
 
-            // 3. Mini Game Banner (Sensor + Reward points)
-            _buildGameBanner(),
-
+            // Mini game dipindahkan ke tombol melayang agar beranda tidak terlalu padat.
             const SizedBox(height: 28),
 
-            // 4. Upcoming Events from Real API
+            // Upcoming Events from Real API
             _buildUpcomingEventsSection(),
 
             const SizedBox(height: 28),
@@ -592,95 +592,53 @@ class _HomePageState extends State<HomePage> {
                         fontWeight: FontWeight.w600,
                         color: AppTheme.textPrimary,
                       ),
-                    ),
-                  ),
-                ],
+             Widget _buildFloatingMiniGameButton() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _open(Routes.game),
+          borderRadius: BorderRadius.circular(28),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: AppTheme.textPrimary.withValues(alpha: 0.22),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.eclipseViolet.withValues(alpha: 0.28),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-          );
-        },
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.sports_esports_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Mini Games',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.auto_awesome_rounded, color: AppTheme.coronaGold, size: 14),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildGameBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: AppTheme.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppTheme.borderSubtle),
-      ),
-      child: InkWell(
-        onTap: () => _open(Routes.game),
-        child: Row(
-          children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.eclipseViolet.withValues(alpha: 0.35),
-                    blurRadius: 12,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.sports_esports_rounded,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        // <--- FIX OVERFLOW 3
-                        child: Text(
-                          'Guess the Member',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      CosmicBadge(
-                        text: 'SENSOR',
-                        color: AppTheme.coronaGold,
-                        textColor: AppTheme.coronaGold,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Mainkan mini-game sensor & dapatkan poin redeem photocard!',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 12,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
               size: 14,
               color: AppTheme.textSecondary,
             ),
