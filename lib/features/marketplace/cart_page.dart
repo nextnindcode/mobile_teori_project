@@ -335,7 +335,7 @@ class _CartPageState extends State<CartPage> {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppTheme.white,
+                            color: AppTheme.surfaceElevated,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isSelected
@@ -418,14 +418,14 @@ class _CartPageState extends State<CartPage> {
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w700,
-                                        color: AppTheme.surfaceSecondary,
+                                        color: AppTheme.textPrimary,
                                       ),
                                     ),
                                     const SizedBox(height: 5),
                                     Text(
                                       _rupiah(price),
                                       style: const TextStyle(
-                                        color: AppTheme.surface,
+                                        color: AppTheme.coronaGold,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -511,7 +511,7 @@ class _CartPageState extends State<CartPage> {
                         top: Radius.circular(24),
                       ),
                       boxShadow: [
-                        BoxShadow(color: Colors.black12, blurRadius: 14),
+                        BoxShadow(color: Colors.black26, blurRadius: 14),
                       ],
                     ),
                     child: Column(
