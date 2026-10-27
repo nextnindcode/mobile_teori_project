@@ -201,7 +201,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     keyboardType: TextInputType.emailAddress,
                     validator: (val) =>
-                        val!.isEmpty ? 'Email wajib diisi' : null,
+                        val == null || val.trim().isEmpty ? 'Email wajib diisi' : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -224,7 +224,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     obscureText: _obscurePassword,
                     validator: (val) =>
-                        val!.isEmpty ? 'Password wajib diisi' : null,
+                        val == null || val.isEmpty ? 'Password wajib diisi' : null,
                   ),
                   const SizedBox(height: 24),
 
