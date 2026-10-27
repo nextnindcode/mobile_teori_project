@@ -210,7 +210,7 @@ class LocalDb {
   static Future<Map<String, dynamic>?> getUserProfile(String userId) => getProfile(userId);
 
   /// Clears data that must never carry over to another signed-in account.
-  /// Device-level settings (including biometric preferences) are intentionally preserved.
+  /// Device-level settings are preserved here; logout explicitly disables biometric login.
   static Future<void> clearAccountData() async {
     final db = await database;
     await db.delete('cart_local');
