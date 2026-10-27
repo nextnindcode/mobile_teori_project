@@ -100,6 +100,20 @@ class _NearbyPageState extends State<NearbyPage> {
         return notPast && validCoords;
       }).toList();
 
+      final routeArg = ModalRoute.of(context)?.settings.arguments;
+      final requestedId = widget.initialEventId ?? (routeArg is int ? routeArg : null);
+      // Saat dipanggil dari detail, pertahankan event yang diminta meski bukan event mendatang.
+      if (requestedId != null && !filtered.any((event) => event.id == requestedId)) {
+        try {
+          final requestedEvent = await EventService.fetchEventDetail(requestedId);
+          if (_validCoordinate(requestedEvent.latitude, requestedEvent.longitude)) {
+            filtered.insert(0, requestedEvent);
+          }
+        } catch (_) {
+          // Jangan mengganti event yang gagal dimuat dengan event acak.
+        }
+      }
+
       // Sort by distance if user position is available
       if (_userPosition != null) {
         filtered.sort((a, b) {
@@ -124,13 +138,9 @@ class _NearbyPageState extends State<NearbyPage> {
         _activeEvents = filtered;
         _loading = false;
         if (filtered.isNotEmpty) {
-          final routeArg = ModalRoute.of(context)?.settings.arguments;
-          final requestedId =
-              widget.initialEventId ?? (routeArg is int ? routeArg : null);
-          _selectedEvent = filtered.firstWhere(
-            (event) => event.id == requestedId,
-            orElse: () => filtered.first,
-          );
+          _selectedEvent = requestedId == null
+              ? filtered.first
+              : filtered.where((event) => event.id == requestedId).firstOrNull;
         }
       });
 
