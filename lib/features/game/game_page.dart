@@ -362,7 +362,12 @@ class _GamePageState extends State<GamePage> {
           ],
           const SizedBox(height: 24),
           Expanded(
-            child: Row(
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 1.3,
+              padding: EdgeInsets.zero,
               children: List.generate(
                 question.options.length,
                 (index) {
@@ -394,9 +399,8 @@ class _GamePageState extends State<GamePage> {
                     textColor = Colors.white;
                   }
 
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  return Padding(
+                      padding: const EdgeInsets.all(4),
                       child: AnimatedScale(
                         scale: isHighlighted ? 1.02 : 1.0,
                         duration: const Duration(milliseconds: 200),
@@ -448,7 +452,6 @@ class _GamePageState extends State<GamePage> {
                           ),
                         ),
                       ),
-                    ),
                   );
                 },
               ),
