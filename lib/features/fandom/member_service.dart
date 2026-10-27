@@ -21,7 +21,9 @@ class MemberService {
         final path = row['profile_image_path']?.toString() ?? '';
         row['image_url'] = path.isEmpty
             ? null
-            : _client.storage.from('eclipseverse-media').getPublicUrl(path);
+            : (path.startsWith('http')
+                ? path
+                : _client.storage.from('eclipseverse-media').getPublicUrl(path));
         return row;
       }).toList();
 
@@ -48,7 +50,9 @@ class MemberService {
       final path = data['profile_image_path']?.toString() ?? '';
       data['image_url'] = path.isEmpty
           ? null
-          : _client.storage.from('eclipseverse-media').getPublicUrl(path);
+          : (path.startsWith('http')
+              ? path
+              : _client.storage.from('eclipseverse-media').getPublicUrl(path));
       return Member.fromJson(data);
     } catch (_) {
       final cached = await LocalDb.getMembers();
