@@ -17,7 +17,7 @@ class _FandomPageState extends State<FandomPage> {
   final _search = TextEditingController();
   List<Member> _all = [];
   String _teamFilter = 'Semua';
-  static const _teams = ['Semua', 'Vocalist', 'Dancer', 'Rapper', 'Maknae'];
+  static const _teams = ['Semua', 'Vocal Team', 'Performance Team', 'Hip-Hop Team'];
 
   bool _loading = true;
   String? _error;
@@ -55,12 +55,13 @@ class _FandomPageState extends State<FandomPage> {
     return _all.where((m) {
       final matchFilter =
           _teamFilter == 'Semua' ||
-          m.position.toLowerCase().contains(_teamFilter.toLowerCase());
+          m.team.toLowerCase() == _teamFilter.toLowerCase();
 
       final matchSearch =
           q.isEmpty ||
           m.stageName.toLowerCase().contains(q) ||
-          m.position.toLowerCase().contains(q);
+          m.position.toLowerCase().contains(q) ||
+          m.team.toLowerCase().contains(q);
 
       return matchFilter && matchSearch;
     }).toList();
@@ -90,7 +91,7 @@ class _FandomPageState extends State<FandomPage> {
               onChanged: (_) => setState(() {}),
               style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'Cari nama member atau posisi...',
+                hintText: 'Cari nama member, posisi, atau team...',
                 prefixIcon: const Icon(Icons.search, color: AppTheme.coolCyan),
                 suffixIcon: _search.text.isEmpty
                     ? null
@@ -117,9 +118,17 @@ class _FandomPageState extends State<FandomPage> {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final team = _teams[index];
+                final selected = _teamFilter == team;
                 return ChoiceChip(
                   label: Text(team),
-                  selected: _teamFilter == team,
+                  selected: selected,
+                  selectedColor: AppTheme.eclipseViolet,
+                  backgroundColor: AppTheme.surfaceElevated,
+                  labelStyle: TextStyle(
+                    color: selected ? Colors.white : AppTheme.textSecondary,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 12,
+                  ),
                   onSelected: (_) => setState(() => _teamFilter = team),
                 );
               },
@@ -142,14 +151,14 @@ class _FandomPageState extends State<FandomPage> {
     if (list.isEmpty) {
       return CosmicEmptyView(
         title: 'Member Tidak Ditemukan',
-        subtitle: 'Tidak ada member dengan kata kunci "${_search.text}".',
+        subtitle: 'Tidak ada member dengan filter "$_teamFilter" dan pencarian "${_search.text}".',
         icon: Icons.person_search_rounded,
         action: OutlinedButton(
           onPressed: () {
             _search.clear();
-            setState(() {});
+            setState(() => _teamFilter = 'Semua');
           },
-          child: const Text('Reset Pencarian'),
+          child: const Text('Reset Filter & Pencarian'),
         ),
       );
     }
@@ -162,7 +171,7 @@ class _FandomPageState extends State<FandomPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.76,
+          childAspectRatio: 0.72,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -186,7 +195,7 @@ class _FandomPageState extends State<FandomPage> {
                 arguments: m.id,
               ),
               child: Padding(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -258,8 +267,29 @@ class _FandomPageState extends State<FandomPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.nebulaIndigo.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppTheme.nebulaIndigo.withValues(alpha: 0.4),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        m.team,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppTheme.coolCyan,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Text(
-                      // Nampilin posisi
                       m.position,
                       maxLines: 2,
                       textAlign: TextAlign.center,
@@ -267,7 +297,7 @@ class _FandomPageState extends State<FandomPage> {
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppTheme.textSecondary,
-                        height: 1.25,
+                        height: 1.2,
                       ),
                     ),
                   ],

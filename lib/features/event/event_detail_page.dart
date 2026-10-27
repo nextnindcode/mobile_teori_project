@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../notification/notification_service.dart';
+import '../tools/time_service.dart';
 import 'event_model.dart';
 import 'event_page.dart' show formatEventDate;
 import 'event_service.dart';
@@ -22,6 +24,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
   bool _reminderOn = false;
   String? _error;
   int? _id;
+
+  String _selectedTzName = 'Asia/Jakarta';
 
   @override
   void didChangeDependencies() {
@@ -112,6 +116,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildEventBody(Event e) {
+    // 8 required timezones
+    final zones = TimeService.requiredZones;
+    final convertedTime = TimeService.at(e.eventDate, _selectedTzName);
+    final selectedZoneOption = zones.firstWhere(
+      (z) => z.tzName == _selectedTzName,
+      orElse: () => zones.first,
+    );
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -175,6 +187,125 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        // Timezone Converter Box (Master Prompt requirement: WIB, WITA, WIT, London, Jepang, Singapura, Malaysia, Thailand)
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceElevated,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.eclipseViolet.withValues(alpha: 0.4)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.eclipseViolet.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.public, color: AppTheme.coolCyan, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Konversi Zona Waktu Dunia',
+                          style: TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          'Waktu event otomatis dikonversi ke zona pilihan',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Horizontal Chips for 8 Timezones
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: zones.map((z) {
+                    final isSel = z.tzName == _selectedTzName;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(z.label),
+                        selected: isSel,
+                        selectedColor: AppTheme.eclipseViolet,
+                        backgroundColor: AppTheme.deepSpace,
+                        labelStyle: TextStyle(
+                          color: isSel ? Colors.white : AppTheme.textSecondary,
+                          fontSize: 11,
+                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        onSelected: (_) {
+                          setState(() => _selectedTzName = z.tzName);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.deepSpace,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Waktu di ${selectedZoneOption.label}:',
+                      style: const TextStyle(
+                        color: AppTheme.coolCyan,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      DateFormat('EEEE, dd MMMM yyyy · HH:mm').format(convertedTime),
+                      style: const TextStyle(
+                        color: AppTheme.coronaGold,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Zona IANA: ${_selectedTzName} (Offset: ${convertedTime.timeZoneOffset.isNegative ? '-' : '+'}${convertedTime.timeZoneOffset.inHours} Jam)',
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

@@ -6,6 +6,7 @@ class Member {
   final int id;
   final String stageName;
   final String position;
+  final String team;
   final String description;
   final String funFact;
   final String? imageUrl;
@@ -14,6 +15,7 @@ class Member {
     required this.id,
     required this.stageName,
     required this.position,
+    required this.team,
     required this.description,
     required this.funFact,
     required this.imageUrl,
@@ -22,19 +24,36 @@ class Member {
   String get initial =>
       stageName.isEmpty ? '?' : stageName.substring(0, 1).toUpperCase();
 
-  factory Member.fromJson(Map<String, dynamic> json) => Member(
-    id: toInt(json['id']),
-    stageName: '${json['stage_name'] ?? ''}',
-    position: '${json['position'] ?? ''}',
-    description: '${json['description'] ?? ''}',
-    funFact: '${json['fun_fact'] ?? ''}',
-    imageUrl: json['image_url']?.toString(),
-  );
+  factory Member.fromJson(Map<String, dynamic> json) {
+    // Tentukan team default dari position jika team kosong
+    String team = '${json['team'] ?? ''}'.trim();
+    if (team.isEmpty) {
+      final pos = '${json['position'] ?? ''}'.toLowerCase();
+      if (pos.contains('vocal') || ['solen', 'lunar', 'astra', 'mira'].contains('${json['stage_name']}'.toLowerCase())) {
+        team = 'Vocal Team';
+      } else if (pos.contains('rapper') || pos.contains('rap') || ['zephyr', 'atlas', 'lyra'].contains('${json['stage_name']}'.toLowerCase())) {
+        team = 'Hip-Hop Team';
+      } else {
+        team = 'Performance Team';
+      }
+    }
+
+    return Member(
+      id: toInt(json['id']),
+      stageName: '${json['stage_name'] ?? ''}',
+      position: '${json['position'] ?? ''}',
+      team: team,
+      description: '${json['description'] ?? ''}',
+      funFact: '${json['fun_fact'] ?? ''}',
+      imageUrl: json['image_url']?.toString(),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'stage_name': stageName,
     'position': position,
+    'team': team,
     'description': description,
     'fun_fact': funFact,
     'image_url': imageUrl,

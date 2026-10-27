@@ -11,7 +11,7 @@ class MemberService {
       final rows = await _client
           .from('members')
           .select(
-            'id,stage_name,position,description,fun_fact,profile_image_path',
+            'id,stage_name,position,team,description,fun_fact,profile_image_path',
           )
           .order('sort_order')
           .timeout(const Duration(seconds: 12));

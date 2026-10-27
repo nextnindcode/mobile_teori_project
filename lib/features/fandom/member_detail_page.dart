@@ -98,20 +98,44 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         Text(
           m.stageName,
           textAlign: TextAlign.center,
-          style: t.headlineMedium?.copyWith(color: AppTheme.textPrimary),
+          style: t.headlineMedium?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: AppTheme.spacingSmall),
-        Center(
-          child: Chip(
-            label: Text(m.position),
-            backgroundColor: AppTheme.coolCyan.withValues(alpha: 0.18),
-            labelStyle: const TextStyle(color: AppTheme.coolCyan),
-          ),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          children: [
+            Chip(
+              label: Text(m.team),
+              backgroundColor: AppTheme.eclipseViolet.withValues(alpha: 0.2),
+              labelStyle: const TextStyle(
+                color: AppTheme.coronaGold,
+                fontWeight: FontWeight.bold,
+              ),
+              side: BorderSide(
+                color: AppTheme.eclipseViolet.withValues(alpha: 0.5),
+              ),
+            ),
+            Chip(
+              label: Text(m.position),
+              backgroundColor: AppTheme.coolCyan.withValues(alpha: 0.18),
+              labelStyle: const TextStyle(color: AppTheme.coolCyan),
+              side: BorderSide(
+                color: AppTheme.coolCyan.withValues(alpha: 0.3),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: AppTheme.spacingMedium),
         Text(
           'Deskripsi',
-          style: t.titleLarge?.copyWith(color: AppTheme.textPrimary),
+          style: t.titleLarge?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: AppTheme.spacingXSmall),
         Text(
@@ -123,6 +147,11 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         ),
         const SizedBox(height: AppTheme.spacingMedium),
         Card(
+          color: AppTheme.surfaceElevated,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppTheme.borderSubtle),
+          ),
           child: ListTile(
             leading: const Icon(
               Icons.lightbulb_outline,
@@ -130,7 +159,10 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
             ),
             title: const Text(
               'Fun fact',
-              style: TextStyle(color: AppTheme.textPrimary),
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             subtitle: Text(
               m.funFact.isEmpty ? '-' : m.funFact,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../membership/membership_service.dart';
 import '../../core/routes.dart';
 import '../../models/products.dart';
 import '../../theme/app_theme.dart';
@@ -103,13 +102,11 @@ class _CatalogPageState extends State<CatalogPage> {
           .order('created_at', ascending: false)
           .limit(100)
           .timeout(const Duration(seconds: 10));
-      final isMember = await MembershipService.isActive();
       final products = <Product>[];
       for (final item in rows) {
         final row = Map<String, dynamic>.from(item);
         final category = Map<String, dynamic>.from(row['categories'] as Map);
         final slug = '${category['slug']}';
-        if (slug == 'collectible' && !isMember) continue;
         final imagePath = row['cover_image_path']?.toString();
         final imageUrl = (imagePath == null || imagePath.isEmpty)
             ? null
@@ -215,20 +212,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 return ChoiceChip(
                   label: Text(label),
                   selected: selected,
-                  onSelected: (_) async {
-                    if (label == 'Koleksi') {
-                      final isMember = await MembershipService.isActive();
-
-                      if (!context.mounted) return;
-
-                      if (!isMember) {
-                        Navigator.pushNamed(context, Routes.membership);
-                        return;
-                      }
-                    }
-
-                    if (!context.mounted) return;
-
+                  onSelected: (_) {
                     setState(() {
                       _category = label;
                     });

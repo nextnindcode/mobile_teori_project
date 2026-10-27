@@ -9,17 +9,34 @@ class ZoneOption {
 
 /// Semua tanggal di database adalah UTC.
 class TimeService {
-  static const wib = ZoneOption('WIB · Jakarta', 'Asia/Jakarta');
-  static const wita = ZoneOption('WITA · Makassar', 'Asia/Makassar');
-  static const wit = ZoneOption('WIT · Jayapura', 'Asia/Jayapura');
-  static const london = ZoneOption('London', 'Europe/London');
-  static const kst = ZoneOption('KST · Seoul', 'Asia/Seoul');
+  static const wib = ZoneOption('WIB (Jakarta)', 'Asia/Jakarta');
+  static const wita = ZoneOption('WITA (Makassar)', 'Asia/Makassar');
+  static const wit = ZoneOption('WIT (Jayapura)', 'Asia/Jayapura');
+  static const london = ZoneOption('London (UK)', 'Europe/London');
+  static const japan = ZoneOption('Jepang (Tokyo)', 'Asia/Tokyo');
+  static const singapore = ZoneOption('Singapura', 'Asia/Singapore');
+  static const malaysia = ZoneOption('Malaysia (KL)', 'Asia/Kuala_Lumpur');
+  static const thailand = ZoneOption('Thailand (Bangkok)', 'Asia/Bangkok');
+  static const kst = ZoneOption('KST (Seoul)', 'Asia/Seoul');
+
+  /// 8 zona wajib per requirement Master Prompt:
+  /// WIB, WITA, WIT, London, Jepang, Singapura, Malaysia, Thailand
+  static const requiredZones = [
+    wib,
+    wita,
+    wit,
+    london,
+    japan,
+    singapore,
+    malaysia,
+    thailand,
+  ];
 
   /// Zona tujuan yang selalu ditampilkan.
-  static const zones = [wib, wita, wit, kst];
+  static const zones = requiredZones;
 
   /// Zona asal untuk mode manual.
-  static const originZones = [wib, wita, wit, kst];
+  static const originZones = [wib, wita, wit, london, japan, singapore, malaysia, thailand, kst];
 
   static bool _ready = false;
   static void _ensure() {
@@ -40,8 +57,8 @@ class TimeService {
     return tz.TZDateTime(tz.getLocation(originZone), y, m, d, h, mi).toUtc();
   }
 
-  /// Label zona -> waktu di zona itu (urut Indonesia, lalu Korea).
+  /// Label zona -> waktu di zona itu
   static Map<String, tz.TZDateTime> convertAll(DateTime utc) => {
-        for (final z in zones) z.label: at(utc, z.tzName),
+        for (final z in requiredZones) z.label: at(utc, z.tzName),
       };
 }
