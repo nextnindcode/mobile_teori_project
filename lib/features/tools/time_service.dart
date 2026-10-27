@@ -15,9 +15,10 @@ class TimeService {
   static const london = ZoneOption('London (UK)', 'Europe/London');
   static const japan = ZoneOption('Jepang (Tokyo)', 'Asia/Tokyo');
   static const singapore = ZoneOption('Singapura', 'Asia/Singapore');
-  static const malaysia = ZoneOption('Malaysia (KL)', 'Asia/Kuala_Lumpur');
+  static const malaysia = ZoneOption('Malaysia (Kuala Lumpur)', 'Asia/Kuala_Lumpur');
   static const thailand = ZoneOption('Thailand (Bangkok)', 'Asia/Bangkok');
-  static const kst = ZoneOption('KST (Seoul)', 'Asia/Seoul');
+  static const kst = ZoneOption('Korea Selatan (Seoul)', 'Asia/Seoul');
+  static const china = ZoneOption('China (Shanghai)', 'Asia/Shanghai');
 
   /// 8 zona wajib per requirement Master Prompt:
   /// WIB, WITA, WIT, London, Jepang, Singapura, Malaysia, Thailand
@@ -25,18 +26,20 @@ class TimeService {
     wib,
     wita,
     wit,
-    london,
-    japan,
-    singapore,
     malaysia,
+    singapore,
     thailand,
+    japan,
+    kst,
+    china,
+    london,
   ];
 
   /// Zona tujuan yang selalu ditampilkan.
   static const zones = requiredZones;
 
   /// Zona asal untuk mode manual.
-  static const originZones = [wib, wita, wit, london, japan, singapore, malaysia, thailand, kst];
+  static const originZones = [wib, wita, wit, malaysia, singapore, thailand, japan, kst, china, london];
 
   static bool _ready = false;
   static void _ensure() {
