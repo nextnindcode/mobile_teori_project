@@ -35,8 +35,10 @@ class _TimeTabState extends State<TimeTab> {
 
   Future<void> _pickDate() async {
     final d = await showDatePicker(
-      context: context, initialDate: _date,
-      firstDate: DateTime(2020), lastDate: DateTime(2100),
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
     );
     if (d != null) setState(() { _date = d; _error = null; });
   }
@@ -52,67 +54,95 @@ class _TimeTabState extends State<TimeTab> {
     try {
       results = _result();
     } catch (_) {
-      _error = 'Tidak dapat mengonversi waktu. Periksa tanggal dan zona asal.';
+      _error = 'Waktu belum dapat dihitung. Coba pilih tanggal dan zona asal lagi.';
     }
+
     return ListView(
       padding: const EdgeInsets.all(AppTheme.spacingMedium),
       children: [
-        Text('Konversi Waktu Manual', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: AppTheme.spacingSmall),
+        Text('Eclipse Time', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 6),
         const Text(
-          'Pilih tanggal, jam, dan zona waktu asal. Jadwal event tersedia di halaman detail event.',
-          style: TextStyle(color: AppTheme.textSecondary),
+          'Cocokkan waktu antarnegara untuk merencanakan event, live stream, atau jadwal fandom tanpa menghitung selisih jam sendiri.',
+          style: TextStyle(color: AppTheme.textSecondary, height: 1.45),
         ),
-        const SizedBox(height: AppTheme.spacingMedium),
-        Row(children: [
-          Expanded(child: OutlinedButton.icon(
-            onPressed: _pickDate, icon: const Icon(Icons.calendar_today),
-            label: Text(DateFormat('d MMM yyyy').format(_date)),
-          )),
-          const SizedBox(width: AppTheme.spacingSmall),
-          Expanded(child: OutlinedButton.icon(
-            onPressed: _pickTime, icon: const Icon(Icons.access_time),
-            label: Text(_time.format(context)),
-          )),
-        ]),
-        const SizedBox(height: AppTheme.spacingMedium),
-        DropdownField<ZoneOption>(
-          label: 'Zona waktu asal',
-          value: _origin,
-          items: TimeService.originZones
-              .map((z) => DropdownMenuItem(value: z, child: Text(z.label)))
-              .toList(),
-          onChanged: (z) => setState(() { _origin = z ?? _origin; _error = null; }),
+        const SizedBox(height: 16),
+        Card(
+          color: AppTheme.surfaceElevated,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Waktu yang ingin dikonversi', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(child: OutlinedButton.icon(
+                    onPressed: _pickDate,
+                    icon: const Icon(Icons.calendar_today_rounded),
+                    label: Text(DateFormat('d MMM yyyy').format(_date)),
+                  )),
+                  const SizedBox(width: 8),
+                  Expanded(child: OutlinedButton.icon(
+                    onPressed: _pickTime,
+                    icon: const Icon(Icons.schedule_rounded),
+                    label: Text(_time.format(context)),
+                  )),
+                ]),
+                const SizedBox(height: 12),
+                DropdownField<ZoneOption>(
+                  label: 'Zona asal',
+                  value: _origin,
+                  items: TimeService.originZones.map((z) => DropdownMenuItem(
+                    value: z,
+                    child: Text('${TimeService.flag(z.tzName)}  ${z.label}'),
+                  )).toList(),
+                  onChanged: (z) => setState(() { _origin = z ?? _origin; _error = null; }),
+                ),
+              ],
+            ),
+          ),
         ),
         if (_error != null) ...[
-          const SizedBox(height: AppTheme.spacingMedium),
+          const SizedBox(height: 12),
           Text(_error!, style: const TextStyle(color: AppTheme.error)),
         ],
-        const SizedBox(height: AppTheme.spacingMedium),
-        for (var i = 0; i < results.entries.length; i += 2)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: results.entries.skip(i).take(2).map((entry) => Expanded(
-              child: Card(
-                color: AppTheme.surfaceElevated,
-                margin: const EdgeInsets.all(5),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(entry.key, style: Theme.of(context).textTheme.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 8),
-                      Text(DateFormat('HH:mm').format(entry.value), style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.coolCyan, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text(DateFormat('EEE, d MMM yyyy').format(entry.value), style: Theme.of(context).textTheme.bodySmall),
-                      Text(entry.value.timeZoneName, style: Theme.of(context).textTheme.bodySmall),
-                    ],
-                  ),
-                ),
+        const SizedBox(height: 18),
+        const Text('Hasil konversi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        const Text('Satu baris untuk satu zona agar mudah dibandingkan.', style: TextStyle(color: AppTheme.textSecondary)),
+        const SizedBox(height: 10),
+        for (final entry in results.entries)
+          Card(
+            color: AppTheme.surfaceElevated,
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: Text(TimeService.flag(TimeService.zoneCode(entry.key)), style: const TextStyle(fontSize: 25)),
+              title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(DateFormat('EEE, d MMM yyyy').format(entry.value)),
+              trailing: Text(
+                DateFormat('HH:mm').format(entry.value),
+                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppTheme.coolCyan),
               ),
-            )).toList(),
+            ),
           ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.eclipseViolet.withValues(alpha: .08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.eclipseViolet.withValues(alpha: .25)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Cara pakainya', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text('Pilih tanggal dan jam → pilih zona asal → Eclipse Time langsung menghitung waktu setaranya di zona lain. Cocok untuk cek jam mulai event atau live stream.', style: TextStyle(color: AppTheme.textSecondary, height: 1.45)),
+            ],
+          ),
+        ),
       ],
     );
   }
