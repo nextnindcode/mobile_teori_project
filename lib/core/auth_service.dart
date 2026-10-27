@@ -58,8 +58,8 @@ class AuthService {
             : (email.contains('@') ? email.split('@').first : 'Pengguna'));
 
     await LocalDb.saveProfile(
-      // The legacy local cache uses an integer key; the real UUID stays in Supabase.
-      userId: 1,
+      // Cache the profile by Supabase UUID so accounts on one device stay isolated.
+      userId: user.id,
       name: name,
       email: email,
     );

@@ -80,18 +80,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _load() async {
-    final profile = await LocalDb.getUserProfile();
-    final avatar = await LocalDb.getPref('avatar_path');
-    String? remoteAvatarUrl;
     final user = Supabase.instance.client.auth.currentUser;
+    final profile = user == null ? null : await LocalDb.getUserProfile(user.id);
+    final avatar = user == null ? null : await LocalDb.getPref('avatar_path_${user.id}');
+    String? remoteAvatarUrl;
+    Map<String, dynamic>? remoteProfile;
     if (user != null) {
       try {
         final row = await Supabase.instance.client
             .from('profiles')
-            .select('avatar_path')
+            .select('display_name, email, avatar_path')
             .eq('id', user.id)
             .maybeSingle()
             .timeout(const Duration(seconds: 6));
+        remoteProfile = row == null ? null : Map<String, dynamic>.from(row);
         final storagePath = row?['avatar_path']?.toString();
         if (storagePath != null && storagePath.isNotEmpty) {
           remoteAvatarUrl = Supabase.instance.client.storage
@@ -107,8 +109,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final supported = await BiometricService.isSupported();
     if (!mounted) return;
     setState(() {
-      _name = '${profile?['name'] ?? ''}';
-      _email = '${profile?['email'] ?? ''}';
+      _name = '${remoteProfile?['display_name'] ?? profile?['name'] ?? ''}';
+      _email = '${user?.email ?? remoteProfile?['email'] ?? profile?['email'] ?? ''}';
       _avatarPath =
           remoteAvatarUrl ??
           ((avatar != null && avatar.isNotEmpty) ? avatar : null);
@@ -132,13 +134,16 @@ class _ProfilePageState extends State<ProfilePage> {
       final extension = path.extension(x.path).isEmpty
           ? '.jpg'
           : path.extension(x.path);
-      final savedPath = path.join(directory, 'eclipseverse_avatar$extension');
-      final savedFile = await File(x.path).copy(savedPath);
-      await LocalDb.setPref('avatar_path', savedFile.path);
-      var displayedPath = savedFile.path;
       final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
-        try {
+      if (user == null) {
+        if (mounted) showSnack(context, 'Silakan login kembali untuk mengubah foto profil.');
+        return;
+      }
+      final savedPath = path.join(directory, 'eclipseverse_avatar_${user.id}$extension');
+      final savedFile = await File(x.path).copy(savedPath);
+      await LocalDb.setPref('avatar_path_${user.id}', savedFile.path);
+      var displayedPath = savedFile.path;
+      try {
           final storagePath =
               'avatars/${user.id}/profile${path.extension(savedFile.path)}';
           await Supabase.instance.client.storage
@@ -166,9 +171,8 @@ class _ProfilePageState extends State<ProfilePage> {
           displayedPath = Supabase.instance.client.storage
               .from('eclipseverse-media')
               .getPublicUrl(storagePath);
-        } catch (_) {
-          // Keep the persistent local copy if Storage is unavailable or the user is offline.
-        }
+      } catch (_) {
+        // Keep the persistent, account-specific local copy if Storage is unavailable.
       }
       if (!mounted) return;
       setState(() => _avatarPath = displayedPath);
@@ -324,7 +328,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     children: [
                       SwitchListTile(
-                        title: const Text('Login biometric'),
+                        title: const Text('Login dengan sidik jari'),
                         subtitle: Text(
                           _bioSupported
                               ? 'Gunakan sidik jari saat membuka aplikasi'
@@ -402,21 +406,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          // Kalau udah punya kartu atau member aktif, arahkan ke halaman Redeem
-                          if (_hasRedeemedCards || _isMember) {
-                            Navigator.pushNamed(context, Routes.redeem);
-                          } else {
-                            // Kalau belum, arahkan ke halaman Membership
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Kamu harus jadi Member dan redeem kartu terlebih dahulu!',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            Navigator.pushNamed(context, Routes.membership);
-                          }
+                          // Koleksi tetap bisa dibuka walau kuota habis atau membership berakhir.
+                          Navigator.pushNamed(context, Routes.redeem);
                         },
                       ),
                     ],

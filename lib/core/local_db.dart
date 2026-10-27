@@ -12,7 +12,7 @@ class LocalDb {
 
     final path = join(await getDatabasesPath(), 'eclipseverse.db');
 
-    _db = await openDatabase(path, version: 1, onCreate: _onCreate);
+    _db = await openDatabase(path, version: 2, onCreate: _onCreate, onUpgrade: _onUpgrade);
 
     return _db!;
   }
@@ -49,11 +49,26 @@ class LocalDb {
     // 4. User Profile
     await db.execute('''
       CREATE TABLE user_profile (
-        user_id INTEGER PRIMARY KEY,
+        user_id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT NOT NULL
       )
     ''');
+  }
+
+  static Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE user_profile RENAME TO user_profile_legacy');
+      await db.execute('''
+        CREATE TABLE user_profile (
+          user_id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL
+        )
+      ''');
+      // Legacy profiles have no Supabase UUID, so do not assign them to an account.
+      await db.execute('DROP TABLE user_profile_legacy');
+    }
   }
 
   // ===== CART =====
@@ -173,7 +188,7 @@ class LocalDb {
 
   // ===== USER PROFILE =====
   static Future<void> saveProfile({
-    required int userId,
+    required String userId,
     required String name,
     required String email,
   }) async {
@@ -185,14 +200,14 @@ class LocalDb {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  static Future<Map<String, dynamic>?> getProfile() async {
+  static Future<Map<String, dynamic>?> getProfile(String userId) async {
     final db = await database;
-    final result = await db.query('user_profile', limit: 1);
+    final result = await db.query('user_profile', where: 'user_id = ?', whereArgs: [userId], limit: 1);
     if (result.isEmpty) return null;
     return result.first;
   }
 
-  static Future<Map<String, dynamic>?> getUserProfile() => getProfile();
+  static Future<Map<String, dynamic>?> getUserProfile(String userId) => getProfile(userId);
 
   static Future<void> clearAll() async {
     final db = await database;
