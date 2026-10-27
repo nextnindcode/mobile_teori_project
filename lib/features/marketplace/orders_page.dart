@@ -216,8 +216,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                               'Pesanan #$shortId',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w800,
-                                                color:
-                                                    AppTheme.surfaceSecondary,
+                                                color: AppTheme.textPrimary,
                                               ),
                                             ),
                                             const SizedBox(height: 3),
@@ -311,8 +310,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                                 '$qty x $prodName',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w600,
-                                                  color:
-                                                      AppTheme.surfaceSecondary,
+                                                  color: AppTheme.textPrimary,
                                                 ),
                                               ),
                                             ),
@@ -338,7 +336,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                         _rupiah(order['total']),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w800,
-                                          color: AppTheme.surfaceSecondary,
+                                          color: AppTheme.coronaGold,
                                           fontSize: 16,
                                         ),
                                       ),
