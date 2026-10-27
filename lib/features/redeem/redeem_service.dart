@@ -34,43 +34,31 @@ class RedeemService {
   static Future<List<EclipseCard>> getCards() async {
     final cardRows = await _client
         .from('cards')
-        .select('id, card_name, points_cost, is_available')
+        .select('id, card_name, points_cost, is_available, image_path, members(stage_name, profile_image_path)')
         .eq('is_available', true)
         .order('points_cost')
         .timeout(const Duration(seconds: 10));
 
-    final memberRows = await _client
-        .from('members')
-        .select('stage_name, profile_image_path');
-
-    final Map<String, String> memberImages = {};
-    for (var m in memberRows) {
-      final name = m['stage_name'].toString().toLowerCase();
-      final path = m['profile_image_path']?.toString() ?? '';
-      if (path.isNotEmpty) {
-        memberImages[name] = _client.storage
-            .from('eclipseverse-media')
-            .getPublicUrl(path);
-      }
+    String publicImageUrl(dynamic storagePath) {
+      final path = storagePath?.toString().trim() ?? '';
+      if (path.isEmpty) return '';
+      if (path.startsWith('https://') || path.startsWith('http://')) return path;
+      return _client.storage.from('eclipseverse-media').getPublicUrl(path);
     }
 
     return cardRows.map((item) {
       final row = Map<String, dynamic>.from(item);
-      final cardName = row['card_name'].toString().toLowerCase();
-
-      String imageUrl = '';
-      for (String memberName in memberImages.keys) {
-        if (cardName.contains(memberName)) {
-          imageUrl = memberImages[memberName]!;
-          break;
-        }
-      }
+      final member = row['members'] is Map
+          ? Map<String, dynamic>.from(row['members'] as Map)
+          : <String, dynamic>{};
+      final cardImage = publicImageUrl(row['image_path']);
+      final memberImage = publicImageUrl(member['profile_image_path']);
 
       return EclipseCard(
         id: (row['id'] as num).toInt(),
         name: '${row['card_name'] ?? 'Photocard'}',
         cost: (row['points_cost'] as num).toInt(),
-        imageUrl: imageUrl,
+        imageUrl: cardImage.isNotEmpty ? cardImage : memberImage,
       );
     }).toList();
   }

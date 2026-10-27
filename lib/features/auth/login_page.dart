@@ -265,7 +265,7 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: _isLoading ? null : _loginBiometric,
                       icon: const Icon(Icons.fingerprint, size: 28),
                       label: const Text(
-                        'Gunakan biometrik (wajah/sidik jari)',
+                        'Login dengan sidik jari',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

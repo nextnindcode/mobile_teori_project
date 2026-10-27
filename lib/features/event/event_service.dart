@@ -7,7 +7,7 @@ class EventService {
   static Future<List<Event>> fetchEvents() async {
     final rows = await _client
         .from('events')
-        .select('id,title,description,event_date,venue,city,latitude,longitude,status')
+        .select('id,title,description,event_date,venue,city,latitude,longitude,status,poster_path')
         .neq('status', 'draft')
         .order('event_date')
         .limit(100)

@@ -9,6 +9,7 @@ class Event {
   final String city;
   final double latitude;
   final double longitude;
+  final String? imageUrl;
 
   const Event({
     required this.id,
@@ -19,6 +20,7 @@ class Event {
     required this.city,
     required this.latitude,
     required this.longitude,
+    this.imageUrl,
   });
 
   bool get isPast => eventDate.isBefore(DateTime.now().toUtc());
@@ -32,5 +34,6 @@ class Event {
         city: '${j['city'] ?? ''}',
         latitude: toDouble(j['latitude']),
         longitude: toDouble(j['longitude']),
+        imageUrl: (j['poster_path'] ?? j['image_url'])?.toString(),
       );
 }
