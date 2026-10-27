@@ -266,6 +266,9 @@ class _HomePageState extends State<HomePage> {
           children: [
             _buildHeroHeader(),
 
+            const SizedBox(height: 16),
+            _buildMoonAndEclipseCard(),
+
             const SizedBox(height: 24),
 
             // 2. Cosmic Quick Actions (Grid)
@@ -307,6 +310,116 @@ class _HomePageState extends State<HomePage> {
 
             // 5. Featured Products from Real API
             _buildFeaturedProductsSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoonAndEclipseCard() {
+    final nowUtc = DateTime.now().toUtc();
+    final referenceNewMoon = DateTime.utc(2000, 1, 6, 18, 14);
+    const synodicMonth = 29.530588853;
+    final elapsedDays = nowUtc.difference(referenceNewMoon).inMinutes / 1440;
+    final moonAge = ((elapsedDays % synodicMonth) + synodicMonth) % synodicMonth;
+    final phase = moonAge / synodicMonth;
+
+    String phaseName;
+    String moonEmoji;
+    if (phase < 0.04 || phase >= 0.96) {
+      phaseName = 'Bulan Baru';
+      moonEmoji = '🌑';
+    } else if (phase < 0.23) {
+      phaseName = 'Bulan Sabit Muda';
+      moonEmoji = '🌒';
+    } else if (phase < 0.28) {
+      phaseName = 'Perbani Awal';
+      moonEmoji = '🌓';
+    } else if (phase < 0.48) {
+      phaseName = 'Cembung Membesar';
+      moonEmoji = '🌔';
+    } else if (phase < 0.53) {
+      phaseName = 'Bulan Purnama';
+      moonEmoji = '🌕';
+    } else if (phase < 0.73) {
+      phaseName = 'Cembung Mengecil';
+      moonEmoji = '🌖';
+    } else if (phase < 0.78) {
+      phaseName = 'Perbani Akhir';
+      moonEmoji = '🌗';
+    } else {
+      phaseName = 'Bulan Sabit Tua';
+      moonEmoji = '🌘';
+    }
+
+    // Jadwal gerhana yang tercatat terlihat dari Indonesia; diperbarui bila data baru tersedia.
+    final eclipses = <Map<String, String>>[
+      {'date': '2027-02-21', 'name': 'Gerhana Bulan Penumbral', 'type': 'Bulan', 'visibility': 'Dapat terlihat dari Indonesia'},
+      {'date': '2027-08-02', 'name': 'Gerhana Matahari Parsial', 'type': 'Matahari', 'visibility': 'Dapat terlihat dari Indonesia'},
+      {'date': '2027-08-17', 'name': 'Gerhana Bulan Penumbral', 'type': 'Bulan', 'visibility': 'Dapat terlihat dari Indonesia'},
+      {'date': '2028-07-06', 'name': 'Gerhana Bulan Parsial', 'type': 'Bulan', 'visibility': 'Dapat terlihat dari Indonesia'},
+      {'date': '2028-07-22', 'name': 'Gerhana Matahari Parsial', 'type': 'Matahari', 'visibility': 'Dapat terlihat dari Indonesia'},
+    ];
+    final upcoming = eclipses.where((item) {
+      final date = DateTime.tryParse(item['date']!);
+      return date != null && !date.isBefore(DateTime(nowUtc.year, nowUtc.month, nowUtc.day));
+    }).firstOrNull;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceElevated,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.borderSubtle),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('LANGIT HARI INI', style: TextStyle(color: AppTheme.coolCyan, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(moonEmoji, style: const TextStyle(fontSize: 34)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Fase Bulan', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                      Text(phaseName, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('Perkiraan usia Bulan ${moonAge.toStringAsFixed(1)} hari', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.auto_awesome, color: AppTheme.coronaGold, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Gerhana berikutnya', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                      if (upcoming != null) ...[
+                        Text(upcoming['name']!, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+                        Text(DateFormat('d MMMM yyyy', 'id_ID').format(DateTime.parse(upcoming['date']!)), style: const TextStyle(color: AppTheme.coronaGold)),
+                        Text(upcoming['visibility']!, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                      ] else
+                        const Text('Jadwal gerhana yang terlihat dari Indonesia belum tersedia.', style: TextStyle(color: AppTheme.textSecondary)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text('Fase Bulan adalah perkiraan astronomis. Jadwal gerhana: NASA / timeanddate.com.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
           ],
         ),
       ),
