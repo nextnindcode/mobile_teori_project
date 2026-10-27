@@ -18,21 +18,21 @@ class SensorService {
     _moveLocked = false;
     _confirmLocked = false;
 
-    // 1. Accelerometer dengan miringkan hp ke kiri/kanan untuk memilih jawaban 
+    // 1. Accelerometer: miringkan HP ke atas/bawah untuk memilih jawaban 
     _accelSubscription = accelerometerEventStream().listen(
       (event) {
         if (_moveLocked) return;
 
-        if (event.x > 5.0) {
+        if (event.y > 5.0) {
           _moveLocked = true;
-          onMove(1); // Geser Kanan
+          onMove(-1); // Geser ke atas
           _moveCooldown?.cancel();
           _moveCooldown = Timer(const Duration(milliseconds: 1000), () {
             _moveLocked = false;
           });
-        } else if (event.x < -5.0) {
+        } else if (event.y < -5.0) {
           _moveLocked = true;
-          onMove(-1); // Geser Kiri
+          onMove(1); // Geser ke bawah
           _moveCooldown?.cancel();
           _moveCooldown = Timer(const Duration(milliseconds: 1000), () {
             _moveLocked = false;
@@ -47,7 +47,7 @@ class SensorService {
     // 2. Gyroscope dengan menganggukkan hp untuk mengonfirmasi jawaban 
     _gyroSubscription = gyroscopeEventStream().listen(
       (event) {
-        if (_confirmLocked || event.x.abs() < 5.0) return;
+        if (_confirmLocked || event.x.abs() < 1.2) return;
 
         _confirmLocked = true;
         onConfirm();

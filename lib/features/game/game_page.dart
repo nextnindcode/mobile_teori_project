@@ -204,7 +204,7 @@ class _GamePageState extends State<GamePage> {
             CosmicCard(
               child: const Text(
                 'Baca petunjuk, lalu tebak membernya.\n\n'
-                'Miringkan HP ke Kiri/Kanan untuk memilih, dan anggukkan HP untuk konfirmasi jawaban. '
+                'Miringkan HP ke Atas/Bawah untuk memilih, dan anggukkan HP untuk konfirmasi jawaban. '
                 'Atau gunakan sentuhan (Tap).',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppTheme.textSecondary, height: 1.5),
@@ -227,32 +227,6 @@ class _GamePageState extends State<GamePage> {
               ),
             ),
             const SizedBox(height: 10),
-
-            // TOMBOL 2: Tantangan Member
-            // Kalau bukan membership klik tantangan member tidak bisa, nanti diarahkan ke paket membership 
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.workspace_premium),
-                label: const Text('Tantangan Member 10 detik/ronde'),
-                onPressed: () async {
-                  try {
-                    final active = await MembershipService.isActive();
-                    if (!context.mounted) return;
-                    if (!active) {
-                      Navigator.pushNamed(context, Routes.membership);
-                      return;
-                    }
-                    await _startNewGame(controller, memberChallenge: true);
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Status membership gagal diperiksa: $e')),
-                    );
-                  }
-                },
-              ),
-            ),
 
             if (!_isMember)
               const Padding(
@@ -415,7 +389,7 @@ class _GamePageState extends State<GamePage> {
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: Text(
-              'Miring ke Kiri/Kanan: Geser Jawaban • Anggukkan: Konfirmasi Jawaban',
+              'Miring ke Atas/Bawah: Geser Jawaban • Anggukkan: Konfirmasi Jawaban',
               style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
             ),
           ),

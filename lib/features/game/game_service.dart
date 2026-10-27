@@ -47,13 +47,13 @@ class GameService {
           .timeout(const Duration(seconds: 8));
     }
 
-    if (rows.length < 10) {
-      throw Exception('Data soal Supabase belum cukup. Jalankan seed demo.');
+    if (rows.length < 20) {
+      throw Exception('Data soal Supabase belum cukup. Jalankan migrasi kuis terbaru.');
     }
 
     final list = rows.map((row) => Map<String, dynamic>.from(row)).toList()
       ..shuffle();
-    return list.take(10).toList();
+    return list.take(20).toList();
   }
 
   static Future<Map<String, dynamic>> submitAnswers(

@@ -82,7 +82,7 @@ class GameController extends ChangeNotifier {
       _questions.addAll(unique);
       _bestScore = bestScore;
       _memberChallenge = memberChallenge;
-      _roundDuration = memberChallenge ? 10 : 15; 
+      _roundDuration = 15; 
       _startTimer();
       notifyListeners();
     } catch (e) {
