@@ -582,7 +582,112 @@ class _NearbyPageState extends State<NearbyPage> {
                   ),
                 ),
 
-                // 3. Floating Compass
+                // 3. Swipeable event cards, ordered by distance when GPS is available.
+                if (_activeEvents.isNotEmpty)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 18,
+                    child: SizedBox(
+                      height: 142,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _activeEvents.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) {
+                          final event = _activeEvents[index];
+                          final distance = _userPosition == null
+                              ? null
+                              : LocationService.distanceKm(
+                                  _userPosition!.latitude,
+                                  _userPosition!.longitude,
+                                  event.latitude,
+                                  event.longitude,
+                                );
+                          return SizedBox(
+                            width: 270,
+                            child: Card(
+                              color: AppTheme.surfaceElevated.withValues(alpha: 0.97),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(
+                                  color: target?.id == event.id
+                                      ? AppTheme.coronaGold
+                                      : AppTheme.borderSubtle,
+                                  width: target?.id == event.id ? 2 : 1,
+                                ),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () => _selectEvent(event),
+                                child: Row(
+                                  children: [
+                                    if (event.imageUrl != null && event.imageUrl!.isNotEmpty)
+                                      Image.network(
+                                        event.imageUrl!,
+                                        width: 86,
+                                        height: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          width: 86,
+                                          color: AppTheme.deepSpace,
+                                          child: const Icon(Icons.event, color: AppTheme.coolCyan),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        width: 86,
+                                        color: AppTheme.deepSpace,
+                                        child: const Icon(Icons.event, color: AppTheme.coolCyan),
+                                      ),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              event.title,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: AppTheme.textPrimary,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 5),
+                                            Text(
+                                              event.city,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                            ),
+                                            if (distance != null)
+                                              Text(
+                                                '${distance.toStringAsFixed(1)} km dari kamu',
+                                                style: const TextStyle(color: AppTheme.coronaGold, fontSize: 10),
+                                              ),
+                                            const Spacer(),
+                                            const Text('Pilih & lihat rute →',
+                                              style: TextStyle(color: AppTheme.coolCyan, fontSize: 10, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                // 4. Floating Compass
                 Positioned(
                   top: 96,
                   right: 16,

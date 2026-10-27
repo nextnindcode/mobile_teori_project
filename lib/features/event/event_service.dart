@@ -25,7 +25,7 @@ class EventService {
   static Future<Event> fetchEventDetail(int id) async {
     final row = await _client
         .from('events')
-        .select('id,title,description,event_date,venue,city,latitude,longitude,status')
+        .select('id,title,description,event_date,venue,city,latitude,longitude,status,poster_path')
         .eq('id', id)
         .single()
         .timeout(const Duration(seconds: 12));
