@@ -163,16 +163,22 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(
-              widget.card.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                color: AppTheme.surfaceElevated,
-                child: const Center(
-                  child: Icon(Icons.broken_image, color: Colors.white54, size: 48),
+            if (widget.card.imageUrl.trim().isNotEmpty)
+              Image.network(
+                widget.card.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  color: AppTheme.surfaceElevated,
+                  child: const Center(
+                    child: Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                  ),
                 ),
+              )
+            else
+              Container(
+                color: AppTheme.surfaceElevated,
+                child: const Center(child: Icon(Icons.image_not_supported_outlined, color: AppTheme.textSecondary, size: 48)),
               ),
-            ),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
