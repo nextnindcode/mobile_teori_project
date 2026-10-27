@@ -11,10 +11,8 @@ class GameService {
   static Future<int> getBestScore() async {
     final user = _client.auth.currentUser;
     final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
-    final local =
-        int.tryParse(await LocalDb.getPreference(scoreKey) ?? '0') ?? 0;
+    final local = int.tryParse(await LocalDb.getPreference(scoreKey) ?? '0') ?? 0;
     if (user == null) return local;
-
     try {
       final row = await _client
           .from('game_scores')
@@ -24,7 +22,6 @@ class GameService {
           .limit(1)
           .maybeSingle()
           .timeout(const Duration(seconds: 8));
-
       final remote = (row?['score'] as num?)?.toInt() ?? 0;
       return remote > local ? remote : local;
     } catch (_) {
@@ -38,8 +35,7 @@ class GameService {
     await LocalDb.setPreference(scoreKey, score.toString());
   }
 
-  /// Mengambil bank soal EclipseVerse, lalu memilih 10 soal acak untuk satu sesi.
-  /// View publik tidak mengirim correct_option agar kunci jawaban tidak bocor ke aplikasi.
+  /// Ambil maksimal 20 soal aktif dari bank, lalu acak dan gunakan 10 soal.
   static Future<List<Map<String, dynamic>>> fetchQuestions() async {
     final rows = await _client
         .from('quiz_questions_public')
@@ -48,16 +44,10 @@ class GameService {
         .timeout(const Duration(seconds: 8));
 
     if (rows.length < questionsPerSession) {
-      throw Exception(
-        'Bank soal belum cukup. Minimal $questionsPerSession soal aktif diperlukan.',
-      );
+      throw Exception('Bank soal belum cukup. Minimal $questionsPerSession soal aktif diperlukan.');
     }
 
-    final questions = rows
-        .map((row) => Map<String, dynamic>.from(row))
-        .toList()
-      ..shuffle();
-
+    final questions = rows.map((row) => Map<String, dynamic>.from(row)).toList()..shuffle();
     return questions.take(questionsPerSession).toList();
   }
 
@@ -69,14 +59,10 @@ class GameService {
       throw Exception('Satu sesi harus berisi tepat $questionsPerSession jawaban.');
     }
 
-    final result = await _client
-        .rpc(
-          memberChallenge
-              ? 'submit_member_quiz_attempt'
-              : 'submit_quiz_attempt',
-          params: {'p_answers': answers},
-        )
-        .timeout(const Duration(seconds: 10));
+    final result = await _client.rpc(
+      memberChallenge ? 'submit_member_quiz_attempt' : 'submit_quiz_attempt',
+      params: {'p_answers': answers},
+    ).timeout(const Duration(seconds: 10));
 
     return Map<String, dynamic>.from(result as Map);
   }
@@ -87,6 +73,5 @@ class GameService {
     await LocalDb.setPreference(scoreKey, score.toString());
   }
 
-  static void logFailure(Object error) =>
-      debugPrint('Game/Supabase: $error');
+  static void logFailure(Object error) => debugPrint('Game/Supabase: $error');
 }
