@@ -16,7 +16,6 @@ class GameController extends ChangeNotifier {
   int _bestScore = 0;
   bool _isSubmitting = false;
 
-  // Mencegah /10 -> /20 dan poin hilang 
   int _session = 0;
   bool _isTransitioning = false;
 
@@ -35,13 +34,6 @@ class GameController extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   GameQuestion get currentQuestion => _questions[_currentRound];
 
-  // Jawaban benar soal aktif ('A'/'B')
-  // Null = tidak tersedia 
-  String? get currentCorrectAnswer {
-    if (_questions.isEmpty || _currentRound >= _questions.length) return null;
-    return _questions[_currentRound].correctAnswer;
-  }
-
   Future<void> startGame({bool memberChallenge = false}) async {
     final session = ++_session;
     _timer?.cancel();
@@ -53,12 +45,13 @@ class GameController extends ChangeNotifier {
     _correctCount = 0;
     _isSubmitting = false;
     _isTransitioning = false;
+    _memberChallenge = memberChallenge;
     notifyListeners();
 
     try {
       final bestScore = await GameService.getBestScore();
       final rows = await GameService.fetchQuestions();
-      if (session != _session) return; 
+      if (session != _session) return;
 
       final parsed = rows.map((row) {
         final options = Map<String, dynamic>.from(row['options'] as Map);
@@ -69,7 +62,6 @@ class GameController extends ChangeNotifier {
           id: (row['id'] as num).toInt(),
           funFact: '${row['question_text']}',
           options: labels,
-          correctAnswer: row['correct_option']?.toString(),  
         );
       }).toList();
 
@@ -79,10 +71,14 @@ class GameController extends ChangeNotifier {
         if (seenIds.add(q.id)) unique.add(q);
       }
 
+      // Server menyiapkan tepat 10 soal per sesi.
+      if (unique.length != 10) {
+        throw Exception('Sesi kuis harus berisi tepat 10 soal.');
+      }
+
       _questions.addAll(unique);
       _bestScore = bestScore;
-      _memberChallenge = memberChallenge;
-      _roundDuration = memberChallenge ? 10 : 15; 
+      _roundDuration = memberChallenge ? 10 : 15;
       _startTimer();
       notifyListeners();
     } catch (e) {
@@ -105,19 +101,18 @@ class GameController extends ChangeNotifier {
         notifyListeners();
       } else {
         _timer?.cancel();
-        _answers[currentQuestion.id] = '';
+        // RPC tidak menerima jawaban kosong. SKIP sengaja bukan A/B,
+        // sehingga jawaban timeout dihitung salah tanpa menyebabkan 400.
+        _answers[currentQuestion.id] = 'SKIP';
         _goToNextRound();
       }
     });
   }
 
-  // Hentikan timer tanpa memajukan ronde — dipanggil saat user menjawab
-  // Supaya timer tidak auto-advance saat UI menampilkan feedback benar/salah
   void pauseTimer() {
     _timer?.cancel();
   }
 
-  // Rekam jawaban user lalu maju ke ronde berikutnya
   Future<void> answerQuestion(String selectedAnswer) async {
     if (_isTransitioning) return;
     _timer?.cancel();
@@ -138,7 +133,6 @@ class GameController extends ChangeNotifier {
       return;
     }
 
-    // Ronde terakhir — submit ke server
     _currentRound++;
     _timer?.cancel();
     _isSubmitting = true;
@@ -148,7 +142,7 @@ class GameController extends ChangeNotifier {
       final answers = _questions
           .map((q) => {
                 'question_id': q.id,
-                'answer': _answers[q.id] ?? '',
+                'answer': _answers[q.id] ?? 'SKIP',
               })
           .toList();
       final result = await GameService.submitAnswers(
@@ -178,4 +172,4 @@ class GameController extends ChangeNotifier {
     _timer?.cancel();
     super.dispose();
   }
-} 
+}
