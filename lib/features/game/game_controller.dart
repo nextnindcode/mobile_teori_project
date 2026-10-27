@@ -18,7 +18,6 @@ class GameController extends ChangeNotifier {
 
   int _session = 0;
   bool _isTransitioning = false;
-
   Timer? _timer;
 
   List<GameQuestion> get questions => _questions;
@@ -54,7 +53,10 @@ class GameController extends ChangeNotifier {
       if (session != _session) return;
 
       final parsed = rows.map((row) {
-        final options = Map<String, dynamic>.from(row['options'] as Map);
+        final rawOptions = row['options'];
+        final options = rawOptions is Map
+            ? Map<String, dynamic>.from(rawOptions)
+            : <String, dynamic>{};
         final labels = options.entries
             .map((entry) => '${entry.key}. ${entry.value}')
             .toList();
@@ -71,7 +73,6 @@ class GameController extends ChangeNotifier {
         if (seenIds.add(q.id)) unique.add(q);
       }
 
-      // Server menyiapkan tepat 10 soal per sesi.
       if (unique.length != 10) {
         throw Exception('Sesi kuis harus berisi tepat 10 soal.');
       }
@@ -101,8 +102,8 @@ class GameController extends ChangeNotifier {
         notifyListeners();
       } else {
         _timer?.cancel();
-        // RPC tidak menerima jawaban kosong. SKIP sengaja bukan A/B,
-        // sehingga jawaban timeout dihitung salah tanpa menyebabkan 400.
+        // Timeout tetap mengirim satu jawaban untuk soal ini.
+        // SKIP bukan A/B/C/D sehingga server menghitungnya salah.
         _answers[currentQuestion.id] = 'SKIP';
         _goToNextRound();
       }
