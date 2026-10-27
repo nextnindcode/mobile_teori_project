@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth_service.dart';
+import '../../core/local_db.dart';
+import '../../core/secure_store.dart';
 import '../../theme/app_theme.dart';
 import '../../core/routes.dart';
 
@@ -37,6 +39,12 @@ class _RegisterPageState extends State<RegisterPage> {
       if (user == null) {
         throw Exception('Registrasi gagal. Silakan coba lagi.');
       }
+
+      // A newly created account must not inherit leftover local state from a prior account.
+      await LocalDb.clearAccountData();
+      await LocalDb.setPref('active_user_id', '');
+      await LocalDb.setPref('biometric_enabled', '0');
+      await SecureStore.deleteCredentials();
 
       // =========================================================
       // TAMBAHAN BAGIAN C: SIMPAN NOTIFIKASI WELCOME KE INBOX
