@@ -9,24 +9,67 @@ Deno.serve(async (req) => {
   });
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return Response.json({ error: "Authentication required" }, { status: 401 });
+
   const { message } = await req.json().catch(() => ({ message: "" }));
   if (typeof message !== "string" || !message.trim() || message.length > 2000) {
     return Response.json({ error: "Pesan kosong atau terlalu panjang" }, { status: 400 });
   }
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) return Response.json({ error: "GEMINI_API_KEY belum dikonfigurasi" }, { status: 503 });
+
+  // Use the authenticated user's session for RLS-protected application data.
+  const [events, products, members, cards, plans, points, memberships] = await Promise.all([
+    supabase.from("events").select("title,description,event_date,venue,city,status,poster_path")
+      .neq("status", "draft").order("event_date").limit(40),
+    supabase.from("products").select("name,description,price_idr,stock,cover_image_path,categories(name)")
+      .eq("is_published", true).limit(60),
+    supabase.from("members").select("stage_name,position,description,fun_fact,team,profile_image_path")
+      .order("sort_order").limit(30),
+    supabase.from("cards").select("card_name,rarity,points_cost,is_available,image_path,members(stage_name)")
+      .eq("is_available", true).limit(40),
+    supabase.from("membership_plans").select("name,description,price_points,quota_amount,benefits")
+      .eq("is_active", true).limit(10),
+    supabase.from("user_points").select("total_points").eq("user_id", user.id).maybeSingle(),
+    supabase.from("user_memberships").select("status,starts_at,expires_at,redeem_quota,membership_plans(name)")
+      .eq("user_id", user.id).order("expires_at", { ascending: false }).limit(3),
+  ]);
+
+  const contextData = {
+    events: events.data ?? [],
+    merchandise: products.data ?? [],
+    members: members.data ?? [],
+    photocards: cards.data ?? [],
+    membershipPlans: plans.data ?? [],
+    currentUser: {
+      points: points.data?.total_points ?? 0,
+      memberships: memberships.data ?? [],
+    },
+    dataNotes: [
+      "Harga merchandise dalam IDR.",
+      "Tanggal event berasal dari event_date database.",
+      "Jangan menyimpulkan membership aktif hanya dari riwayat membership.",
+      "Jika data tidak tersedia, jelaskan bahwa data belum tersedia.",
+    ],
+  };
+
   const prompt = [
-    "Kamu adalah Eclipse AI, asisten resmi di aplikasi fiktif EclipseVerse.",
-    "Jawab hanya dalam konteks aplikasi: event, katalog merchandise, membership, mini-game, poin/redeem PC, konversi waktu/mata uang, dan penggunaan aplikasi.",
-    "Jika pertanyaan di luar konteks aplikasi, jelaskan bahwa kamu hanya dapat membantu topik EclipseVerse.",
-    "Jangan mengarang status pesanan, saldo, profil, harga, atau data akun yang tidak disertakan dalam konteks.",
-    "Jawab dalam bahasa Indonesia dengan ringkas dan ramah.",
-    "Pertanyaan pengguna: " + message.trim(),
+    "Kamu adalah Eclipse AI, asisten resmi aplikasi fiktif EclipseVerse.",
+    "Jawab dalam bahasa Indonesia yang ramah, spesifik, dan jelas menggunakan konteks database sebagai sumber utama.",
+    "Bantu pengguna tentang jadwal event (tanggal, jam, venue, kota), katalog merchandise (nama, deskripsi, harga, stok), anggota Eclipse (posisi, tim, deskripsi, fun fact), photocard, membership, poin, redeem, dan fitur aplikasi.",
+    "Jangan mengarang nama produk, harga, stok, tanggal event, informasi anggota, atau status akun.",
+    "Bedakan status membership saat ini dengan riwayat. Jangan mengungkap data akun pengguna lain.",
+    "Jika query gagal atau data kosong, nyatakan keterbatasannya secara jujur.",
+    "Jika pertanyaan di luar konteks EclipseVerse, jelaskan batasan dengan singkat.",
+    "KONTEKS DATABASE TERKINI:",
+    JSON.stringify(contextData),
+    "PERTANYAAN PENGGUNA:",
+    message.trim(),
   ].join("\n");
+
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 600 } }),
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.25, maxOutputTokens: 900 } }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) return Response.json({ error: "Layanan AI gagal merespons" }, { status: 502 });

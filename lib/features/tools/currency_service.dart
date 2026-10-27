@@ -48,7 +48,7 @@ class CurrencyRates {
 }
 
 class CurrencyService {
-  static const codes = ['IDR', 'USD', 'KRW', 'JPY'];
+  static const codes = ['IDR', 'USD', 'SGD', 'MYR', 'JPY', 'KRW', 'THB'];
   static const _cacheKey = 'currency_rates_cache';
   static const _apiUrl = 'https://open.er-api.com/v6/latest/USD';
 
@@ -117,6 +117,6 @@ class CurrencyService {
   static String format(String code, double value) =>
       NumberFormat.decimalPatternDigits(
         locale: 'id_ID',
-        decimalDigits: code == 'USD' ? 2 : 0,
+        decimalDigits: const {'USD', 'SGD', 'MYR', 'THB'}.contains(code) ? 2 : 0,
       ).format(value);
 }
