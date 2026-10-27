@@ -1,4 +1,5 @@
-import 'package:timezone/data/latest.dart' as tzdata;
+// import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 class ZoneOption {
@@ -36,7 +37,17 @@ class TimeService {
   static const zones = requiredZones;
 
   /// Zona asal untuk mode manual.
-  static const originZones = [wib, wita, wit, london, japan, singapore, malaysia, thailand, kst];
+  static const originZones = [
+    wib,
+    wita,
+    wit,
+    london,
+    japan,
+    singapore,
+    malaysia,
+    thailand,
+    kst,
+  ];
 
   static bool _ready = false;
   static void _ensure() {
@@ -47,18 +58,23 @@ class TimeService {
 
   static tz.TZDateTime at(DateTime utc, String zone) {
     _ensure();
-    return tz.TZDateTime.from(utc, tz.getLocation(zone));
+    try {
+      // Coba cari zona waktunya
+      return tz.TZDateTime.from(utc, tz.getLocation(zone));
+    } catch (e) {
+      // Kalo error balikin ke WIB
+      return tz.TZDateTime.from(utc, tz.getLocation('Asia/Jakarta'));
+    }
   }
 
   /// Waktu dinding [y-m-d h:mi] di zona asal -> UTC.
-  static DateTime toUtc(
-      int y, int m, int d, int h, int mi, String originZone) {
+  static DateTime toUtc(int y, int m, int d, int h, int mi, String originZone) {
     _ensure();
     return tz.TZDateTime(tz.getLocation(originZone), y, m, d, h, mi).toUtc();
   }
 
   /// Label zona -> waktu di zona itu
   static Map<String, tz.TZDateTime> convertAll(DateTime utc) => {
-        for (final z in requiredZones) z.label: at(utc, z.tzName),
-      };
+    for (final z in requiredZones) z.label: at(utc, z.tzName),
+  };
 }
