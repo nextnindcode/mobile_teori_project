@@ -122,8 +122,14 @@ class _EventListPageState extends State<EventListPage> {
                                     height: 150,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        const SizedBox.shrink(),
+                                    errorBuilder: (_, __, ___) => Container(
+                                          height: 150,
+                                          width: double.infinity,
+                                          color: AppTheme.surfaceElevated,
+                                          child: const Center(
+                                            child: Icon(Icons.image_not_supported_outlined, color: AppTheme.textSecondary, size: 36),
+                                          ),
+                                        ),
                                   ),
                                 ),
                               ),
