@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_underscores
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -120,7 +122,8 @@ class _EventListPageState extends State<EventListPage> {
                                     height: 150,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                    errorBuilder: (_, __, ___) =>
+                                        const SizedBox.shrink(),
                                   ),
                                 ),
                               ),

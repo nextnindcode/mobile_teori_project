@@ -49,28 +49,39 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadProfile() async {
     try {
-      final cached = await LocalDb.getUserProfile();
+      final user = Supabase.instance.client.auth.currentUser;
+
+      final cached = user == null
+          ? null
+          : await LocalDb.getUserProfile(user.id);
+
       final avatar = await LocalDb.getPref('avatar_path');
+
       if (mounted) {
         setState(() {
           if (cached?['name'] != null &&
               cached!['name'].toString().trim().isNotEmpty) {
             _userName = cached['name'].toString();
           }
+
           _avatarPath = avatar;
         });
       }
 
-      final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
+
       final profile = await Supabase.instance.client
           .from('profiles')
           .select('display_name')
           .eq('id', user.id)
           .maybeSingle()
           .timeout(const Duration(seconds: 8));
+
       final name = profile?['display_name']?.toString().trim() ?? '';
-      if (mounted && name.isNotEmpty) setState(() => _userName = name);
+
+      if (mounted && name.isNotEmpty) {
+        setState(() => _userName = name);
+      }
     } catch (_) {}
   }
 
@@ -246,7 +257,8 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  Expanded( // <--- FIX OVERFLOW 1
+                  Expanded(
+                    // <--- FIX OVERFLOW 1
                     child: Text(
                       'Jelajahi Universe',
                       style: Theme.of(context).textTheme.titleLarge
@@ -440,7 +452,8 @@ class _HomePageState extends State<HomePage> {
 
               Row(
                 children: [
-                  Expanded( // <--- FIX OVERFLOW 2
+                  Expanded(
+                    // <--- FIX OVERFLOW 2
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.eclipseViolet,
@@ -466,7 +479,8 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded( // <--- FIX OVERFLOW 2
+                  Expanded(
+                    // <--- FIX OVERFLOW 2
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.coolCyan,
@@ -501,10 +515,30 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildQuickActionGrid() {
     final actions = [
-      {'label': 'Nearby', 'icon': Icons.near_me_outlined, 'color': AppTheme.coronaGold, 'route': Routes.nearby},
-      {'label': 'Eclipse AI', 'icon': Icons.auto_awesome_outlined, 'color': AppTheme.eclipseViolet, 'route': Routes.ai},
-      {'label': 'Kurs & Waktu', 'icon': Icons.currency_exchange_rounded, 'color': AppTheme.coolCyan, 'route': Routes.tools},
-      {'label': 'Redeem Poin', 'icon': Icons.card_giftcard_rounded, 'color': AppTheme.coronaGold, 'route': Routes.redeem},
+      {
+        'label': 'Nearby',
+        'icon': Icons.near_me_outlined,
+        'color': AppTheme.coronaGold,
+        'route': Routes.nearby,
+      },
+      {
+        'label': 'Eclipse AI',
+        'icon': Icons.auto_awesome_outlined,
+        'color': AppTheme.eclipseViolet,
+        'route': Routes.ai,
+      },
+      {
+        'label': 'Kurs & Waktu',
+        'icon': Icons.currency_exchange_rounded,
+        'color': AppTheme.coolCyan,
+        'route': Routes.tools,
+      },
+      {
+        'label': 'Redeem Poin',
+        'icon': Icons.card_giftcard_rounded,
+        'color': AppTheme.coronaGold,
+        'route': Routes.redeem,
+      },
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -512,8 +546,10 @@ class _HomePageState extends State<HomePage> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4, childAspectRatio: 0.88,
-          crossAxisSpacing: 10, mainAxisSpacing: 10,
+          crossAxisCount: 4,
+          childAspectRatio: 0.88,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
         ),
         itemCount: actions.length,
         itemBuilder: (context, index) {
@@ -532,15 +568,31 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.16), shape: BoxShape.circle),
-                    child: Icon(item['icon'] as IconData, color: color, size: 22),
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.16),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      item['icon'] as IconData,
+                      color: color,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(item['label'] as String, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                    child: Text(
+                      item['label'] as String,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -590,7 +642,8 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Row(
                     children: [
-                      const Expanded( // <--- FIX OVERFLOW 3
+                      const Expanded(
+                        // <--- FIX OVERFLOW 3
                         child: Text(
                           'Guess the Member',
                           maxLines: 1,
@@ -645,7 +698,8 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Expanded( // <--- FIX OVERFLOW 4
+              Expanded(
+                // <--- FIX OVERFLOW 4
                 child: Text(
                   'Event Mendatang',
                   maxLines: 1,
@@ -780,7 +834,8 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Expanded( // <--- FIX OVERFLOW 5
+              Expanded(
+                // <--- FIX OVERFLOW 5
                 child: Text(
                   'Merchandise Pilihan',
                   maxLines: 1,

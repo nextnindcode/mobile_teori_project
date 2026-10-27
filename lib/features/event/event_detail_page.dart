@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_underscores
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -140,7 +142,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   height: 120,
                   color: AppTheme.surfaceElevated,
                   alignment: Alignment.center,
-                  child: const Icon(Icons.image_not_supported_outlined, color: AppTheme.textSecondary),
+                  child: const Icon(
+                    Icons.image_not_supported_outlined,
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
               ),
             ),
@@ -149,11 +154,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => Navigator.pushNamed(
-              context,
-              Routes.nearby,
-              arguments: e.id,
-            ),
+            onPressed: () =>
+                Navigator.pushNamed(context, Routes.nearby, arguments: e.id),
             icon: const Icon(Icons.directions),
             label: const Text('Lihat rute di peta'),
           ),

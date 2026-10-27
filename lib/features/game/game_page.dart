@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import 'game_controller.dart';
 import 'sensor_service.dart';
 import '../membership/membership_service.dart';
-import '../../core/routes.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
@@ -83,19 +83,26 @@ class _GamePageState extends State<GamePage> {
         if (!_isAnswered &&
             controller.questions.isNotEmpty &&
             !controller.isGameOver) {
-          final selected = controller.currentQuestion.options[_highlightedIndex];
+          final selected =
+              controller.currentQuestion.options[_highlightedIndex];
           _handleAnswer(_highlightedIndex, selected, controller);
         }
       },
     );
   }
 
-  void _handleAnswer(int index, String option, GameController controller) async {
+  void _handleAnswer(
+    int index,
+    String option,
+    GameController controller,
+  ) async {
     if (_isAnswered) return;
 
     final correct = controller.currentCorrectAnswer?.trim().toUpperCase();
     final picked = option.split('.').first.trim().toUpperCase();
-    final isCorrect = (correct == null || correct.isEmpty) ? null : correct == picked;
+    final isCorrect = (correct == null || correct.isEmpty)
+        ? null
+        : correct == picked;
 
     controller.pauseTimer();
 
@@ -112,8 +119,10 @@ class _GamePageState extends State<GamePage> {
     await controller.answerQuestion(option);
   }
 
-  Future<void> _startNewGame(GameController controller,
-      {required bool memberChallenge}) async {
+  Future<void> _startNewGame(
+    GameController controller, {
+    required bool memberChallenge,
+  }) async {
     _sensorService.stopSensors();
     setState(() {
       _memberChallenge = memberChallenge;
@@ -133,7 +142,9 @@ class _GamePageState extends State<GamePage> {
         backgroundColor: AppTheme.deepSpace,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          title: Text(_memberChallenge ? 'Tantangan Member' : 'Guess the Member'),
+          title: Text(
+            _memberChallenge ? 'Tantangan Member' : 'Guess the Member',
+          ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context),
@@ -190,15 +201,20 @@ class _GamePageState extends State<GamePage> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.sports_esports, size: 80, color: Colors.white),
+              child: const Icon(
+                Icons.sports_esports,
+                size: 80,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 32),
             const Text(
               'Guess the Member!',
               style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
             ),
             const SizedBox(height: 16),
             CosmicCard(
@@ -219,11 +235,16 @@ class _GamePageState extends State<GamePage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.eclipseViolet,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                onPressed: () => _startNewGame(controller, memberChallenge: false),
-                child: const Text('Mulai Bermain',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                onPressed: () =>
+                    _startNewGame(controller, memberChallenge: false),
+                child: const Text(
+                  'Mulai Bermain',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -235,9 +256,10 @@ class _GamePageState extends State<GamePage> {
                   '*Kumpulkan poin dan tukarkan dengan Photocard eksklusif dengan menjadi Member!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: AppTheme.coronaGold,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold),
+                    color: AppTheme.coronaGold,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
           ],
@@ -264,7 +286,8 @@ class _GamePageState extends State<GamePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               CosmicBadge(
-                text: 'Ronde ${controller.currentRound + 1}/${controller.questions.length}',
+                text:
+                    'Ronde ${controller.currentRound + 1}/${controller.questions.length}',
                 color: AppTheme.coolCyan,
               ),
             ],
@@ -273,9 +296,14 @@ class _GamePageState extends State<GamePage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: (controller.timeLeft / controller.roundDuration).clamp(0.0, 1.0),
+              value: (controller.timeLeft / controller.roundDuration).clamp(
+                0.0,
+                1.0,
+              ),
               backgroundColor: AppTheme.surfaceSecondary,
-              color: controller.timeLeft > 5 ? AppTheme.coolCyan : AppTheme.error,
+              color: controller.timeLeft > 5
+                  ? AppTheme.coolCyan
+                  : AppTheme.error,
               minHeight: 10,
             ),
           ),
@@ -283,7 +311,9 @@ class _GamePageState extends State<GamePage> {
           Text(
             'Sisa waktu: ${controller.timeLeft} detik',
             style: TextStyle(
-              color: controller.timeLeft > 5 ? AppTheme.textSecondary : AppTheme.error,
+              color: controller.timeLeft > 5
+                  ? AppTheme.textSecondary
+                  : AppTheme.error,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -291,13 +321,21 @@ class _GamePageState extends State<GamePage> {
           CosmicCard(
             child: Column(
               children: [
-                const Icon(Icons.format_quote_rounded, size: 48, color: AppTheme.coolCyan),
+                const Icon(
+                  Icons.format_quote_rounded,
+                  size: 48,
+                  color: AppTheme.coolCyan,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   question.funFact,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, height: 1.4),
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -349,7 +387,9 @@ class _GamePageState extends State<GamePage> {
                               backgroundColor: buttonColor,
                               foregroundColor: textColor,
                               elevation: isHighlighted ? 8 : 2,
-                              shadowColor: AppTheme.eclipseViolet.withValues(alpha: 0.3),
+                              shadowColor: AppTheme.eclipseViolet.withValues(
+                                alpha: 0.3,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 side: BorderSide(color: borderColor, width: 2),
@@ -357,7 +397,8 @@ class _GamePageState extends State<GamePage> {
                             ),
                             onPressed: _isAnswered
                                 ? null
-                                : () => _handleAnswer(index, option, controller),
+                                : () =>
+                                      _handleAnswer(index, option, controller),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -365,12 +406,19 @@ class _GamePageState extends State<GamePage> {
                                   option,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                      fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
                                 ),
-                                if (_isAnswered && isSelected && _isCorrect != null) ...[
+                                if (_isAnswered &&
+                                    isSelected &&
+                                    _isCorrect != null) ...[
                                   const SizedBox(height: 6),
                                   Icon(
-                                    _isCorrect! ? Icons.check_circle : Icons.cancel,
+                                    _isCorrect!
+                                        ? Icons.check_circle
+                                        : Icons.cancel,
                                     color: Colors.white,
                                     size: 22,
                                   ),
@@ -420,11 +468,21 @@ class _GamePageState extends State<GamePage> {
                 color: AppTheme.coronaGold.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.emoji_events_rounded, size: 80, color: AppTheme.coronaGold),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                size: 80,
+                color: AppTheme.coronaGold,
+              ),
             ),
             const SizedBox(height: 24),
-            const Text('Permainan Selesai!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+            const Text(
+              'Permainan Selesai!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
             const SizedBox(height: 24),
             CosmicCard(
               child: Row(
@@ -432,22 +490,51 @@ class _GamePageState extends State<GamePage> {
                 children: [
                   Column(
                     children: [
-                      const Text('Skor Akhir', style: TextStyle(color: AppTheme.textSecondary)),
+                      const Text(
+                        'Skor Akhir',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
                       const SizedBox(height: 4),
-                      Text('${controller.score}',
-                          style: const TextStyle(color: AppTheme.coolCyan, fontSize: 32, fontWeight: FontWeight.bold)),
+                      Text(
+                        '${controller.score}',
+                        style: const TextStyle(
+                          color: AppTheme.coolCyan,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      Text('Terbaik: ${controller.bestScore}',
-                          style: const TextStyle(color: AppTheme.coronaGold, fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text(
+                        'Terbaik: ${controller.bestScore}',
+                        style: const TextStyle(
+                          color: AppTheme.coronaGold,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
-                  Container(height: 60, width: 1, color: AppTheme.borderSubtle, margin: const EdgeInsets.symmetric(horizontal: 24)),
+                  Container(
+                    height: 60,
+                    width: 1,
+                    color: AppTheme.borderSubtle,
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                  ),
                   Column(
                     children: [
-                      const Text('Benar', style: TextStyle(color: AppTheme.textSecondary)),
+                      const Text(
+                        'Benar',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
                       const SizedBox(height: 4),
-                      Text('${controller.correctCount}/${controller.questions.length}',
-                          style: const TextStyle(color: AppTheme.success, fontSize: 32, fontWeight: FontWeight.bold)),
+                      Text(
+                        '${controller.correctCount}/${controller.questions.length}',
+                        style: const TextStyle(
+                          color: AppTheme.success,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -460,17 +547,30 @@ class _GamePageState extends State<GamePage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.eclipseViolet,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                onPressed: () => _startNewGame(controller, memberChallenge: _memberChallenge),
-                child: const Text('Main Lagi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                onPressed: () => _startNewGame(
+                  controller,
+                  memberChallenge: _memberChallenge,
+                ),
+                child: const Text(
+                  'Main Lagi',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Kembali ke Home',
-                  style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Kembali ke Home',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),

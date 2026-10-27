@@ -93,7 +93,9 @@ class _NearbyPageState extends State<NearbyPage> {
 
       // Only show upcoming / ongoing events (not past)
       final filtered = allEvents.where((e) {
-        final notPast = e.eventDate.isAfter(now.subtract(const Duration(hours: 12)));
+        final notPast = e.eventDate.isAfter(
+          now.subtract(const Duration(hours: 12)),
+        );
         final validCoords = _validCoordinate(e.latitude, e.longitude);
         return notPast && validCoords;
       }).toList();
@@ -123,7 +125,8 @@ class _NearbyPageState extends State<NearbyPage> {
         _loading = false;
         if (filtered.isNotEmpty) {
           final routeArg = ModalRoute.of(context)?.settings.arguments;
-          final requestedId = widget.initialEventId ?? (routeArg is int ? routeArg : null);
+          final requestedId =
+              widget.initialEventId ?? (routeArg is int ? routeArg : null);
           _selectedEvent = filtered.firstWhere(
             (event) => event.id == requestedId,
             orElse: () => filtered.first,
@@ -144,7 +147,11 @@ class _NearbyPageState extends State<NearbyPage> {
   }
 
   bool _validCoordinate(double lat, double lon) =>
-      lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 && !(lat == 0 && lon == 0);
+      lat >= -90 &&
+      lat <= 90 &&
+      lon >= -180 &&
+      lon <= 180 &&
+      !(lat == 0 && lon == 0);
 
   Future<void> _selectEvent(Event event) async {
     setState(() {
@@ -190,7 +197,10 @@ class _NearbyPageState extends State<NearbyPage> {
       final coordinates = geometry['coordinates'] as List;
       final points = coordinates.map((pair) {
         final values = pair as List;
-        return LatLng((values[1] as num).toDouble(), (values[0] as num).toDouble());
+        return LatLng(
+          (values[1] as num).toDouble(),
+          (values[0] as num).toDouble(),
+        );
       }).toList();
 
       if (!mounted) return;
@@ -223,7 +233,8 @@ class _NearbyPageState extends State<NearbyPage> {
     final lat2 = event.latitude * math.pi / 180;
     final deltaLon = (event.longitude - lon) * math.pi / 180;
     final y = math.sin(deltaLon) * math.cos(lat2);
-    final x = math.cos(lat1) * math.sin(lat2) -
+    final x =
+        math.cos(lat1) * math.sin(lat2) -
         math.sin(lat1) * math.cos(lat2) * math.cos(deltaLon);
     return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
   }
@@ -278,7 +289,10 @@ class _NearbyPageState extends State<NearbyPage> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.coronaGold.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
@@ -319,7 +333,11 @@ class _NearbyPageState extends State<NearbyPage> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const Icon(Icons.location_on, size: 16, color: AppTheme.textSecondary),
+                  const Icon(
+                    Icons.location_on,
+                    size: 16,
+                    color: AppTheme.textSecondary,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -435,8 +453,9 @@ class _NearbyPageState extends State<NearbyPage> {
                     initialZoom: 12,
                     minZoom: 3,
                     maxZoom: 18,
-                    interactionOptions:
-                        const InteractionOptions(flags: InteractiveFlag.all),
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all,
+                    ),
                   ),
                   children: [
                     TileLayer(
@@ -493,7 +512,7 @@ class _NearbyPageState extends State<NearbyPage> {
                     ),
                     const RichAttributionWidget(
                       attributions: [
-                        TextSourceAttribution('OpenStreetMap contributors')
+                        TextSourceAttribution('OpenStreetMap contributors'),
                       ],
                     ),
                   ],
@@ -556,8 +575,8 @@ class _NearbyPageState extends State<NearbyPage> {
                                 Text(
                                   _headingDegrees == null
                                       ? (_userPosition == null
-                                          ? 'GPS nonaktif · Menampilkan peta umum'
-                                          : 'Kompas siap · Sentuh pin event')
+                                            ? 'GPS nonaktif · Menampilkan peta umum'
+                                            : 'Kompas siap · Sentuh pin event')
                                       : 'Kompas ${_headingDegrees!.round()}° · Tujuan ${bearing?.round() ?? 0}°',
                                   style: const TextStyle(
                                     fontSize: 11,
@@ -600,7 +619,7 @@ class _NearbyPageState extends State<NearbyPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         scrollDirection: Axis.horizontal,
                         itemCount: _activeEvents.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        separatorBuilder: (_, _) => const SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           final event = _activeEvents[index];
                           final distance = _userPosition == null
@@ -614,7 +633,9 @@ class _NearbyPageState extends State<NearbyPage> {
                           return SizedBox(
                             width: 270,
                             child: Card(
-                              color: AppTheme.surfaceElevated.withValues(alpha: 0.97),
+                              color: AppTheme.surfaceElevated.withValues(
+                                alpha: 0.97,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 side: BorderSide(
@@ -629,30 +650,39 @@ class _NearbyPageState extends State<NearbyPage> {
                                 onTap: () => _selectEvent(event),
                                 child: Row(
                                   children: [
-                                    if (event.imageUrl != null && event.imageUrl!.isNotEmpty)
+                                    if (event.imageUrl != null &&
+                                        event.imageUrl!.isNotEmpty)
                                       Image.network(
                                         event.imageUrl!,
                                         width: 86,
                                         height: double.infinity,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
+                                        errorBuilder: (_, _, _) => Container(
                                           width: 86,
                                           color: AppTheme.deepSpace,
-                                          child: const Icon(Icons.event, color: AppTheme.coolCyan),
+                                          child: const Icon(
+                                            Icons.event,
+                                            color: AppTheme.coolCyan,
+                                          ),
                                         ),
                                       )
                                     else
                                       Container(
                                         width: 86,
                                         color: AppTheme.deepSpace,
-                                        child: const Icon(Icons.event, color: AppTheme.coolCyan),
+                                        child: const Icon(
+                                          Icons.event,
+                                          color: AppTheme.coolCyan,
+                                        ),
                                       ),
                                     Expanded(
                                       child: Padding(
                                         padding: const EdgeInsets.all(10),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Text(
                                               event.title,
@@ -669,16 +699,28 @@ class _NearbyPageState extends State<NearbyPage> {
                                               event.city,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                              style: const TextStyle(
+                                                color: AppTheme.textSecondary,
+                                                fontSize: 11,
+                                              ),
                                             ),
                                             if (distance != null)
                                               Text(
                                                 '${distance.toStringAsFixed(1)} km dari kamu',
-                                                style: const TextStyle(color: AppTheme.coronaGold, fontSize: 10),
+                                                style: const TextStyle(
+                                                  color: AppTheme.coronaGold,
+                                                  fontSize: 10,
+                                                ),
                                               ),
                                             const Spacer(),
-                                            const Text('Pilih & lihat rute →',
-                                              style: TextStyle(color: AppTheme.coolCyan, fontSize: 10, fontWeight: FontWeight.bold)),
+                                            const Text(
+                                              'Pilih & lihat rute →',
+                                              style: TextStyle(
+                                                color: AppTheme.coolCyan,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
