@@ -309,7 +309,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       await Supabase.instance.client.auth.updateUser(UserAttributes(password: nextPassword));
       final user = Supabase.instance.client.auth.currentUser;
-      if (user?.email != null) {
+      if (_bioEnabled && user?.email != null) {
         await SecureStore.saveCredentials(user!.email!, nextPassword);
       }
       if (mounted) showSnack(context, 'Password berhasil diperbarui.');
