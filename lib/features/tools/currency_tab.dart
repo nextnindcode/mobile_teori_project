@@ -13,7 +13,7 @@ class CurrencyTab extends StatefulWidget {
 
 class _CurrencyTabState extends State<CurrencyTab> {
   final _amount = TextEditingController(text: '100');
-  String _from = 'USD';
+  String _from = 'IDR';
   CurrencyRates? _rates;
   bool _loading = true;
   String? _error;
@@ -60,10 +60,16 @@ class _CurrencyTabState extends State<CurrencyTab> {
     if (_error != null) return ErrorView(message: _error!, onRetry: _load);
     final rates = _rates!;
     final v = _value;
+    final codes = CurrencyService.codesFor(rates);
+    if (!codes.contains(_from)) _from = codes.contains('IDR') ? 'IDR' : rates.base;
     return ListView(
       padding: const EdgeInsets.all(AppTheme.spacingMedium),
       children: [
-        TextField(
+        Card(
+          color: AppTheme.surfaceElevated,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: TextField(
           controller: _amount,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (_) => setState(() {}),
@@ -72,26 +78,40 @@ class _CurrencyTabState extends State<CurrencyTab> {
             errorText: v == null ? 'Masukkan angka lebih dari 0' : null,
           ),
         ),
+        ),
         const SizedBox(height: AppTheme.spacingMedium),
         DropdownField<String>(
           label: 'Dari mata uang',
           value: _from,
-          items: CurrencyService.codes
+          items: codes
               .map((c) => DropdownMenuItem(value: c, child: Text(c)))
               .toList(),
           onChanged: (c) => setState(() => _from = c ?? _from),
         ),
         const SizedBox(height: AppTheme.spacingMedium),
         if (v != null)
-          for (final c in CurrencyService.codes.where((c) => c != _from))
-            Card(
-              child: ListTile(
-                title: Text(c, style: Theme.of(context).textTheme.titleMedium),
-                trailing: Text(
-                  CurrencyService.format(c, rates.convert(v, _from, c)),
-                  style: Theme.of(context).textTheme.titleLarge,
+          for (var i = 0; i < codes.where((c) => c != _from).length; i += 2)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: codes.where((c) => c != _from).skip(i).take(2).map((c) => Expanded(
+                child: Card(
+                  color: AppTheme.surfaceElevated,
+                  margin: const EdgeInsets.all(5),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(c, style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Text(CurrencyService.format(c, rates.convert(v, _from, c)),
+                          style: Theme.of(context).textTheme.titleLarge,
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              )).toList(),
             ),
         const SizedBox(height: AppTheme.spacingSmall),
         Text(
