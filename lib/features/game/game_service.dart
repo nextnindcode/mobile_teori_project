@@ -6,9 +6,10 @@ class GameService {
   static final _client = Supabase.instance.client;
 
   static Future<int> getBestScore() async {
-    final local =
-        int.tryParse(await LocalDb.getPreference('best_score') ?? '0') ?? 0;
     final user = _client.auth.currentUser;
+    final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
+    final local =
+        int.tryParse(await LocalDb.getPreference(scoreKey) ?? '0') ?? 0;
     if (user == null) return local;
     try {
       final row = await _client
@@ -27,19 +28,24 @@ class GameService {
   }
 
   static Future<void> saveBestScore(int score) async {
-    await LocalDb.setPreference('best_score', score.toString());
+    final user = _client.auth.currentUser;
+    final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
+    await LocalDb.setPreference(scoreKey, score.toString());
   }
 
   static Future<List<Map<String, dynamic>>> fetchQuestions() async {
+    // quiz_questions_public sudah hanya mengekspos soal aktif dan sengaja
+    // menyembunyikan correct_option. Jangan filter is_active lagi di view.
     final rows = await _client
         .from('quiz_questions_public')
-        .select('id,question_text,options,difficulty,points')
-        .eq('is_active', true)
+        .select('id,question_text,options,difficulty,points,explanation')
         .limit(50)
         .timeout(const Duration(seconds: 8));
 
     if (rows.length < 10) {
-      throw Exception('Data soal Supabase belum cukup. Minimal 10 soal aktif diperlukan.');
+      throw Exception(
+        'Data soal Supabase belum cukup. Minimal 10 soal aktif diperlukan.',
+      );
     }
 
     final list = rows.map((row) => Map<String, dynamic>.from(row)).toList()
@@ -67,7 +73,9 @@ class GameService {
   }
 
   static Future<void> saveUnverifiedScoreLocally(int score) async {
-    await LocalDb.setPreference('best_score', score.toString());
+    final user = _client.auth.currentUser;
+    final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
+    await LocalDb.setPreference(scoreKey, score.toString());
   }
 
   static void logFailure(Object error) =>
