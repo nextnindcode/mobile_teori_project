@@ -1,7 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tzdata;
+// import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+
 // import '../../core/local_db.dart';
 
 class NotificationService {
@@ -15,19 +18,22 @@ class NotificationService {
 
     tzdata.initializeTimeZones();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const initSettings = InitializationSettings(android: androidSettings);
 
     final ok = await _notificationsPlugin.initialize(settings: initSettings);
 
     final androidImplementation = _notificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
 
     bool? permissionGranted = true;
     if (androidImplementation != null) {
-      permissionGranted =
-          await androidImplementation.requestNotificationsPermission();
+      permissionGranted = await androidImplementation
+          .requestNotificationsPermission();
     }
 
     _initialized = (ok ?? false) && (permissionGranted ?? false);
@@ -94,7 +100,9 @@ class NotificationService {
       return false;
     }
 
-    final id = (event.id is int) ? event.id as int : int.parse(event.id.toString());
+    final id = (event.id is int)
+        ? event.id as int
+        : int.parse(event.id.toString());
     final title = event.title.toString();
 
     const androidDetails = AndroidNotificationDetails(
@@ -107,9 +115,45 @@ class NotificationService {
 
     final durationUntilEvent = eventDate.difference(now);
 
-    if (durationUntilEvent.inHours >= 24) {
-      final scheduled24h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 24)), tz.local);
-      if (scheduled24h.isAfter(tz.TZDateTime.now(tz.local))) {
+    // if (durationUntilEvent.inHours >= 24) {
+    //   final scheduled24h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 24)), tz.local);
+    //   if (scheduled24h.isAfter(tz.TZDateTime.now(tz.local))) {
+    //     await _notificationsPlugin.zonedSchedule(
+    //       id: id * 10 + 1,
+    //       title: 'Pengingat Event: Besok!',
+    //       body: '$title akan berlangsung dalam 24 jam.',
+    //       scheduledDate: scheduled24h,
+    //       notificationDetails: const NotificationDetails(android: androidDetails),
+    //       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    //     );
+    //   }
+    // }
+
+  //   if (durationUntilEvent.inHours >= 1) {
+  //     final scheduled1h = tz.TZDateTime.from(
+  //       eventDate.subtract(const Duration(hours: 1)),
+  //       tz.local,
+  //     );
+  //     if (scheduled1h.isAfter(tz.TZDateTime.now(tz.local))) {
+  //       await _notificationsPlugin.zonedSchedule(
+  //         id: id * 10 + 2,
+  //         title: 'Pengingat Event: Segera Dimulai!',
+  //         body: '$title akan dimulai dalam 1 jam.',
+  //         scheduledDate: scheduled1h,
+  //         notificationDetails: const NotificationDetails(
+  //           android: androidDetails,
+  //         ),
+  //         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+  //       );
+  //     }
+  //   }
+
+  //   return true;
+  // }
+
+ if (durationUntilEvent.inHours >= 24) {
+      final scheduled24h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 24)), tz.UTC);
+      if (scheduled24h.isAfter(tz.TZDateTime.now(tz.UTC))) {
         await _notificationsPlugin.zonedSchedule(
           id: id * 10 + 1,
           title: 'Pengingat Event: Besok!',
@@ -122,8 +166,8 @@ class NotificationService {
     }
 
     if (durationUntilEvent.inHours >= 1) {
-      final scheduled1h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 1)), tz.local);
-      if (scheduled1h.isAfter(tz.TZDateTime.now(tz.local))) {
+      final scheduled1h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 1)), tz.UTC);
+      if (scheduled1h.isAfter(tz.TZDateTime.now(tz.UTC))) {
         await _notificationsPlugin.zonedSchedule(
           id: id * 10 + 2,
           title: 'Pengingat Event: Segera Dimulai!',
@@ -137,7 +181,7 @@ class NotificationService {
 
     return true;
   }
-
+  
   // Batalkan notifikasi reminder event
   static Future<void> cancelEventReminder(int id) async {
     await init();
