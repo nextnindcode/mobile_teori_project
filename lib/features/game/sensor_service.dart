@@ -23,14 +23,14 @@ class SensorService {
       (event) {
         if (_moveLocked) return;
 
-        if (event.y > 5.0) {
+        if (event.y > 7.0) {
           _moveLocked = true;
           onMove(-1); // Geser ke atas
           _moveCooldown?.cancel();
-          _moveCooldown = Timer(const Duration(milliseconds: 1000), () {
+          _moveCooldown = Timer(const Duration(milliseconds: 1200), () {
             _moveLocked = false;
           });
-        } else if (event.y < -5.0) {
+        } else if (event.y < -7.0) {
           _moveLocked = true;
           onMove(1); // Geser ke bawah
           _moveCooldown?.cancel();
@@ -47,7 +47,7 @@ class SensorService {
     // 2. Gyroscope dengan menganggukkan hp untuk mengonfirmasi jawaban 
     _gyroSubscription = gyroscopeEventStream().listen(
       (event) {
-        if (_confirmLocked || event.x.abs() < 1.2) return;
+        if (_confirmLocked || event.x.abs() < 1.8) return;
 
         _confirmLocked = true;
         onConfirm();
