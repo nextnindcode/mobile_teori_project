@@ -498,7 +498,21 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
         ),
 
-        const SizedBox(height: 28),
+        const SizedBox(height: 18),
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.schedule, color: AppTheme.coolCyan, size: 18),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Pengingat dijadwalkan menggunakan WIB (Asia/Jakarta), terlepas dari zona waktu perangkat.',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
 
         // Reminder Button
         ElevatedButton.icon(
