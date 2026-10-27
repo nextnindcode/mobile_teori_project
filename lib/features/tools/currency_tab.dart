@@ -7,12 +7,14 @@ import 'currency_service.dart';
 
 class CurrencyTab extends StatefulWidget {
   const CurrencyTab({super.key});
+
   @override
   State<CurrencyTab> createState() => _CurrencyTabState();
 }
 
 class _CurrencyTabState extends State<CurrencyTab> {
   final _amount = TextEditingController(text: '100');
+
   String _from = 'IDR';
   CurrencyRates? _rates;
   bool _loading = true;
@@ -35,33 +37,60 @@ class _CurrencyTabState extends State<CurrencyTab> {
       _loading = true;
       _error = null;
     });
+
     try {
-      final r = await CurrencyService.fetchRates();
+      final rates = await CurrencyService.fetchRates();
+
       if (!mounted) return;
-      setState(() => _rates = r);
+
+      setState(() {
+        _rates = rates;
+      });
     } catch (e) {
       if (!mounted) return;
-      final msg = friendlyError(e);
-      setState(
-        () => _error = msg == 'Tidak ada koneksi' ? msg : 'Kurs belum tersedia',
-      );
+
+      final message = friendlyError(e);
+
+      setState(() {
+        _error = message == 'Tidak ada koneksi'
+            ? message
+            : 'Kurs belum tersedia';
+      });
     }
-    if (mounted) setState(() => _loading = false);
+
+    if (mounted) {
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   double? get _value {
-    final v = double.tryParse(_amount.text.trim().replaceAll(',', '.'));
-    return (v != null && v > 0) ? v : null;
+    final value = double.tryParse(_amount.text.trim().replaceAll(',', '.'));
+
+    return value != null && value > 0 ? value : null;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const LoadingView();
-    if (_error != null) return ErrorView(message: _error!, onRetry: _load);
+    if (_loading) {
+      return const LoadingView();
+    }
+
+    if (_error != null) {
+      return ErrorView(message: _error!, onRetry: _load);
+    }
+
     final rates = _rates!;
-    final v = _value;
+    final value = _value;
     final codes = CurrencyService.codesFor(rates);
-    if (!codes.contains(_from)) _from = codes.contains('IDR') ? 'IDR' : rates.base;
+
+    if (!codes.contains(_from)) {
+      _from = codes.contains('IDR') ? 'IDR' : rates.base;
+    }
+
+    final targetCodes = codes.where((code) => code != _from).toList();
+
     return ListView(
       padding: const EdgeInsets.all(AppTheme.spacingMedium),
       children: [
@@ -70,50 +99,79 @@ class _CurrencyTabState extends State<CurrencyTab> {
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: TextField(
-          controller: _amount,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            labelText: 'Jumlah',
-            errorText: v == null ? 'Masukkan angka lebih dari 0' : null,
+              controller: _amount,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'Jumlah',
+                errorText: value == null ? 'Masukkan angka lebih dari 0' : null,
+              ),
+            ),
           ),
         ),
-        ),
         const SizedBox(height: AppTheme.spacingMedium),
+
         DropdownField<String>(
           label: 'Dari mata uang',
           value: _from,
           items: codes
-              .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+              .map((code) => DropdownMenuItem(value: code, child: Text(code)))
               .toList(),
-          onChanged: (c) => setState(() => _from = c ?? _from),
+          onChanged: (code) {
+            if (code == null) return;
+
+            setState(() {
+              _from = code;
+            });
+          },
         ),
         const SizedBox(height: AppTheme.spacingMedium),
-        if (v != null)
-          for (var i = 0; i < codes.where((c) => c != _from).length; i += 2)
-            Row(
+
+        if (value != null)
+          ...List.generate((targetCodes.length + 1) ~/ 2, (rowIndex) {
+            final rowCodes = targetCodes.skip(rowIndex * 2).take(2).toList();
+
+            return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: codes.where((c) => c != _from).skip(i).take(2).map((c) => Expanded(
-                child: Card(
-                  color: AppTheme.surfaceElevated,
-                  margin: const EdgeInsets.all(5),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(c, style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 8),
-                        Text(CurrencyService.format(c, rates.convert(v, _from, c)),
-                          style: Theme.of(context).textTheme.titleLarge,
-                          maxLines: 2, overflow: TextOverflow.ellipsis),
-                      ],
+              children: [
+                for (final code in rowCodes)
+                  Expanded(
+                    child: Card(
+                      color: AppTheme.surfaceElevated,
+                      margin: const EdgeInsets.all(5),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              code,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              CurrencyService.format(
+                                code,
+                                rates.convert(value, _from, code),
+                              ),
+                              style: Theme.of(context).textTheme.titleLarge,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              )).toList(),
-            ),
+                if (rowCodes.length == 1) const Expanded(child: SizedBox()),
+              ],
+            );
+          }),
+
         const SizedBox(height: AppTheme.spacingSmall),
+
         Text(
           'Diperbarui: ${DateFormat('d MMM yyyy HH:mm').format(rates.updatedAt.toLocal())} • Sumber: ${rates.source}',
           style: Theme.of(context).textTheme.bodySmall,
