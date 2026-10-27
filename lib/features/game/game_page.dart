@@ -292,7 +292,25 @@ class _GamePageState extends State<GamePage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Progres kuis', style: TextStyle(color: AppTheme.textSecondary)),
+              Text('Soal ${controller.currentRound + 1} dari ${controller.questions.length}', style: const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: ((controller.currentRound + 1) / controller.questions.length).clamp(0.0, 1.0),
+              backgroundColor: AppTheme.surfaceSecondary,
+              color: AppTheme.eclipseViolet,
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
