@@ -74,9 +74,9 @@ class _GamePageState extends State<GamePage> {
         if (_isAnswered) return;
         setState(() {
           final optionCount = controller.currentQuestion.options.length;
-          final visibleCount = optionCount > 2 ? 2 : optionCount;
-          _highlightedIndex = (_highlightedIndex + direction) % visibleCount;
-          if (_highlightedIndex < 0) _highlightedIndex = visibleCount - 1;
+          if (optionCount == 0) return;
+          _highlightedIndex = (_highlightedIndex + direction) % optionCount;
+          if (_highlightedIndex < 0) _highlightedIndex += optionCount;
         });
       },
       onConfirm: () {
@@ -344,7 +344,7 @@ class _GamePageState extends State<GamePage> {
           Expanded(
             child: Row(
               children: List.generate(
-                question.options.length > 2 ? 2 : question.options.length,
+                question.options.length,
                 (index) {
                   final option = question.options[index];
                   final isSelected = option == _selectedOption;
