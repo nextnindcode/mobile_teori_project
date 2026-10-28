@@ -3,6 +3,8 @@
 > Dokumen kerja kelompok untuk memastikan bahan laporan, bukti implementasi, dan pengujian tidak ada yang terlewat.
 >
 > **Scope acuan:** Project Brief EclipseVerse dan pembagian kerja A/B/C yang sudah disepakati. Nomor halaman final mengikuti Work Order Tim/Dokumen 2.
+>
+> **Status acuan:** Dokumen ini mengikuti revision batch 1. Jika terjadi perubahan scope/implementasi, update checklist ini setelah keputusan tim masuk ke branch final.
 
 ---
 
@@ -10,7 +12,7 @@
 
 | Bagian | Isi utama | PIC |
 |---|---|---|
-| Cover, pengesahan, daftar isi/gambar/tabel | Identitas kelompok, logo UPN, pengesahan, daftar isi/gambar/tabel | A koordinasi |
+| Cover, pengesahan, daftar isi/gambar/tabel | Identitas kelompok, logo UPN, pengesahan, daftar isi/gambar/tabel | **A koordinasi** |
 | **Bab I — Pendahuluan** | Latar belakang, rumusan masalah, tujuan, batasan, manfaat | **A** |
 | **Bab II — Landasan Teori & Tema** | Teori teknologi dan konsep yang benar-benar digunakan | **B** |
 | **Bab III — Perancangan** | Kebutuhan, UML, arsitektur, database, wireframe, alur sistem | **A/B/C sesuai modul** |
@@ -378,74 +380,158 @@
 
 ## Bab IV
 Untuk **setiap fitur yang benar-benar ada**:
-- [ ] Nama fitur.
-- [ ] Tujuan/penjelasan.
-- [ ] Alur kerja.
-- [ ] File/source code yang relevan.
-- [ ] Potongan source code maksimal 25 baris.
-- [ ] Penjelasan potongan kode.
-- [ ] Screenshot hasil implementasi.
+- [ ] Tujuan.
+- [ ] Alur.
+- [ ] File/source code.
+- [ ] Potongan kode maksimal 25 baris.
+- [ ] Penjelasan kode.
+- [ ] Screenshot implementasi.
+- [ ] Requirement ID yang dipenuhi.
 
 ## Bab V
 - [ ] Metode pengujian.
 - [ ] Environment/perangkat.
-- [ ] Skenario pengujian.
 - [ ] 36 test case.
+- [ ] Expected result.
 - [ ] Actual result.
 - [ ] PASS/FAIL.
 - [ ] Bukti pengujian.
 - [ ] Evaluasi.
-- [ ] Daftar bug dan perbaikannya.
+- [ ] Bug dan perbaikan.
 
 ## Bab VI
-- [ ] Kesimpulan.
-- [ ] Kesimpulan menjawab rumusan masalah.
+- [ ] Kesimpulan menjawab 5 rumusan masalah.
 - [ ] Saran pengembangan.
-- [ ] Ditulis bersama A/B/C.
 
-## Lampiran & Bahan Presentasi
-- [ ] Daftar kontribusi anggota.
-- [ ] Doc dump 13 hari.
-- [ ] Source code final.
-- [ ] Database/schema final.
-- [ ] SQL dump final jika digunakan.
-- [ ] Daftar endpoint/API.
-- [ ] Screenshot seluruh fitur utama.
-- [ ] Hasil pengujian.
-- [ ] APK final.
-- [ ] Repository final.
-- [ ] Laporan final siap cetak.
-- [ ] PPT final.
-- [ ] Video cadangan demo.
-- [ ] Latihan demo.
+## Lampiran
+- [ ] Pembagian kontribusi.
+- [ ] Database.
+- [ ] API.
+- [ ] Bukti implementasi tambahan.
+- [ ] Bukti pengujian tambahan.
+- [ ] Repository.
+- [ ] Video demo bila diperlukan.
 
 ---
 
-# 6. CHECKLIST CEPAT SEBELUM DIKUMPULKAN
+# 6. ATURAN DOKUMENTASI SOURCE CODE
 
-- [ ] A sudah selesai Bab I + modul Auth/Marketplace.
-- [ ] B sudah selesai Bab II + modul Fandom/Event/Data.
-- [ ] C sudah selesai Bab III modul AI/Game/Sensor/Notifikasi + koordinasi Bab V.
-- [ ] Bab IV sudah mencakup seluruh fitur final.
-- [ ] Bab V sudah tepat 36 test case.
-- [ ] Tidak ada fitur yang ditulis di laporan tetapi tidak ada di aplikasi.
-- [ ] Tidak ada fitur yang sudah dihapus tetapi masih muncul di laporan.
-- [ ] Screenshot sesuai versi aplikasi terakhir.
-- [ ] Source code yang ditampilkan sesuai branch final.
-- [ ] Database yang ditulis sesuai database yang benar-benar digunakan.
-- [ ] Semua API diuji dan endpoint terdokumentasi.
-- [ ] Aplikasi clean install berhasil.
-- [ ] Login/register berhasil.
-- [ ] Session berhasil.
-- [ ] Marketplace → cart → checkout → order berhasil.
-- [ ] Fandom/member/event berhasil.
-- [ ] Currency/time conversion berhasil.
-- [ ] Feedback berhasil.
-- [ ] Location/Nearby berhasil.
-- [ ] Eclipse AI berhasil.
-- [ ] Game + sensor berhasil.
-- [ ] Notification + Inbox berhasil.
-- [ ] Blockchain verification berhasil.
-- [ ] Profil sesuai fitur final.
-- [ ] Tidak ada error/crash kritis.
-- [ ] Laporan sudah direview semua anggota.
+1. Source code yang ditampilkan harus berasal dari implementasi aktual.
+2. Maksimal **25 baris per potongan kode**.
+3. Jangan menempel satu file penuh ke laporan.
+4. Setelah setiap potongan kode, jelaskan fungsi kode tersebut.
+5. Sebutkan nama file/path agar kode dapat ditelusuri.
+6. Jika satu fitur menggunakan beberapa file, pilih bagian kode yang paling representatif dan jelaskan hubungan antarfile.
+7. Jangan memasukkan kode yang sudah tidak digunakan.
+8. Jika implementasi berubah setelah revision batch 1 di-merge ke `main`, dokumentasi harus mengikuti versi `main`.
+
+---
+
+# 7. ATURAN SCREENSHOT & ASSET
+
+## Screenshot implementasi
+
+- [ ] Screenshot diambil dari aplikasi yang benar-benar berjalan.
+- [ ] Gunakan ukuran/resolusi yang konsisten.
+- [ ] Pastikan teks dan komponen UI terbaca.
+- [ ] Hindari screenshot yang menampilkan error yang tidak sedang dibahas.
+- [ ] Screenshot error/loading/permission hanya digunakan sebagai bukti ketika relevan.
+- [ ] Beri nomor dan caption setiap gambar untuk laporan.
+
+## Asset aplikasi
+
+- [ ] Gunakan asset sesuai implementasi final.
+- [ ] Jangan membuat asset yang tidak digunakan.
+- [ ] Pastikan asset tidak melanggar hak cipta.
+- [ ] Dokumentasikan sumber asset eksternal jika ada.
+- [ ] Foto profil pengguna berasal dari galeri jika fitur tersebut menggunakan pemilihan foto.
+- [ ] Avatar/member, ikon produk, ikon event, dan ilustrasi lainnya mengikuti desain yang benar-benar diterapkan pada branch final.
+
+## Diagram dan wireframe
+
+- [ ] Diagram UML dibuat dengan resolusi yang terbaca.
+- [ ] ERD terbaca ketika dimasukkan ke laporan.
+- [ ] Wireframe memiliki penamaan halaman yang konsisten dengan aplikasi.
+- [ ] Jangan menggunakan wireframe lama jika UI sudah berubah.
+
+---
+
+# 8. ATURAN KONSISTENSI LAPORAN
+
+Sebelum laporan dinyatakan selesai, lakukan pengecekan silang:
+
+```text
+Requirement
+    ↓
+User Story
+    ↓
+Use Case / UML
+    ↓
+ERD / API / UI
+    ↓
+Implementasi
+    ↓
+Screenshot
+    ↓
+Test Case
+    ↓
+Hasil Pengujian
+```
+
+Setiap fitur utama harus dapat ditelusuri melalui rangkaian tersebut.
+
+- [ ] Nama fitur konsisten antara Bab I–VI.
+- [ ] Nama tabel konsisten dengan database aktual.
+- [ ] Nama endpoint konsisten dengan backend aktual.
+- [ ] Nama halaman konsisten dengan aplikasi aktual.
+- [ ] Screenshot sesuai versi implementasi yang didokumentasikan.
+- [ ] Requirement yang belum selesai tidak ditulis sebagai fitur berhasil.
+- [ ] Fitur yang sudah dihapus dari scope tidak dimasukkan sebagai fitur final.
+- [ ] Hasil pengujian berdasarkan pengujian nyata.
+- [ ] Seluruh anggota mengumpulkan bahan sesuai PIC masing-masing.
+
+---
+
+## 9. PEMBAGIAN BAHAN YANG HARUS DIKUMPULKAN SETIAP ANGGOTA
+
+| Bahan | A | B | C |
+|---|:---:|:---:|:---:|
+| Bab I | ✓ PIC | Bantuan | Bantuan |
+| Bab II | Bantuan | ✓ PIC | Bantuan |
+| Kebutuhan & User Story | Modul A | Modul B | Modul C |
+| UML | Modul A | Modul B | Modul C |
+| ERD & Kamus Data | Tabel A | Tabel B | Tabel C |
+| Wireframe | Modul A | Modul B | Modul C |
+| Implementasi | Modul A | Modul B | Modul C |
+| Source code | Modul A | Modul B | Modul C |
+| Screenshot | Modul A | Modul B | Modul C |
+| Endpoint/API | Modul A | Modul B | Modul C |
+| Test Case | Modul A | Modul B | Modul C |
+| Bab V | Data A | Data B | ✓ Koordinasi |
+| Bab VI | ✓ Koordinasi | Kontribusi | Kontribusi |
+| Lampiran | ✓ | ✓ | ✓ |
+
+**Catatan:** Pembagian ini membedakan **PIC penulisan/koordinasi laporan** dengan **PIC modul implementasi**. Setiap anggota tetap bertanggung jawab atas dokumentasi dan bukti untuk modul yang dikerjakannya.
+
+---
+
+## 10. DEFINITION OF DONE — LAPORAN AKHIR
+
+Laporan dapat dianggap siap dikumpulkan apabila:
+
+- [ ] Semua bab I–VI selesai.
+- [ ] Semua requirement sudah ditelusuri ke implementasi.
+- [ ] UML lengkap dan sesuai implementasi.
+- [ ] ERD dan kamus data sesuai database final.
+- [ ] Wireframe sesuai UI final.
+- [ ] Source code setiap fitur utama terdokumentasi.
+- [ ] Screenshot implementasi tersedia.
+- [ ] 36 test case telah benar-benar dijalankan.
+- [ ] Actual result dan status pengujian sudah diisi.
+- [ ] Bug penting sudah diperbaiki atau dijelaskan.
+- [ ] Bab VI menjawab rumusan masalah.
+- [ ] Daftar gambar dan tabel sudah diperbarui.
+- [ ] Daftar pustaka lengkap.
+- [ ] Lampiran lengkap.
+- [ ] Repository yang dicantumkan adalah repository final yang disepakati tim.
+- [ ] Seluruh isi laporan sudah disesuaikan dengan implementasi final setelah perubahan masuk ke `main`.
