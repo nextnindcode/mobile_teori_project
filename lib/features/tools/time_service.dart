@@ -7,14 +7,13 @@ class ZoneOption {
   const ZoneOption(this.label, this.tzName);
 }
 
-/// Waktu input ditafsirkan sesuai zona asal, lalu dinormalisasi ke UTC.
+/// Implementasi awal konversi waktu dengan zona WIB, WITA, WIT, dan London.
 class TimeService {
   static const wib = ZoneOption('WIB (Jakarta)', 'Asia/Jakarta');
   static const wita = ZoneOption('WITA (Makassar)', 'Asia/Makassar');
   static const wit = ZoneOption('WIT (Jayapura)', 'Asia/Jayapura');
   static const london = ZoneOption('London (UK)', 'Europe/London');
 
-  /// Zona hasil yang ditampilkan. Malaysia sementara tidak disertakan.
   static const requiredZones = [wib, wita, wit, london];
   static const zones = requiredZones;
   static const originZones = requiredZones;
@@ -27,37 +26,20 @@ class TimeService {
     _ready = true;
   }
 
-  /// Konversi satu waktu absolut ke zona tujuan.
   static tz.TZDateTime at(DateTime instant, String zone) {
     _ensure();
     return tz.TZDateTime.from(instant.toUtc(), tz.getLocation(zone));
   }
 
-  /// Waktu lokal yang dipilih pengguna di zona asal -> UTC.
-  static DateTime toUtc(
-    int year,
-    int month,
-    int day,
-    int hour,
-    int minute,
-    String originZone,
-  ) {
+  /// Waktu lokal yang dipilih pada zona asal dikonversi menjadi UTC.
+  static DateTime toUtc(int y, int m, int d, int h, int mi, String originZone) {
     _ensure();
-    return tz.TZDateTime(
-      tz.getLocation(originZone),
-      year,
-      month,
-      day,
-      hour,
-      minute,
-    ).toUtc();
+    return tz.TZDateTime(tz.getLocation(originZone), y, m, d, h, mi).toUtc();
   }
 
   static Map<String, tz.TZDateTime> convertAll(DateTime instant) {
     final utc = instant.toUtc();
-    return {
-      for (final zone in requiredZones) zone.label: at(utc, zone.tzName),
-    };
+    return {for (final zone in requiredZones) zone.label: at(utc, zone.tzName)};
   }
 
   static String flag(String zone) {
