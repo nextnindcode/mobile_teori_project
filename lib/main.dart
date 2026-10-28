@@ -12,6 +12,7 @@ import 'features/event/event_page.dart';
 import 'features/event/event_detail_page.dart';
 import 'features/fandom/member_detail_page.dart';
 import 'features/tools/tools_page.dart';
+import 'features/tools/observatory_page.dart';
 import 'features/shell/main_shell.dart';
 import 'features/ai/ai_page.dart';
 import 'features/game/game_page.dart';
@@ -71,6 +72,7 @@ class MyApp extends StatelessWidget {
         Routes.eventDetail: (_) => const EventDetailPage(),
         Routes.memberDetail: (_) => const MemberDetailPage(),
         Routes.tools: (_) => const ToolsPage(),
+        Routes.observatory: (_) => const ObservatoryPage(),
         Routes.catalog: (_) => const CatalogPage(),
         Routes.cart: (_) => const CartPage(),
         Routes.orders: (_) => const OrdersPage(),
