@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:eclipseverse/features/profile/profile_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,6 +36,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   Map<String, dynamic>? _membershipData;
 
   bool _hasRedeemedCards = false;
+  bool _isUploadingPhoto = false;
 
   @override
   void initState() {
@@ -103,9 +105,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             .timeout(const Duration(seconds: 6));
         final storagePath = row?['avatar_path']?.toString();
         if (storagePath != null && storagePath.isNotEmpty) {
-          remoteAvatarUrl = Supabase.instance.client.storage
+          final baseUrl = Supabase.instance.client.storage
               .from('eclipseverse-media')
               .getPublicUrl(storagePath);
+          remoteAvatarUrl =
+              '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
         }
       } catch (_) {
         // Keep local avatar cache if the network is temporarily unavailable.
@@ -135,36 +139,57 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         imageQuality: 80,
       );
       if (x == null) return;
-      // image_picker returns a temporary/cache path; copy it to app storage
-      // so the avatar remains available after Android cleans temporary files.
+
+      setState(() => _isUploadingPhoto = true);
+
+      // 1. Salin ke penyimpanan aplikasi supaya tidak hilang saat cache dibersihkan
       final directory = await getDatabasesPath();
       final extension = path.extension(x.path).isEmpty
           ? '.jpg'
           : path.extension(x.path);
       final savedPath = path.join(directory, 'eclipseverse_avatar$extension');
       final savedFile = await File(x.path).copy(savedPath);
+
+      // Path-nya sama dengan foto lama tapi isinya beda, jadi cache gambar
+      // lama harus dibuang. Kalau tidak, Flutter tetap menampilkan foto lama.
+      await FileImage(File(savedPath)).evict();
+
       await LocalDb.setPref('avatar_path', savedFile.path);
+
+      // 2. Upload ke Supabase Storage
       var displayedPath = savedFile.path;
-      final user = Supabase.instance.client.auth.currentUser;
+      var uploadFailed = false;
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
       if (user != null) {
         try {
+          final ext = path.extension(savedFile.path).toLowerCase();
+          // Nama file unik tiap ganti foto: tidak butuh policy UPDATE
+          // dan tidak kena cache CDN.
           final storagePath =
-              'avatars/${user.id}/profile${path.extension(savedFile.path)}';
-          await Supabase.instance.client.storage
+              'avatars/${user.id}/profile_${DateTime.now().millisecondsSinceEpoch}$ext';
+
+          // Simpan path foto lama untuk dihapus setelah upload berhasil
+          final oldRow = await client
+              .from('profiles')
+              .select('avatar_path')
+              .eq('id', user.id)
+              .maybeSingle()
+              .timeout(const Duration(seconds: 6));
+          final oldPath = oldRow?['avatar_path']?.toString();
+
+          await client.storage
               .from('eclipseverse-media')
               .upload(
                 storagePath,
                 savedFile,
                 fileOptions: FileOptions(
-                  upsert: true,
-                  contentType:
-                      path.extension(savedFile.path).toLowerCase() == '.png'
-                      ? 'image/png'
-                      : 'image/jpeg',
+                  contentType: ext == '.png' ? 'image/png' : 'image/jpeg',
                 ),
               )
               .timeout(const Duration(seconds: 12));
-          await Supabase.instance.client
+
+          await client
               .from('profiles')
               .update({
                 'avatar_path': storagePath,
@@ -172,17 +197,50 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
               })
               .eq('id', user.id)
               .timeout(const Duration(seconds: 8));
-          displayedPath = Supabase.instance.client.storage
+
+          // Hapus foto lama di storage (kalau gagal, tidak masalah)
+          if (oldPath != null && oldPath.isNotEmpty && oldPath != storagePath) {
+            try {
+              await client.storage.from('eclipseverse-media').remove([oldPath]);
+            } catch (_) {}
+          }
+
+          final baseUrl = client.storage
               .from('eclipseverse-media')
               .getPublicUrl(storagePath);
-        } catch (_) {
-          // Keep the persistent local copy if Storage is unavailable or the user is offline.
+          displayedPath = '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+        } catch (e) {
+          uploadFailed = true;
+          debugPrint('Upload avatar gagal: $e');
         }
       }
       if (!mounted) return;
-      setState(() => _avatarPath = displayedPath);
-    } catch (_) {
-      if (mounted) showSnack(context, 'Gagal memilih foto');
+
+      // Buang cache foto lama dari URL (kalau sebelumnya foto dari server)
+      if (_avatarPath != null && _avatarPath!.startsWith('http')) {
+        try {
+          await NetworkImage(_avatarPath!).evict();
+        } catch (_) {}
+      }
+
+      setState(() {
+        _avatarPath = displayedPath;
+        _isUploadingPhoto = false;
+      });
+      profileUpdateNotifier.value++;
+
+      if (uploadFailed) {
+        showSnack(
+          context,
+          'Foto tersimpan di perangkat, tapi gagal diunggah ke server',
+        );
+      }
+    } catch (e) {
+      debugPrint('Pilih foto gagal: $e');
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+        showSnack(context, 'Gagal memilih foto');
+      }
     }
   }
 
@@ -276,20 +334,67 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                 Center(
                   child: Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 56,
-                        backgroundColor: AppTheme.primaryDark,
-                        backgroundImage: _avatarImage,
-                        child: _avatarImage == null
-                            ? Text(
-                                _name.isEmpty ? '?' : _name[0].toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 44,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : null,
+                      Container(
+                        // radius: 56,
+                        // backgroundColor: AppTheme.primaryDark,
+                        // backgroundImage: _avatarImage,
+                        // child: _avatarImage == null
+                        //     ? Text(
+                        //         _name.isEmpty ? '?' : _name[0].toUpperCase(),
+                        //         style: const TextStyle(
+                        //           color: Colors.white,
+                        //           fontSize: 44,
+                        //           fontWeight: FontWeight.bold,
+                        //         ),
+                        //       )
+                        //     : null,
+                        width: 112,
+                        height: 112,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.primaryDark,
+                        ),
+
+                        child: ClipOval(
+                          // child: _avatarPath != null
+                          //     ? (_avatarPath!.startsWith('http')
+                          //           ? Image.network(
+                          //               key: ValueKey(_avatarPath),
+                          //               _avatarPath!,
+                          //               fit: BoxFit.cover,
+                          //               errorBuilder: (_, _, _) =>
+                          //                   _buildInitial(),
+                          //             )
+                          //           : Image.file(
+                          //               File(_avatarPath!),
+                          //               fit: BoxFit.cover,
+                          //               errorBuilder: (_, _, _) =>
+                          //                   _buildInitial(),
+                          //             ))
+                          //     : _buildInitial(),
+                          child: _isUploadingPhoto
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                ) // Kasih loading
+                              : (_avatarPath != null
+                                    ? (_avatarPath!.startsWith('http')
+                                          ? Image.network(
+                                              key: ValueKey(_avatarPath),
+                                              _avatarPath!,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  _buildInitial(),
+                                            )
+                                          : Image.file(
+                                              File(_avatarPath!),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  _buildInitial(),
+                                            ))
+                                    : _buildInitial()),
+                        ),
                       ),
                       Positioned(
                         right: 0,
@@ -452,6 +557,19 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildInitial() {
+    return Center(
+      child: Text(
+        _name.isEmpty ? '?' : _name[0].toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 44,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }
