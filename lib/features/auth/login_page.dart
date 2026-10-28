@@ -95,23 +95,27 @@ class _LoginPageState extends State<LoginPage> {
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) return false;
 
-    final offlineProfile = await OfflineAuthService.verify(
+    final profile = await OfflineAuthService.verify(
       email: email,
       password: password,
     );
-    if (offlineProfile == null) return false;
+    if (profile == null) return false;
+    await _openOfflineProfile(profile);
+    return true;
+  }
 
+  Future<void> _openOfflineProfile(OfflineProfile profile) async {
     await LocalDb.saveProfile(
-      userId: offlineProfile.userId,
-      name: offlineProfile.name,
-      email: offlineProfile.email,
+      userId: profile.userId,
+      name: profile.name,
+      email: profile.email,
     );
-    await LocalDb.setPref('active_user_id', offlineProfile.userId);
+    await LocalDb.setPref('active_user_id', profile.userId);
     await LocalDb.setPref('user_role', 'user');
     await LocalDb.setPref('offline_mode', '1');
     await SessionTimeoutService.clearBackgroundTime();
 
-    if (!mounted) return true;
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
@@ -120,7 +124,6 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
     Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
-    return true;
   }
 
   Future<void> _loginBiometric() async {
@@ -165,14 +168,39 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
     } on AuthException catch (e) {
-      await SecureStore.deleteCredentials();
-      await LocalDb.setPref('biometric_enabled', '0');
+      if (e.statusCode == null) {
+        final offlineProfile = await OfflineAuthService.verify(
+          email: creds['email']!,
+          password: creds['password']!,
+        );
+        if (offlineProfile != null) {
+          await _openOfflineProfile(offlineProfile);
+          return;
+        }
+      } else {
+        await SecureStore.deleteCredentials();
+        await LocalDb.setPref('biometric_enabled', '0');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Kredensial biometrik sudah tidak valid. Silakan login dengan email dan password terbaru. (${e.message})')),
+          SnackBar(
+            content: Text(
+              e.statusCode == null
+                  ? 'Login biometrik tidak dapat terhubung. Periksa koneksi atau gunakan login offline.'
+                  : 'Kredensial biometrik sudah tidak valid. Silakan login dengan email dan kata sandi terbaru.',
+            ),
+          ),
         );
       }
     } catch (e) {
+      final offlineProfile = await OfflineAuthService.verify(
+        email: creds['email']!,
+        password: creds['password']!,
+      );
+      if (offlineProfile != null) {
+        await _openOfflineProfile(offlineProfile);
+        return;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Gagal login: $e')));
