@@ -8,7 +8,7 @@ import '../feedback/feedback_page.dart';
 import '../profile/profile_page.dart';
 import 'home_page.dart';
 
-// Kerangka utama EclipseVerse; logout tersedia dari halaman Profil.
+// Kerangka utama EclipseVerse; tombol keluar tersedia di halaman Profil.
 class MainShell extends StatefulWidget {
   final Future<void> Function()? onLogout;
 
