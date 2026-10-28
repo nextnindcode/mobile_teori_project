@@ -12,6 +12,7 @@ import '../../theme/cosmic_widgets.dart';
 import '../event/event_model.dart';
 import '../event/event_page.dart' show formatEventDate;
 import '../marketplace/product_detail_sheet.dart';
+import '../nearby/location_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,6 +24,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String _userName = 'Eclipse Lovers';
   String? _avatarPath;
+  String _currentLocation = 'Lokasi belum tersedia';
   int _userPoints = 0;
   bool _isLoadingPoints = true;
 
@@ -44,7 +46,20 @@ class _HomePageState extends State<HomePage> {
       _loadPoints(),
       _loadEvents(),
       _loadProducts(),
+      _loadCurrentLocation(),
     ]);
+  }
+
+  Future<void> _loadCurrentLocation() async {
+    try {
+      final position = await LocationService.getCurrentLocation();
+      if (!mounted || position == null) return;
+      setState(() {
+        _currentLocation = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+      });
+    } catch (_) {
+      // Home tetap bisa dipakai saat izin lokasi tidak diberikan.
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -339,28 +354,6 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 16),
             _buildMoonAndEclipseCard(),
             const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Jelajahi Universe',
-                      style: Theme.of(context).textTheme.titleLarge
-                          ?.copyWith(color: AppTheme.textPrimary),
-                    ),
-                  ),
-                  const Text(
-                    'Fitur Utama',
-                    style: TextStyle(
-                      color: AppTheme.coolCyan,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 14),
             _buildQuickActionGrid(),
             const SizedBox(height: 28),
@@ -658,8 +651,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          'Selamat datang di semesta Eclipse',
+                        Text(
+                          'Lokasi kamu: $_currentLocation',
                           maxLines: 2,
                           softWrap: true,
                           overflow: TextOverflow.visible,
