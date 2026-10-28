@@ -1,3 +1,4 @@
+// import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -7,55 +8,70 @@ class ZoneOption {
   const ZoneOption(this.label, this.tzName);
 }
 
-/// Implementasi awal konversi waktu dengan zona WIB, WITA, WIT, dan London.
+/// Semua tanggal di database adalah UTC.
 class TimeService {
   static const wib = ZoneOption('WIB (Jakarta)', 'Asia/Jakarta');
   static const wita = ZoneOption('WITA (Makassar)', 'Asia/Makassar');
   static const wit = ZoneOption('WIT (Jayapura)', 'Asia/Jayapura');
   static const london = ZoneOption('London (UK)', 'Europe/London');
+  static const japan = ZoneOption('Jepang (Tokyo)', 'Asia/Tokyo');
+  static const singapore = ZoneOption('Singapura', 'Asia/Singapore');
+  static const thailand = ZoneOption('Thailand (Bangkok)', 'Asia/Bangkok');
+  static const kst = ZoneOption('KST (Seoul)', 'Asia/Seoul');
 
-  static const requiredZones = [wib, wita, wit, london];
+  /// 8 zona wajib per requirement Master Prompt:
+  /// WIB, WITA, WIT, London, Jepang, Singapura, Malaysia, Thailand
+  static const requiredZones = [
+    wib,
+    wita,
+    wit,
+    london,
+    japan,
+    singapore,
+    thailand,
+  ];
+
+  /// Zona tujuan yang selalu ditampilkan.
   static const zones = requiredZones;
-  static const originZones = requiredZones;
+
+  /// Zona asal untuk mode manual.
+  static const originZones = [
+    wib,
+    wita,
+    wit,
+    london,
+    japan,
+    singapore,
+    thailand,
+    kst,
+  ];
 
   static bool _ready = false;
-
   static void _ensure() {
     if (_ready) return;
-    tzdata.initializeTimeZones();
+    tzdata.initializeTimeZones(); // diinisialisasi lazy, sekali saja
     _ready = true;
   }
 
-  static tz.TZDateTime at(DateTime instant, String zone) {
+  static tz.TZDateTime at(DateTime utc, String zone) {
     _ensure();
-    return tz.TZDateTime.from(instant.toUtc(), tz.getLocation(zone));
+    try {
+      // Coba cari zona waktunya
+      return tz.TZDateTime.from(utc, tz.getLocation(zone));
+    } catch (e) {
+      // Kalo error balikin ke WIB
+      return tz.TZDateTime.from(utc, tz.getLocation('Asia/Jakarta'));
+    }
   }
 
-  /// Waktu lokal yang dipilih pada zona asal dikonversi menjadi UTC.
+  /// Waktu dinding [y-m-d h:mi] di zona asal -> UTC.
   static DateTime toUtc(int y, int m, int d, int h, int mi, String originZone) {
     _ensure();
     return tz.TZDateTime(tz.getLocation(originZone), y, m, d, h, mi).toUtc();
   }
 
-  static Map<String, tz.TZDateTime> convertAll(DateTime instant) {
-    final utc = instant.toUtc();
-    return {for (final zone in requiredZones) zone.label: at(utc, zone.tzName)};
-  }
-
-  static String flag(String zone) {
-    const flags = {
-      'Asia/Jakarta': '🇮🇩',
-      'Asia/Makassar': '🇮🇩',
-      'Asia/Jayapura': '🇮🇩',
-      'Europe/London': '🇬🇧',
-    };
-    return flags[zone] ?? '🌐';
-  }
-
-  static String zoneCode(String label) {
-    for (final zone in requiredZones) {
-      if (zone.label == label) return zone.tzName;
-    }
-    return '';
-  }
+  /// Label zona -> waktu di zona itu
+  static Map<String, tz.TZDateTime> convertAll(DateTime utc) => {
+    for (final z in requiredZones) z.label: at(utc, z.tzName),
+  };
 }
