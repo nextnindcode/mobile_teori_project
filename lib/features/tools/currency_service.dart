@@ -1,5 +1,9 @@
-import 'package:eclipseverse/core/api_service.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+
+import '../../core/local_db.dart';
 import '../fandom/shared/json_utils.dart';
 
 class CurrencyRates {
@@ -37,51 +41,99 @@ class CurrencyRates {
       base: '${payload['base'] ?? 'USD'}'.toUpperCase(),
       rates: rates.map((key, value) => MapEntry(key.toUpperCase(), toDouble(value))),
       updatedAt: parseUtc(payload['updated_at']),
-      source: '${payload['source'] ?? 'live'}',
+      source: '${payload['source'] ?? 'ExchangeRate-API'}',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'base': base,
+        'rates': rates,
+        'updated_at': updatedAt.toUtc().toIso8601String(),
+        'source': source,
+      };
 }
 
 class CurrencyService {
-  // Mata uang utama + beberapa negara yang relevan untuk fandom/travel.
+  // Malaysia sementara dihapus sampai kurs MYR terverifikasi.
   static const preferredCodes = [
-    'IDR', 'USD', 'MYR', 'SGD', 'THB', 'KRW', 'JPY', 'CNY', 'GBP', 'EUR', 'AUD',
+    'IDR', 'USD', 'SGD', 'THB', 'KRW', 'JPY', 'CNY', 'GBP', 'EUR', 'AUD',
   ];
+  static const _cacheKey = 'currency_rates_cache';
+  static const _apiUrl = 'https://open.er-api.com/v6/latest/USD';
 
   static List<String> codesFor(CurrencyRates rates) => preferredCodes
       .where((code) => rates.rates.containsKey(code) && rates.rates[code] != 0)
       .toList();
 
   static Future<CurrencyRates> fetchRates() async {
-    final data = await ApiService.get('/currency/rates', query: {'base': 'USD'});
-    final rates = CurrencyRates.fromJson(Map<String, dynamic>.from(data as Map));
-    if (codesFor(rates).length < 3) {
-      throw Exception('Kurs belum tersedia lengkap.');
+    try {
+      final response = await http
+          .get(Uri.parse(_apiUrl))
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) {
+        throw Exception('API kurs tidak merespons (HTTP ${response.statusCode}).');
+      }
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (body['result'] != 'success' || body['rates'] is! Map) {
+        throw Exception('Format data kurs dari API tidak valid.');
+      }
+
+      final apiRates = Map<String, dynamic>.from(body['rates'] as Map);
+      final rates = <String, double>{};
+      for (final code in preferredCodes) {
+        final value = apiRates[code];
+        if (value is num && value > 0) rates[code] = value.toDouble();
+      }
+      rates['USD'] = 1;
+      if (!rates.containsKey('IDR') || rates.length < 3) {
+        throw Exception('Data kurs dari API belum lengkap.');
+      }
+
+      final unix = body['time_last_update_unix'];
+      final updatedAt = unix is num
+          ? DateTime.fromMillisecondsSinceEpoch(unix.toInt() * 1000, isUtc: true)
+          : DateTime.now().toUtc();
+      final result = CurrencyRates(
+        base: 'USD',
+        rates: rates,
+        updatedAt: updatedAt,
+        source: 'ExchangeRate-API',
+      );
+      await LocalDb.setPref(_cacheKey, jsonEncode(result.toJson()));
+      return result;
+    } catch (error) {
+      final cached = await LocalDb.getPref(_cacheKey);
+      if (cached != null) {
+        try {
+          final result = CurrencyRates.fromJson(
+            Map<String, dynamic>.from(jsonDecode(cached) as Map),
+          );
+          return CurrencyRates(
+            base: result.base,
+            rates: result.rates,
+            updatedAt: result.updatedAt,
+            source: '${result.source} (cache terakhir)',
+          );
+        } catch (_) {
+          // Abaikan cache yang tidak valid; tampilkan error API.
+        }
+      }
+      rethrow;
     }
-    return rates;
   }
 
-  static String format(String code, double value) {
-    final decimals = code == 'USD' || code == 'GBP' || code == 'EUR' ? 2 : 0;
-    return NumberFormat.decimalPatternDigits(
-      locale: 'id_ID',
-      decimalDigits: decimals,
-    ).format(value);
-  }
+  static String format(String code, double value) =>
+      NumberFormat.decimalPatternDigits(
+        locale: 'id_ID',
+        decimalDigits: const ['USD', 'GBP', 'EUR', 'AUD'].contains(code) ? 2 : 0,
+      ).format(value);
 
   static String flag(String code) {
     const flags = {
-      'IDR': '🇮🇩',
-      'USD': '🇺🇸',
-      'MYR': '🇲🇾',
-      'SGD': '🇸🇬',
-      'THB': '🇹🇭',
-      'KRW': '🇰🇷',
-      'JPY': '🇯🇵',
-      'CNY': '🇨🇳',
-      'GBP': '🇬🇧',
-      'EUR': '🇪🇺',
-      'AUD': '🇦🇺',
+      'IDR': '🇮🇩', 'USD': '🇺🇸', 'SGD': '🇸🇬', 'THB': '🇹🇭',
+      'KRW': '🇰🇷', 'JPY': '🇯🇵', 'CNY': '🇨🇳', 'GBP': '🇬🇧',
+      'EUR': '🇪🇺', 'AUD': '🇦🇺',
     };
     return flags[code] ?? '🌐';
   }
