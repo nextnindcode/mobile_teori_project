@@ -23,14 +23,14 @@ class SensorService {
       (event) {
         if (_moveLocked) return;
 
-        if (event.x > 5.0) {
+        if (event.x > 4.0) {
           _moveLocked = true;
           onMove(1);
           _moveCooldown?.cancel();
           _moveCooldown = Timer(const Duration(milliseconds: 900), () {
             _moveLocked = false;
           });
-        } else if (event.x < -5.0) {
+        } else if (event.x < -4.0) {
           _moveLocked = true;
           onMove(-1);
           _moveCooldown?.cancel();
@@ -50,7 +50,7 @@ class SensorService {
     // tidak terasa "mati" di perangkat dengan sensitivitas berbeda.
     _gyroSubscription = gyroscopeEventStream().listen(
       (event) {
-        if (_confirmLocked || event.x.abs() < 2.5) return;
+        if (_confirmLocked || event.x.abs() < 1.0) return;
 
         _confirmLocked = true;
         onConfirm();
