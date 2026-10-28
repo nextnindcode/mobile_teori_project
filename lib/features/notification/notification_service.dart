@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
-// import '../../core/local_db.dart';
+import '../../core/local_db.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -65,7 +65,11 @@ class NotificationService {
 
   // Menampilkan notifikasi order berhasil dibuat.
   static Future<void> showOrderConfirmed(dynamic orderId) async {
-    await init();
+    // Hormati preferensi pengguna sebelum menampilkan notifikasi pesanan.
+    final enabled = await LocalDb.getPref('notification_enabled');
+    if (enabled != '1') return;
+    final granted = await init();
+    if (!granted) return;
     const androidDetails = AndroidNotificationDetails(
       'eclipse_order_channel',
       'Order Notifications',
@@ -84,6 +88,9 @@ class NotificationService {
 
   // Jadwalkan pengingat event (24 jam dan 1 jam sebelum event).
   static Future<bool> scheduleEventReminder(dynamic event) async {
+    // Jangan menjadwalkan ulang reminder jika pengguna sudah mematikan notifikasi.
+    final enabled = await LocalDb.getPref('notification_enabled');
+    if (enabled != '1') return false;
     final granted = await init();
     if (!granted) return false;
 
