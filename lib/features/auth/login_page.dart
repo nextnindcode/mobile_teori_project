@@ -7,7 +7,7 @@ import '../../core/auth_service.dart';
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
 import '../../core/session_timeout_service.dart';
-import '../../core/secure_store.dart'; // Pastikan ini diimport
+import '../../core/secure_store.dart';
 import '../../theme/app_theme.dart';
 import '../profile/biometric_service.dart';
 
@@ -57,8 +57,7 @@ class _LoginPageState extends State<LoginPage> {
       await SessionTimeoutService.clearBackgroundTime();
       if (!mounted) return;
 
-      // OTOMATIS SIMPAN KREDENSIAL BIOMETRIC SETELAH LOGIN SUKSES
-      // (Tanpa nanya pop-up, biar langsung siap dipake)
+      // Simpan kredensial biometrik setelah login berhasil.
       final isSupported = await BiometricService.isSupported();
       if (isSupported) {
         await SecureStore.saveCredentials(
@@ -137,7 +136,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Ambil kredensial yang tersimpan
+    // Ambil kredensial yang tersimpan dengan aman.
     final creds = await SecureStore.getCredentials();
     if (!mounted) return;
 
@@ -155,7 +154,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      // Login ulang ke Supabase
+      // Coba autentikasi ulang melalui Supabase.
       final response = await AuthService.login(
         email: creds['email']!,
         password: creds['password']!,
@@ -203,7 +202,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ===== 1. GAMBAR ATAS =====
+                  // ===== 1. ILUSTRASI GERHANA =====
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -237,7 +236,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ===== 2. JUDUL =====
+                  // ===== 2. JUDUL HALAMAN =====
                   Text(
                     'EclipseVerse',
                     style: AppTheme.textTheme.headlineMedium?.copyWith(
@@ -252,7 +251,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ===== 3. FORM EMAIL =====
+                  // ===== 3. FORMULIR EMAIL =====
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
@@ -265,7 +264,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 4. FORM PASSWORD =====
+                  // ===== 4. FORMULIR KATA SANDI =====
                   TextFormField(
                     controller: _passwordController,
                     decoration: InputDecoration(
@@ -288,7 +287,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ===== 5. TOMBOL LOGIN MANUAL =====
+                  // ===== 5. TOMBOL MASUK =====
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -300,7 +299,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
 
-                  // ===== 6. PEMBATAS "ATAU" =====
+                  // ===== 6. PEMBATAS METODE MASUK =====
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -317,7 +316,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ===== 7. TOMBOL SIDIK JARI (SELALU MUNCUL) =====
+                  // ===== 7. TOMBOL MASUK BIOMETRIK =====
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -346,7 +345,7 @@ class _LoginPageState extends State<LoginPage> {
 
                   const SizedBox(height: 32),
 
-                  // ===== 8. LINK DAFTAR =====
+                  // ===== 8. TAUTAN PENDAFTARAN =====
                   TextButton(
                     onPressed: () =>
                         Navigator.pushNamed(context, Routes.register),
