@@ -51,6 +51,7 @@ dependencies:
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
   flutter_svg: ^2.3.0
+  flutter_markdown: ^0.7.7+1
   flutter_compass: ^0.8.1
   supabase_flutter: ^2.18.3
 
