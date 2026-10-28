@@ -31,7 +31,9 @@ class CurrencyRates {
     final rawRates = Map<String, dynamic>.from(json['rates'] as Map);
     return CurrencyRates(
       base: '${json['base'] ?? 'USD'}',
-      rates: rawRates.map((key, value) => MapEntry(key, (value as num).toDouble())),
+      rates: rawRates.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      ),
       updatedAt: DateTime.parse('${json['updated_at']}').toUtc(),
       source: '${json['source'] ?? 'ExchangeRate-API'}',
     );
@@ -46,13 +48,9 @@ class CurrencyRates {
 }
 
 class CurrencyService {
-  // Implementasi awal: API kurs online + cache lokal, tanpa backend kurs.
   static const codes = ['IDR', 'USD', 'KRW', 'JPY'];
   static const _cacheKey = 'currency_rates_cache';
   static const _apiUrl = 'https://open.er-api.com/v6/latest/USD';
-
-  static List<String> codesFor(CurrencyRates rates) =>
-      codes.where((code) => rates.rates.containsKey(code) && rates.rates[code] != 0).toList();
 
   static Future<CurrencyRates> fetchRates() async {
     try {
@@ -81,7 +79,10 @@ class CurrencyService {
 
       final unix = body['time_last_update_unix'];
       final updatedAt = unix is num
-          ? DateTime.fromMillisecondsSinceEpoch(unix.toInt() * 1000, isUtc: true)
+          ? DateTime.fromMillisecondsSinceEpoch(
+              unix.toInt() * 1000,
+              isUtc: true,
+            )
           : DateTime.now().toUtc();
 
       final result = CurrencyRates(
@@ -106,7 +107,7 @@ class CurrencyService {
             source: '${result.source} (cache terakhir)',
           );
         } catch (_) {
-          // Cache tidak valid; tampilkan error API di bawah.
+          // Cache rusak; tampilkan error jaringan asli di bawah.
         }
       }
       rethrow;
@@ -118,14 +119,4 @@ class CurrencyService {
         locale: 'id_ID',
         decimalDigits: code == 'USD' ? 2 : 0,
       ).format(value);
-
-  static String flag(String code) {
-    const flags = {
-      'IDR': '🇮🇩',
-      'USD': '🇺🇸',
-      'KRW': '🇰🇷',
-      'JPY': '🇯🇵',
-    };
-    return flags[code] ?? '🌐';
-  }
 }
