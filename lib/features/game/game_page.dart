@@ -238,10 +238,34 @@ class _GamePageState extends State<GamePage> {
             ],
           ),
           const SizedBox(height: 20),
-          CosmicCard(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: AppTheme.cardGradient,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: AppTheme.eclipseViolet.withValues(alpha: 0.45)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.eclipseViolet.withValues(alpha: 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
             child: Column(
               children: [
-                const Icon(Icons.auto_awesome_rounded, size: 42, color: AppTheme.coolCyan),
+                const Text(
+                  'TEBAK SIAPA MEMBER-NYA',
+                  style: TextStyle(
+                    color: AppTheme.coolCyan,
+                    fontSize: 10,
+                    letterSpacing: 1.4,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Icon(Icons.auto_awesome_rounded, size: 38, color: AppTheme.coronaGold),
                 const SizedBox(height: 10),
                 Text(
                   question.funFact,
@@ -280,10 +304,41 @@ class _GamePageState extends State<GamePage> {
                             ),
                           ),
                         ),
-                        child: Text(
-                          option,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 30,
+                                height: 30,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: (highlighted ? AppTheme.coolCyan : AppTheme.eclipseViolet)
+                                      .withValues(alpha: 0.18),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '${index + 1}',
+                                  style: const TextStyle(
+                                    color: AppTheme.coronaGold,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                option,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.25,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
