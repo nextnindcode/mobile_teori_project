@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:eclipseverse/theme/app_theme.dart';
 import 'currency_tab.dart';
 import 'time_tab.dart';
-import 'moon_tab.dart';
 
-/// Eclipse Tools: kurs, zona waktu, fase Bulan, dan jadwal gerhana.
+/// Eclipse Tools: konversi mata uang dan zona waktu.
 class ToolsPage extends StatefulWidget {
   final int initialTab;
   const ToolsPage({super.key, this.initialTab = 0});
@@ -16,12 +15,12 @@ class _ToolsPageState extends State<ToolsPage> with SingleTickerProviderStateMix
   late final TabController _tc;
   bool _argRead = false;
 
-  static int _validTab(int value) => value < 0 ? 0 : (value > 2 ? 2 : value);
+  static int _validTab(int value) => value < 0 ? 0 : (value > 1 ? 1 : value);
 
   @override
   void initState() {
     super.initState();
-    _tc = TabController(length: 3, vsync: this, initialIndex: _validTab(widget.initialTab));
+    _tc = TabController(length: 2, vsync: this, initialIndex: _validTab(widget.initialTab));
   }
 
   @override
@@ -53,13 +52,12 @@ class _ToolsPageState extends State<ToolsPage> with SingleTickerProviderStateMix
           tabs: const [
             Tab(text: 'Kurs'),
             Tab(text: 'Waktu'),
-            Tab(text: 'Observatory'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tc,
-        children: const [CurrencyTab(), TimeTab(), MoonTab()],
+        children: const [CurrencyTab(), TimeTab()],
       ),
     );
   }
