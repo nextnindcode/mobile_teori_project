@@ -6,42 +6,11 @@ class FeedbackService {
   static Future<List<Map<String, dynamic>>> fetchReviews() async {
     final rows = await _client
         .from('feedback')
-        .select('id,user_id,rating,impression,suggestion,created_at')
+        .select('id,rating,impression,suggestion,created_at')
         .order('created_at', ascending: false)
         .limit(50)
         .timeout(const Duration(seconds: 12));
-
-    final reviews = rows.map((row) => Map<String, dynamic>.from(row)).toList();
-    final userIds = reviews
-        .map((row) => row['user_id']?.toString())
-        .whereType<String>()
-        .where((id) => id.isNotEmpty)
-        .toSet()
-        .toList();
-
-    if (userIds.isNotEmpty) {
-      try {
-        final profiles = await _client
-            .from('profiles')
-            .select('id,display_name')
-            .inFilter('id', userIds)
-            .timeout(const Duration(seconds: 8));
-        final names = <String, String>{
-          for (final row in profiles)
-            '${row['id']}': (row['display_name']?.toString().trim().isNotEmpty ?? false)
-                ? row['display_name'].toString().trim()
-                : 'Pengguna',
-        };
-        for (final review in reviews) {
-          review['user_name'] = names[review['user_id']?.toString()] ?? 'Pengguna';
-        }
-      } catch (_) {
-        for (final review in reviews) {
-          review['user_name'] = 'Pengguna';
-        }
-      }
-    }
-    return reviews;
+    return rows.map((row) => Map<String, dynamic>.from(row)).toList();
   }
 
   static Future<void> submit({
