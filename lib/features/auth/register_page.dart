@@ -65,6 +65,17 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (response.session != null) {
         await AuthService.cacheUserLocally(user);
+        final cachedProfile = await LocalDb.getProfile(user.id);
+        if (cachedProfile != null) {
+          await OfflineAuthService.saveCredentials(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            userId: user.id,
+            name: cachedProfile['name']?.toString() ?? _nameController.text.trim(),
+            profileEmail: cachedProfile['email']?.toString() ?? _emailController.text.trim(),
+          );
+        }
+        await LocalDb.setPref('offline_mode', '0');
         if (!mounted) return;
         Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
       } else {
