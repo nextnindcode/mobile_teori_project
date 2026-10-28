@@ -36,6 +36,12 @@ class MoonTab extends StatelessWidget {
     return '🌘';
   }
 
+  String _indonesianDate(DateTime date) {
+    const weekdays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -93,7 +99,7 @@ class MoonTab extends StatelessWidget {
             const SizedBox(height: 4),
             Text(_phaseName(phase), style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 6),
-            Text(DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now), style: Theme.of(context).textTheme.bodyMedium),
+            Text(_indonesianDate(now), style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 16),
             Row(children: [
               Expanded(child: _stat('Penerangan', '$illumination%', Icons.brightness_6_outlined)),
