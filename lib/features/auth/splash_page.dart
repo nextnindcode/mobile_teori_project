@@ -33,11 +33,7 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkSession() async {
-<<<<<<< Updated upstream
-    await Future<void>.delayed(const Duration(milliseconds: 2000));
-=======
     await Future<void>.delayed(const Duration(milliseconds: 2500));
->>>>>>> Stashed changes
     if (!mounted) return;
 
     final expired = await SessionTimeoutService.hasExpired();
@@ -73,20 +69,14 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-<<<<<<< Updated upstream
-=======
             // ===== AREA ANIMASI GERHANA =====
->>>>>>> Stashed changes
             SizedBox(
               width: 140,
               height: 140,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-<<<<<<< Updated upstream
-=======
                   // 1. Lingkaran Matahari (Kuning, diam di tengah)
->>>>>>> Stashed changes
                   Container(
                     width: 100,
                     height: 100,
@@ -102,13 +92,8 @@ class _SplashPageState extends State<SplashPage> {
                       ],
                     ),
                   ),
-<<<<<<< Updated upstream
-                  TweenAnimationBuilder<double>(
-                    tween: Tween(begin: -120.0, end: 0.0),
-=======
                   // 2. Lingkaran Bulan (Gelap, bergerak dari kiri menutupi matahari)
                   AnimatedPositioned(
->>>>>>> Stashed changes
                     duration: const Duration(milliseconds: 1500),
                     curve: Curves.easeInOutCubic, // Gerakan yang mulus
                     left: _moonPosition,
@@ -116,11 +101,7 @@ class _SplashPageState extends State<SplashPage> {
                       width: 100,
                       height: 100,
                       decoration: const BoxDecoration(
-<<<<<<< Updated upstream
-                        color: AppTheme.primaryDark,
-=======
                         color: AppTheme.primaryDark, // Sama dengan background
->>>>>>> Stashed changes
                         shape: BoxShape.circle,
                       ),
                     ),
