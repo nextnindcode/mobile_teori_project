@@ -16,7 +16,7 @@ class _ToolsPageState extends State<ToolsPage> with SingleTickerProviderStateMix
   late final TabController _tc;
   bool _argRead = false;
 
-  static int _validTab(int value) => value.clamp(0, 2);
+  static int _validTab(int value) => value < 0 ? 0 : (value > 2 ? 2 : value);
 
   @override
   void initState() {
