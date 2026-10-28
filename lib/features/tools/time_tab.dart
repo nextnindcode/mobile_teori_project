@@ -104,7 +104,7 @@ class _TimeTabState extends State<TimeTab> {
         const SizedBox(height: 18),
         const Text('Hasil konversi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(_hasConverted ? 'Waktu setara berdasarkan zona $_origin.label.' : 'Hasil akan muncul setelah kamu menekan Konversi Waktu.', style: const TextStyle(color: AppTheme.textSecondary)),
+        Text(_hasConverted ? 'Waktu setara berdasarkan zona ${_origin.label}.' : 'Hasil akan muncul setelah kamu menekan Konversi Waktu.', style: const TextStyle(color: AppTheme.textSecondary)),
         const SizedBox(height: 10),
         if (_hasConverted)
           ..._results.entries.map((entry) => Card(
@@ -121,7 +121,7 @@ class _TimeTabState extends State<TimeTab> {
         if (!_hasConverted)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
-            child: EmptyView(title: 'Belum ada hasil', subtitle: 'Pilih tanggal, jam, dan zona asal untuk melihat waktu di negara lain.'),
+            child: EmptyView(text: 'Pilih tanggal, jam, dan zona asal, lalu tekan Konversi Waktu untuk melihat waktu di negara lain.'),
           ),
         const SizedBox(height: 8),
         Container(
