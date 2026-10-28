@@ -299,7 +299,7 @@ class _AiPageState extends State<AiPage> {
               decoration: BoxDecoration(
                 color: isUser 
                   ? AppTheme.primaryDark 
-                  : (isError ? Colors.red.shade50 : AppTheme.white),
+                  : (isError ? Colors.red.shade50 : AppTheme.surfaceElevated),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),
@@ -332,7 +332,7 @@ class _AiPageState extends State<AiPage> {
                       selectable: true,
                       styleSheet: MarkdownStyleSheet(
                         p: AppTheme.textTheme.bodyLarge?.copyWith(
-                          color: AppTheme.black,
+                          color: AppTheme.textPrimary,
                           height: 1.4,
                         ),
                         h1: AppTheme.textTheme.titleLarge?.copyWith(color: AppTheme.black),
