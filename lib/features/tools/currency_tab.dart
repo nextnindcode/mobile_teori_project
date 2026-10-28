@@ -114,7 +114,7 @@ class _CurrencyTabState extends State<CurrencyTab> {
         if (!_converted)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
-            child: EmptyView(title: 'Belum ada hasil', subtitle: 'Masukkan nominal lalu tekan Konversi Harga.'),
+            child: EmptyView(text: 'Masukkan nominal lalu tekan Konversi Harga untuk melihat hasil.'),
           ),
         const SizedBox(height: 8),
         Text('Diperbarui: ${DateFormat('d MMM yyyy HH:mm').format(rates.updatedAt.toLocal())} • ${rates.source}', style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
