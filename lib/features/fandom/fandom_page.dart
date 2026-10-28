@@ -85,7 +85,62 @@ class _FandomPageState extends State<FandomPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: AppTheme.cosmicHeroGradient,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: AppTheme.borderSubtle),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AppTheme.coolCyan.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: AppTheme.coolCyan,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Temukan member favoritmu',
+                          style: TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _loading
+                              ? 'Menyiapkan direktori member...'
+                              : '${_all.length} member • pilih untuk melihat profil',
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             child: TextField(
               controller: _search,
               onChanged: (_) => setState(() {}),
@@ -182,7 +237,7 @@ class _FandomPageState extends State<FandomPage> {
 
           return Container(
             decoration: BoxDecoration(
-              color: AppTheme.surfaceElevated,
+              gradient: AppTheme.cardGradient,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppTheme.borderSubtle),
             ),
