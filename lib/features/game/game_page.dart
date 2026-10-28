@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
-import '../membership/membership_service.dart';
 import 'game_controller.dart';
 import 'sensor_service.dart';
 
@@ -20,32 +19,11 @@ class _GamePageState extends State<GamePage> {
   String? _selectedOption;
   bool _isAnswered = false;
   int _highlightedIndex = 0;
-  bool _memberChallenge = false;
   int _lastRound = -1;
-  bool _isLoadingMember = true;
-  bool _isMember = false;
 
   @override
   void initState() {
     super.initState();
-    _checkMembership();
-  }
-
-  Future<void> _checkMembership() async {
-    try {
-      final active = await MembershipService.isActive();
-      if (!mounted) return;
-      setState(() {
-        _isMember = active;
-        _isLoadingMember = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isMember = false;
-        _isLoadingMember = false;
-      });
-    }
   }
 
   @override
@@ -91,17 +69,13 @@ class _GamePageState extends State<GamePage> {
     await controller.answerQuestion(option);
   }
 
-  Future<void> _startNewGame(
-    GameController controller, {
-    required bool memberChallenge,
-  }) async {
+  Future<void> _startNewGame(GameController controller) async {
     _sensorService.stopSensors();
     setState(() {
-      _memberChallenge = memberChallenge;
       _lastRound = -1;
       _resetAnswerState();
     });
-    await controller.startGame(memberChallenge: memberChallenge);
+    await controller.startGame();
     if (!mounted) return;
     _startSensors(controller);
   }
@@ -114,7 +88,7 @@ class _GamePageState extends State<GamePage> {
         backgroundColor: AppTheme.deepSpace,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          title: Text(_memberChallenge ? 'Tantangan Member' : 'Guess the Member'),
+          title: const Text('Guess the Member'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => Navigator.pop(context),
@@ -122,9 +96,6 @@ class _GamePageState extends State<GamePage> {
         ),
         body: Consumer<GameController>(
           builder: (context, controller, _) {
-            if (_isLoadingMember) {
-              return const CosmicLoading(message: 'Menyiapkan game...');
-            }
             if (controller.loadError != null && controller.questions.isEmpty) {
               return Center(
                 child: Padding(
@@ -195,36 +166,10 @@ class _GamePageState extends State<GamePage> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                onPressed: () => _startNewGame(controller, memberChallenge: false),
+                onPressed: () => _startNewGame(controller),
                 child: const Text('Mulai Bermain', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.workspace_premium_rounded),
-                label: const Text('Tantangan Member • 10 detik/ronde'),
-                onPressed: () async {
-                  final active = await MembershipService.isActive();
-                  if (!context.mounted) return;
-                  if (!active) {
-                    Navigator.pushNamed(context, Routes.membership);
-                    return;
-                  }
-                  await _startNewGame(controller, memberChallenge: true);
-                },
-              ),
-            ),
-            if (!_isMember)
-              const Padding(
-                padding: EdgeInsets.only(top: 14),
-                child: Text(
-                  'Member mendapat tantangan khusus dengan waktu lebih singkat.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.coronaGold, fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
           ],
         ),
       ),
@@ -428,7 +373,7 @@ class _GamePageState extends State<GamePage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _startNewGame(controller, memberChallenge: _memberChallenge),
+                onPressed: () => _startNewGame(controller),
                 icon: const Icon(Icons.replay_rounded),
                 label: const Text('Main Lagi'),
                 style: ElevatedButton.styleFrom(
