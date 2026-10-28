@@ -70,7 +70,23 @@ class TimeService {
   }
 
   /// Label zona -> waktu di zona itu
+  /// Mengembalikan waktu setiap zona dengan key singkat untuk kebutuhan tes/API.
   static Map<String, tz.TZDateTime> convertAll(DateTime utc) => {
-    for (final z in requiredZones) z.label: at(utc, z.tzName),
+    for (final z in requiredZones) _shortLabel(z): at(utc, z.tzName),
   };
+
+  static String _shortLabel(ZoneOption zone) {
+    switch (zone.label) {
+      case 'WIB (Jakarta)':
+        return 'WIB';
+      case 'WITA (Makassar)':
+        return 'WITA';
+      case 'WIT (Jayapura)':
+        return 'WIT';
+      case 'London (UK)':
+        return 'London';
+      default:
+        return zone.label;
+    }
+  }
 }
