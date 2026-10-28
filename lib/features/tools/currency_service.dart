@@ -114,6 +114,26 @@ class CurrencyService {
     }
   }
 
+  // Kode mata uang yang benar-benar tersedia pada kurs yang berhasil dimuat.
+  static List<String> codesFor(CurrencyRates rates) =>
+      codes.where((code) => rates.rates.containsKey(code)).toList();
+
+  // Bendera untuk membantu pengguna mengenali mata uang.
+  static String flag(String code) {
+    switch (code) {
+      case 'IDR':
+        return '🇮🇩';
+      case 'USD':
+        return '🇺🇸';
+      case 'KRW':
+        return '🇰🇷';
+      case 'JPY':
+        return '🇯🇵';
+      default:
+        return '🌐';
+    }
+  }
+
   static String format(String code, double value) =>
       NumberFormat.decimalPatternDigits(
         locale: 'id_ID',
