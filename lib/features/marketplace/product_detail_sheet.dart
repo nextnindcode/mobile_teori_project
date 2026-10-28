@@ -5,6 +5,7 @@ import '../../models/products.dart';
 import '../../theme/app_theme.dart';
 import '../../core/local_db.dart';
 import '../notification/notification_service.dart';
+import '../tools/currency_service.dart';
 
 class ProductDetailSheet extends StatefulWidget {
   final Product product;
@@ -28,13 +29,14 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   int _quantity = 1;
   bool _isProcessing = false;
   String _selectedCurrency = 'IDR';
+  CurrencyRates? _currencyRates;
 
-  final Map<String, double> _rates = {
-    'IDR': 1.0,
-    'USD': 0.000063,
-    'KRW': 0.085,
-    'JPY': 0.0095,
-  };
+  // final Map<String, double> _rates = {
+  //   'IDR': 1.0,
+  //   'USD': 0.000063,
+  //   'KRW': 0.085,
+  //   'JPY': 0.0095,
+  // };
 
   @override
   void initState() {
@@ -42,6 +44,20 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     // Kalau dibuka dari keranjang, set Qty awal sesuai yang ada di cart (biasanya 1)
     // (Biar lebih akurat, kamu bisa passing quantity dari cart ke sini)
     _quantity = widget.initialQuantity;
+    _fetchRates();
+  }
+
+  Future<void> _fetchRates() async {
+    try {
+      final rates = await CurrencyService.fetchRates();
+      if (mounted) {
+        setState(() {
+          _currencyRates = rates;
+        });
+      }
+    } catch (e) {
+      debugPrint('Gagal ambil kurs: $e');
+    }
   }
 
   String _formatRupiah(int amount) {
@@ -77,29 +93,28 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     return '$symbol$formatted';
   }
 
-    Future<Map<String, dynamic>?> _prosesBeliLangsung (
-      Product product,
-      int qty,
-    ) async {
+  Future<Map<String, dynamic>?> _prosesBeliLangsung(
+    Product product,
+    int qty,
+  ) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return {'error': 'User belum login'};
 
       // GUNAKAN RPC YANG SAMA DENGAN CART
-      final response = await Supabase.instance.client.rpc(
-        'checkout_merchandise',
-        params: {
-          'p_items': [
-            {
-              'product_id': product.id,
-              'quantity': qty,
-            }
-          ],
-        },
-      ).timeout(const Duration(seconds: 15));
+      final response = await Supabase.instance.client
+          .rpc(
+            'checkout_merchandise',
+            params: {
+              'p_items': [
+                {'product_id': product.id, 'quantity': qty},
+              ],
+            },
+          )
+          .timeout(const Duration(seconds: 15));
 
       final result = Map<String, dynamic>.from(response as Map);
-      
+
       // Kembalikan order_id dari RPC agar notifikasi bisa muncul
       return {'order_id': result['order_id']};
     } catch (e) {
@@ -113,11 +128,27 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     final isOutOfStock = product.stock <= 0;
 
     final totalPriceIDR = product.price * _quantity;
-    final convertedPrice =
-        totalPriceIDR.toDouble() * (_rates[_selectedCurrency] ?? 1.0);
+    double convertedPrice = totalPriceIDR.toDouble();
+    if (_currencyRates != null) {
+      try {
+        convertedPrice = _currencyRates!.convert(
+          totalPriceIDR.toDouble(),
+          'IDR',
+          _selectedCurrency,
+        );
+      } catch (e) {
+        _selectedCurrency = 'IDR';
+      }
+    }
+
     final displayPrice = _selectedCurrency == 'IDR'
         ? _formatRupiah(totalPriceIDR)
         : _formatCurrency(convertedPrice, _selectedCurrency);
+    // final convertedPrice =
+    //     totalPriceIDR.toDouble() * (_rates[_selectedCurrency] ?? 1.0);
+    // final displayPrice = _selectedCurrency == 'IDR'
+    //     ? _formatRupiah(totalPriceIDR)
+    //     : _formatCurrency(convertedPrice, _selectedCurrency);
 
     return Container(
       decoration: const BoxDecoration(
