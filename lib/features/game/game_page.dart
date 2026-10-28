@@ -6,7 +6,6 @@ import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import 'game_controller.dart';
 import 'sensor_service.dart';
-import '../fandom/member_service.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
@@ -21,34 +20,10 @@ class _GamePageState extends State<GamePage> {
   bool _isAnswered = false;
   int _highlightedIndex = 0;
   int _lastRound = -1;
-  final Map<String, String> _memberImageUrls = {};
 
   @override
   void initState() {
     super.initState();
-    _loadMemberImages();
-  }
-
-  Future<void> _loadMemberImages() async {
-    try {
-      final members = await MemberService.fetchMembers();
-      if (!mounted) return;
-      setState(() {
-        for (final member in members) {
-          final imageUrl = member.imageUrl?.trim() ?? '';
-          if (imageUrl.isNotEmpty) {
-            _memberImageUrls[member.stageName.toLowerCase()] = imageUrl;
-          }
-        }
-      });
-    } catch (_) {
-      // Kuis tetap bisa dimainkan meskipun foto member gagal dimuat.
-    }
-  }
-
-  String? _imageForOption(String option) {
-    final name = option.replaceFirst(RegExp(r'^[A-D]\.\s*'), '').trim();
-    return _memberImageUrls[name.toLowerCase()];
   }
 
   @override
@@ -303,107 +278,55 @@ class _GamePageState extends State<GamePage> {
           ),
           const SizedBox(height: 18),
           SizedBox(
-            height: 152,
-            child: GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 8,
-              childAspectRatio: 2.35,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
+            height: 58,
+            child: Row(
               children: List.generate(question.options.length, (index) {
                 final option = question.options[index];
                 final selected = option == _selectedOption;
                 final highlighted = index == _highlightedIndex && !_isAnswered;
-                final imageUrl = _imageForOption(option);
                 return Expanded(
                   child: Padding(
-                    padding: EdgeInsets.zero,
+                    padding: EdgeInsets.only(
+                      right: index == 0 ? 5 : 0,
+                      left: index == 1 ? 5 : 0,
+                    ),
                     child: AnimatedScale(
-                      scale: highlighted ? 1.025 : 1,
+                      scale: highlighted ? 1.015 : 1,
                       duration: const Duration(milliseconds: 160),
                       child: ElevatedButton(
-                        onPressed: _isAnswered ? null : () => _handleAnswer(index, option, controller),
+                        onPressed: _isAnswered
+                            ? null
+                            : () => _handleAnswer(index, option, controller),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: selected ? AppTheme.eclipseViolet : AppTheme.surfaceElevated,
+                          backgroundColor: selected
+                              ? AppTheme.eclipseViolet
+                              : AppTheme.surfaceElevated,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: selected ? AppTheme.eclipseViolet : AppTheme.surfaceElevated,
+                          disabledBackgroundColor: selected
+                              ? AppTheme.eclipseViolet
+                              : AppTheme.surfaceElevated,
                           disabledForegroundColor: Colors.white,
-                          elevation: highlighted ? 8 : 2,
+                          elevation: highlighted ? 3 : 1,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(14),
                             side: BorderSide(
-                              color: highlighted ? AppTheme.coolCyan : AppTheme.borderSubtle,
-                              width: highlighted ? 2 : 1,
+                              color: highlighted
+                                  ? AppTheme.coolCyan
+                                  : AppTheme.borderSubtle,
+                              width: highlighted ? 1.5 : 1,
                             ),
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 24,
-                                height: 24,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: (highlighted ? AppTheme.coolCyan : AppTheme.eclipseViolet)
-                                      .withValues(alpha: 0.18),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  '${index + 1}',
-                                  style: const TextStyle(
-                                    color: AppTheme.coronaGold,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: SizedBox(
-                                  width: 42,
-                                  height: 52,
-                                  child: imageUrl == null
-                                      ? Container(
-                                          color: AppTheme.surfaceSecondary,
-                                          child: const Icon(
-                                            Icons.person_outline_rounded,
-                                            color: AppTheme.textSecondary,
-                                            size: 22,
-                                          ),
-                                        )
-                                      : Image.network(
-                                          imageUrl,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, _, _) => Container(
-                                            color: AppTheme.surfaceSecondary,
-                                            child: const Icon(
-                                              Icons.person_outline_rounded,
-                                              color: AppTheme.textSecondary,
-                                              size: 22,
-                                            ),
-                                          ),
-                                        ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  option.replaceFirst(RegExp(r'^[A-D]\.\s*'), ''),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.start,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ),
-                            ],
+                        child: Text(
+                          option,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            height: 1.2,
                           ),
                         ),
                       ),
@@ -412,12 +335,6 @@ class _GamePageState extends State<GamePage> {
                 );
               }),
             ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Miringkan HP kiri/kanan untuk berpindah • gerakkan HP untuk konfirmasi • tap untuk memilih',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 11, height: 1.4),
           ),
         ],
       ),
