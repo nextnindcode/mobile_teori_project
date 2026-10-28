@@ -1,9 +1,9 @@
 import 'package:eclipseverse/core/local_db.dart';
 
-/// Batas waktu aplikasi berada di background sebelum sesi perlu login ulang.
-/// Diset 2 menit untuk memudahkan pengujian; ubah ke 30 menit setelah demo.
+/// Batas waktu aplikasi berada di background sebelum pengguna perlu login ulang.
+/// Untuk demo EclipseVerse, sesi tidak aktif dibatasi selama 4 hari.
 class SessionTimeoutService {
-  static const Duration timeout = Duration(minutes: 2);
+  static const Duration timeout = Duration(days: 4);
   static const String _backgroundKey = 'session_background_at';
 
   static Future<void> markBackgrounded() async {
