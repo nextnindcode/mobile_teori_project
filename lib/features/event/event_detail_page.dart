@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../theme/app_theme.dart';
+import '../../core/local_db.dart';
 import '../../core/routes.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../notification/notification_service.dart';
@@ -56,8 +57,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
     });
     try {
       final e = await EventService.fetchEventDetail(id);
+      final reminderSaved = await LocalDb.getPref('event_reminder_$id');
       if (!mounted) return;
-      setState(() => _event = e);
+      setState(() {
+        _event = e;
+        _reminderOn = reminderSaved == '1';
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
@@ -79,11 +84,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
       final ok = await NotificationService.scheduleEventReminder(e);
       if (!mounted) return;
       if (ok == true) {
+        await LocalDb.setPref('event_reminder_${e.id}', '1');
         setState(() => _reminderOn = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pengingat jadwal berhasil diaktifkan!'),
-            backgroundColor: AppTheme.success,
           ),
         );
       } else {
@@ -514,33 +519,28 @@ class _EventDetailPageState extends State<EventDetailPage> {
         ),
         const SizedBox(height: 16),
 
-        // Reminder Button
+        // Setelah diaktifkan, status pengingat disimpan dan tombol tidak bisa ditekan lagi.
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
-            backgroundColor: e.isPast
-                ? AppTheme.surfaceSecondary
-                : (_reminderOn
-                      ? AppTheme.surfaceSecondary
-                      : AppTheme.eclipseViolet),
-            foregroundColor: Colors.white,
+            backgroundColor: AppTheme.surfaceSecondary,
+            foregroundColor: AppTheme.textSecondary,
+            disabledBackgroundColor: AppTheme.surfaceSecondary,
+            disabledForegroundColor: AppTheme.textSecondary,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radius),
+              side: const BorderSide(color: AppTheme.borderSubtle),
             ),
           ),
-          onPressed: e.isPast ? null : () => _toggleReminder(e),
+          onPressed: (e.isPast || _reminderOn) ? null : () => _toggleReminder(e),
           icon: Icon(
-            _reminderOn
-                ? Icons.notifications_off_outlined
-                : Icons.notification_add_outlined,
+            _reminderOn ? Icons.notifications_active_outlined : Icons.notification_add_outlined,
             size: 20,
           ),
           label: Text(
             e.isPast
                 ? 'Event Sudah Berakhir'
-                : (_reminderOn
-                      ? 'Batalkan Pengingat Notifikasi'
-                      : 'Ingatkan Saya (Notifikasi)'),
+                : (_reminderOn ? 'Pengingat Sudah Aktif' : 'Ingatkan Saya'),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
