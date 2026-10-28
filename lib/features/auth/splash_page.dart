@@ -14,14 +14,26 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
+  // Variabel untuk mengontrol posisi animasi
+  double _moonPosition = -120.0;
+
   @override
   void initState() {
     super.initState();
+
+    // 1. Jalankan animasi setelah layar dimuat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        _moonPosition = 0.0; // Bulan bergerak ke tengah
+      });
+    });
+
+    // 2. Cek session dengan delay yang cukup
     _checkSession();
   }
 
   Future<void> _checkSession() async {
-    await Future<void>.delayed(const Duration(milliseconds: 2000));
+    await Future<void>.delayed(const Duration(milliseconds: 2500));
     if (!mounted) return;
 
     final expired = await SessionTimeoutService.hasExpired();
@@ -57,12 +69,14 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // ===== AREA ANIMASI GERHANA =====
             SizedBox(
-              width: 120,
-              height: 120,
+              width: 140,
+              height: 140,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
+                  // 1. Lingkaran Matahari (Kuning, diam di tengah)
                   Container(
                     width: 100,
                     height: 100,
@@ -78,16 +92,11 @@ class _SplashPageState extends State<SplashPage> {
                       ],
                     ),
                   ),
-                  TweenAnimationBuilder<double>(
-                    tween: Tween(begin: -120.0, end: 0.0),
+                  // 2. Lingkaran Bulan (Gelap, bergerak dari kiri menutupi matahari)
+                  AnimatedPositioned(
                     duration: const Duration(milliseconds: 1500),
-                    curve: Curves.easeInOut,
-                    builder: (context, value, child) {
-                      return Transform.translate(
-                        offset: Offset(value, 0),
-                        child: child,
-                      );
-                    },
+                    curve: Curves.easeInOutCubic, // Gerakan yang mulus
+                    left: _moonPosition,
                     child: Container(
                       width: 100,
                       height: 100,

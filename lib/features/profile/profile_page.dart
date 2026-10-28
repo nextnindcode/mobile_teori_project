@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:eclipseverse/features/profile/profile_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,7 +25,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with RouteAware {
   String _name = '';
   String _email = '';
   String? _avatarPath;
@@ -36,6 +37,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _membershipData;
 
   bool _hasRedeemedCards = false;
+  bool _isUploadingPhoto = false;
   bool _hasMembershipHistory = false;
   String _locationText = 'Belum diperbarui';
   bool _locationLoading = false;
@@ -47,6 +49,15 @@ class _ProfilePageState extends State<ProfilePage> {
     _checkMembership();
     _checkMembershipHistory();
     _checkCardStatus();
+    // refresh tiap masuk profil
+    WidgetsBinding.instance.addPersistentFrameCallback((_) {
+      _refreshData();
+    });
+  }
+
+  Future<void> _refreshData() async {
+    await _checkMembership();
+    await _checkCardStatus();
   }
 
   Future<void> _checkMembership() async {
@@ -141,9 +152,11 @@ class _ProfilePageState extends State<ProfilePage> {
         remoteProfile = row == null ? null : Map<String, dynamic>.from(row);
         final storagePath = row?['avatar_path']?.toString();
         if (storagePath != null && storagePath.isNotEmpty) {
-          remoteAvatarUrl = Supabase.instance.client.storage
+          final baseUrl = Supabase.instance.client.storage
               .from('eclipseverse-media')
               .getPublicUrl(storagePath);
+          remoteAvatarUrl =
+              '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
         }
       } catch (_) {
         // Gunakan cache avatar lokal jika jaringan sedang tidak tersedia.
@@ -173,6 +186,10 @@ class _ProfilePageState extends State<ProfilePage> {
         imageQuality: 80,
       );
       if (x == null) return;
+
+      setState(() => _isUploadingPhoto = true);
+
+      // 1. Salin ke penyimpanan aplikasi supaya tidak hilang saat cache dibersihkan
       final directory = await getDatabasesPath();
       final extension = path.extension(x.path).isEmpty
           ? '.jpg'
@@ -184,30 +201,95 @@ class _ProfilePageState extends State<ProfilePage> {
       }
       final savedPath = path.join(directory, 'eclipseverse_avatar_${user.id}$extension');
       final savedFile = await File(x.path).copy(savedPath);
-      await LocalDb.setPref('avatar_path_${user.id}', savedFile.path);
+
+      // Path-nya sama dengan foto lama tapi isinya beda, jadi cache gambar
+      // lama harus dibuang. Kalau tidak, Flutter tetap menampilkan foto lama.
+      await FileImage(File(savedPath)).evict();
+
+      await LocalDb.setPref('avatar_path', savedFile.path);
+
+      // 2. Upload ke Supabase Storage
       var displayedPath = savedFile.path;
-      try {
-          final storagePath = 'avatars/${user.id}/profile${path.extension(savedFile.path)}';
-          await Supabase.instance.client.storage
+      var uploadFailed = false;
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user != null) {
+        try {
+          final ext = path.extension(savedFile.path).toLowerCase();
+          // Nama file unik tiap ganti foto: tidak butuh policy UPDATE
+          // dan tidak kena cache CDN.
+          final storagePath =
+              'avatars/${user.id}/profile_${DateTime.now().millisecondsSinceEpoch}$ext';
+
+          // Simpan path foto lama untuk dihapus setelah upload berhasil
+          final oldRow = await client
+              .from('profiles')
+              .select('avatar_path')
+              .eq('id', user.id)
+              .maybeSingle()
+              .timeout(const Duration(seconds: 6));
+          final oldPath = oldRow?['avatar_path']?.toString();
+
+          await client.storage
               .from('eclipseverse-media')
-              .upload(storagePath, savedFile, fileOptions: FileOptions(
-                upsert: true,
-                contentType: path.extension(savedFile.path).toLowerCase() == '.png' ? 'image/png' : 'image/jpeg',
-              ))
+              .upload(
+                storagePath,
+                savedFile,
+                fileOptions: FileOptions(
+                  contentType: ext == '.png' ? 'image/png' : 'image/jpeg',
+                ),
+              )
               .timeout(const Duration(seconds: 12));
-          await Supabase.instance.client
+
+          await client
               .from('profiles')
               .update({'avatar_path': storagePath, 'updated_at': DateTime.now().toUtc().toIso8601String()})
               .eq('id', user.id)
               .timeout(const Duration(seconds: 8));
-          displayedPath = Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(storagePath);
-      } catch (_) {
-        // Pertahankan salinan lokal khusus akun jika penyimpanan daring tidak tersedia.
+
+          // Hapus foto lama di storage (kalau gagal, tidak masalah)
+          if (oldPath != null && oldPath.isNotEmpty && oldPath != storagePath) {
+            try {
+              await client.storage.from('eclipseverse-media').remove([oldPath]);
+            } catch (_) {}
+          }
+
+          final baseUrl = client.storage
+              .from('eclipseverse-media')
+              .getPublicUrl(storagePath);
+          displayedPath = '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+        } catch (e) {
+          uploadFailed = true;
+          debugPrint('Upload avatar gagal: $e');
+        }
       }
       if (!mounted) return;
-      setState(() => _avatarPath = displayedPath);
-    } catch (_) {
-      if (mounted) showSnack(context, 'Gagal memilih foto');
+
+      // Buang cache foto lama dari URL (kalau sebelumnya foto dari server)
+      if (_avatarPath != null && _avatarPath!.startsWith('http')) {
+        try {
+          await NetworkImage(_avatarPath!).evict();
+        } catch (_) {}
+      }
+
+      setState(() {
+        _avatarPath = displayedPath;
+        _isUploadingPhoto = false;
+      });
+      profileUpdateNotifier.value++;
+
+      if (uploadFailed) {
+        showSnack(
+          context,
+          'Foto tersimpan di perangkat, tapi gagal diunggah ke server',
+        );
+      }
+    } catch (e) {
+      debugPrint('Pilih foto gagal: $e');
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+        showSnack(context, 'Gagal memilih foto');
+      }
     }
   }
 
@@ -302,8 +384,53 @@ class _ProfilePageState extends State<ProfilePage> {
                 Center(
                   child: Stack(
                     children: [
-                      CircleAvatar(radius: 56, backgroundColor: AppTheme.primaryDark, backgroundImage: _avatarImage, child: _avatarImage == null ? Text(_name.isEmpty ? '?' : _name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.bold)) : null),
-                      Positioned(right: 0, bottom: 0, child: CircleAvatar(radius: 18, backgroundColor: AppTheme.primaryLight, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.photo_library, size: 18), tooltip: 'Pilih foto dari galeri', onPressed: _pickPhoto))),
+                      Container(
+                        width: 112,
+                        height: 112,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.primaryDark,
+                        ),
+
+                        child: ClipOval(
+                          child: _isUploadingPhoto
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                ) // Kasih loading
+                              : (_avatarPath != null
+                                    ? (_avatarPath!.startsWith('http')
+                                          ? Image.network(
+                                              key: ValueKey(_avatarPath),
+                                              _avatarPath!,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  _buildInitial(),
+                                            )
+                                          : Image.file(
+                                              File(_avatarPath!),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  _buildInitial(),
+                                            ))
+                                    : _buildInitial()),
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: AppTheme.primaryLight,
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(Icons.photo_library, size: 18),
+                            tooltip: 'Pilih foto dari galeri',
+                            onPressed: _pickPhoto,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -318,21 +445,100 @@ class _ProfilePageState extends State<ProfilePage> {
                   ListTile(leading: const Icon(Icons.location_on_outlined), title: const Text('Lokasi perangkat'), subtitle: Text(_locationText), trailing: _locationLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.my_location), onTap: _locationLoading ? null : _refreshLocation),
                 ])),
                 const SizedBox(height: AppTheme.spacingMedium),
-                Card(child: Column(children: [
-                  SwitchListTile(title: const Text('Login dengan sidik jari'), subtitle: Text(_bioSupported ? 'Gunakan sidik jari saat membuka aplikasi' : 'Perangkat tidak mendukung'), value: _bioEnabled, onChanged: _bioSupported ? _toggleBiometric : null),
-                  const Divider(height: 1),
-                  SwitchListTile(title: const Text('Notifikasi'), subtitle: const Text('Pengingat event dan info pesanan'), value: _notifEnabled, onChanged: _toggleNotification),
-                ])),
-                const SizedBox(height: AppTheme.spacingMedium),
-                Card(child: Column(children: [
-                  ListTile(leading: Icon(Icons.workspace_premium, color: _isMember ? Colors.amber : AppTheme.primaryLight), title: Text(_isMember ? 'VIP Member Aktif' : 'Membership EclipseVerse'), subtitle: Text(_isMember ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali' : 'Akses fitur redeem kartu'), trailing: const Icon(Icons.chevron_right), onTap: () async { await Navigator.pushNamed(context, Routes.membership); _checkMembership(); _checkCardStatus(); }),
-                  ListTile(leading: Icon(Icons.style, color: _hasRedeemedCards ? Colors.amber : Colors.grey), title: Text('Koleksi Kartu', style: TextStyle(color: _hasRedeemedCards ? AppTheme.textPrimary : Colors.grey)), subtitle: Text(_hasRedeemedCards ? 'Lihat kartu yang sudah kamu kumpulkan' : 'Belum ada kartu yang diklaim', style: TextStyle(color: _hasRedeemedCards ? AppTheme.textSecondary : Colors.grey)), trailing: const Icon(Icons.chevron_right), onTap: () { if (_hasMembershipHistory || _hasRedeemedCards || _isMember) { Navigator.pushNamed(context, Routes.redeem); } else { Navigator.pushNamed(context, Routes.membership); } }),
-                ])),
+                Card(
+                  child: Column(
+                    children: [
+                      // 1. Bagian Membership (Atas)
+                      ListTile(
+                        leading: Icon(
+                          Icons.workspace_premium,
+                          color: _isMember
+                              ? Colors.amber
+                              : AppTheme.primaryLight,
+                        ),
+                        title: Text(
+                          _isMember
+                              ? 'VIP Member Aktif'
+                              : 'Membership EclipseVerse',
+                        ),
+                        subtitle: Text(
+                          _isMember
+                              ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali'
+                              : 'Akses fitur redeem kartu',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () async {
+                          // buka halaman membership
+                          await Navigator.pushNamed(context, Routes.membership);
+
+                        },
+                      ),
+
+                      // Bagian koleksi kartu
+                      ListTile(
+                        leading: Icon(
+                          Icons.style,
+                          // Kalau udah punya kartu jadi warna emas, kalau belum abu-abu
+                          color: _hasRedeemedCards ? Colors.amber : Colors.grey,
+                        ),
+                        title: Text(
+                          'Koleksi Kartu',
+                          style: TextStyle(
+                            color: _hasRedeemedCards
+                                ? AppTheme.textPrimary
+                                : Colors.grey,
+                          ),
+                        ),
+                        subtitle: Text(
+                          _hasRedeemedCards
+                              ? 'Lihat kartu yang sudah kamu kumpulkan'
+                              : 'Belum ada kartu yang diklaim',
+                          style: TextStyle(
+                            color: _hasRedeemedCards
+                                ? AppTheme.textSecondary
+                                : Colors.grey,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          // Kalau udah punya kartu atau member aktif, arahkan ke halaman Redeem
+                          if (_hasRedeemedCards || _isMember) {
+                            Navigator.pushNamed(context, Routes.redeem);
+                          } else {
+                            // Kalau belum, arahkan ke halaman Membership
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Kamu harus jadi Member dan redeem kartu terlebih dahulu!',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            Navigator.pushNamed(context, Routes.membership);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
                 const Divider(height: 1),
                 const SizedBox(height: AppTheme.spacingMedium),
                 OutlinedButton.icon(onPressed: widget.onLogout == null ? null : _confirmLogout, icon: const Icon(Icons.logout), label: const Text('Logout')),
               ],
             ),
+    );
+  }
+
+  Widget _buildInitial() {
+    return Center(
+      child: Text(
+        _name.isEmpty ? '?' : _name[0].toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 44,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

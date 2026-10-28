@@ -97,7 +97,13 @@ class _RedeemPageState extends State<RedeemPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            child: const Text(
+              'Batal',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: AppTheme.fontSizeBody,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.eclipseViolet),
@@ -231,14 +237,13 @@ class _RedeemPageState extends State<RedeemPage> {
         Container(
           width: double.infinity,
           margin: const EdgeInsets.all(20),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [BoxShadow(color: AppTheme.eclipseViolet.withValues(alpha: .3), blurRadius: 15)],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          child: Column(
             children: [
               Column(
                 children: [
@@ -247,14 +252,48 @@ class _RedeemPageState extends State<RedeemPage> {
                   Text('$_userPoints', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                 ],
               ),
-              Container(width: 1, height: 40, color: Colors.white54),
-              Column(
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   const Text('Sisa Kuota', style: TextStyle(color: Colors.white70, fontSize: 14)),
                   const SizedBox(height: 4),
                   Text('$_redeemQuota', style: TextStyle(color: _redeemQuota > 0 ? AppTheme.coronaGold : AppTheme.error, fontSize: 32, fontWeight: FontWeight.bold)),
                 ],
               ),
+              const SizedBox(height: 4),
+              Text(
+                _redeemQuota > 0
+                    ? 'Sisa kuota untuk menukar kartu'
+                    : 'Kuota habis, silakan beli membership lagi',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              if (_redeemQuota <= 0) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.coronaGold,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        Routes.membership,
+                      ).then((_) => _loadData());
+                    },
+                    child: const Text(
+                      'Beli Membership Lagi',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

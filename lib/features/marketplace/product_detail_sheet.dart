@@ -99,6 +99,27 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     final product = widget.product;
     final isOutOfStock = product.stock <= 0;
     final totalPriceIDR = product.price * _quantity;
+    double convertedPrice = totalPriceIDR.toDouble();
+    if (_currencyRates != null) {
+      try {
+        convertedPrice = _currencyRates!.convert(
+          totalPriceIDR.toDouble(),
+          'IDR',
+          _selectedCurrency,
+        );
+      } catch (e) {
+        _selectedCurrency = 'IDR';
+      }
+    }
+
+    final displayPrice = _selectedCurrency == 'IDR'
+        ? _formatRupiah(totalPriceIDR)
+        : _formatCurrency(convertedPrice, _selectedCurrency);
+    // final convertedPrice =
+    //     totalPriceIDR.toDouble() * (_rates[_selectedCurrency] ?? 1.0);
+    // final displayPrice = _selectedCurrency == 'IDR'
+    //     ? _formatRupiah(totalPriceIDR)
+    //     : _formatCurrency(convertedPrice, _selectedCurrency);
     final availableCodes = _currencyRates == null ? <String>[] : CurrencyService.codesFor(_currencyRates!);
 
     return Container(
