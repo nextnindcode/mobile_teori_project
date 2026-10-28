@@ -61,7 +61,6 @@ class _RegisterPageState extends State<RegisterPage> {
         // Registrasi tetap dilanjutkan jika notifikasi gagal disimpan.
         debugPrint('Gagal menyimpan notifikasi welcome: $e');
       }
-      // =========================================================
 
       if (response.session != null) {
         await AuthService.cacheUserLocally(user);
@@ -137,7 +136,7 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ===== 1. GAMBAR ATAS (ANIMASI GERHANA) =====
+                  // ===== 1. ILUSTRASI GERHANA =====
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -171,7 +170,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ===== 2. JUDUL =====
+                  // ===== 2. JUDUL HALAMAN =====
                   Text(
                     'Buat Akun',
                     style: AppTheme.textTheme.headlineMedium?.copyWith(
@@ -186,7 +185,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ===== 3. FORM NAMA =====
+                  // ===== 3. FORMULIR NAMA =====
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
@@ -198,7 +197,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 4. FORM EMAIL =====
+                  // ===== 4. FORMULIR EMAIL =====
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
@@ -211,7 +210,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 5. FORM PASSWORD =====
+                  // ===== 5. FORMULIR KATA SANDI =====
                   TextFormField(
                     controller: _passwordController,
                     decoration: InputDecoration(
@@ -234,7 +233,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ===== 6. TOMBOL DAFTAR =====
+                  // ===== 6. TOMBOL PENDAFTARAN =====
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -250,7 +249,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 7. LINK KEMBALI KE LOGIN =====
+                  // ===== 7. TAUTAN KEMBALI KE HALAMAN MASUK =====
                   TextButton(
                     onPressed: () {
                       Navigator.pop(context); // Balik ke halaman Login
