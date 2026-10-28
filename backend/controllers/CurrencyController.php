@@ -21,7 +21,9 @@ class CurrencyController
     // GET /currency/rates
     public function rates()
     {
-        $this->requireAuth();
+        // Kurs mata uang adalah data publik; jangan mensyaratkan token backend.
+        // Login utama aplikasi menggunakan Supabase Auth, sedangkan token API PHP
+        // hanya dimiliki oleh alur login backend lokal.
         $base = 'USD';
 
         $cachedRows = $this->currencyModel->getRatesByBase($base);
