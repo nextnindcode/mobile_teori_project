@@ -6,7 +6,7 @@ import '../../core/session_timeout_service.dart';
 import '../fandom/fandom_page.dart';
 import '../feedback/feedback_page.dart';
 import '../profile/profile_page.dart';
-import '../tools/tools_page.dart';
+import '../tools/observatory_page.dart';
 import 'home_page.dart';
 
 // Kerangka utama EclipseVerse; tombol keluar tersedia di halaman Profil.
@@ -27,7 +27,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   List<Widget> get _pages => [
         HomePage(key: _homeKey),
         const FandomPage(),
-        const ToolsPage(initialTab: 2),
+        const ObservatoryPage(),
         const FeedbackPage(),
         ProfilePage(onLogout: widget.onLogout),
       ];
