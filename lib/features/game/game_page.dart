@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import 'game_controller.dart';
 import 'sensor_service.dart';
+import '../fandom/member_service.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
@@ -20,10 +21,34 @@ class _GamePageState extends State<GamePage> {
   bool _isAnswered = false;
   int _highlightedIndex = 0;
   int _lastRound = -1;
+  final Map<String, String> _memberImageUrls = {};
 
   @override
   void initState() {
     super.initState();
+    _loadMemberImages();
+  }
+
+  Future<void> _loadMemberImages() async {
+    try {
+      final members = await MemberService.fetchMembers();
+      if (!mounted) return;
+      setState(() {
+        for (final member in members) {
+          final imageUrl = member.imageUrl?.trim() ?? '';
+          if (imageUrl.isNotEmpty) {
+            _memberImageUrls[member.stageName.toLowerCase()] = imageUrl;
+          }
+        }
+      });
+    } catch (_) {
+      // Kuis tetap bisa dimainkan meskipun foto member gagal dimuat.
+    }
+  }
+
+  String? _imageForOption(String option) {
+    final name = option.replaceFirst(RegExp(r'^[A-D]\\.\\s*'), '').trim();
+    return _memberImageUrls[name.toLowerCase()];
   }
 
   @override
@@ -276,12 +301,14 @@ class _GamePageState extends State<GamePage> {
             ),
           ),
           const SizedBox(height: 18),
-          Expanded(
+          SizedBox(
+            height: 76,
             child: Row(
               children: List.generate(2, (index) {
                 final option = question.options[index];
                 final selected = option == _selectedOption;
                 final highlighted = index == _highlightedIndex && !_isAnswered;
+                final imageUrl = _imageForOption(option);
                 return Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(right: index == 0 ? 6 : 0, left: index == 1 ? 6 : 0),
@@ -305,13 +332,12 @@ class _GamePageState extends State<GamePage> {
                           ),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          child: Row(
                             children: [
                               Container(
-                                width: 30,
-                                height: 30,
+                                width: 24,
+                                height: 24,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: (highlighted ? AppTheme.coolCyan : AppTheme.eclipseViolet)
@@ -322,19 +348,52 @@ class _GamePageState extends State<GamePage> {
                                   '${index + 1}',
                                   style: const TextStyle(
                                     color: AppTheme.coronaGold,
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                option,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                  height: 1.25,
+                              const SizedBox(width: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: SizedBox(
+                                  width: 42,
+                                  height: 52,
+                                  child: imageUrl == null
+                                      ? Container(
+                                          color: AppTheme.surfaceSecondary,
+                                          child: const Icon(
+                                            Icons.person_outline_rounded,
+                                            color: AppTheme.textSecondary,
+                                            size: 22,
+                                          ),
+                                        )
+                                      : Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) => Container(
+                                            color: AppTheme.surfaceSecondary,
+                                            child: const Icon(
+                                              Icons.person_outline_rounded,
+                                              color: AppTheme.textSecondary,
+                                              size: 22,
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  option.replaceFirst(RegExp(r'^[A-D]\\.\\s*'), ''),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.start,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.2,
+                                  ),
                                 ),
                               ),
                             ],
