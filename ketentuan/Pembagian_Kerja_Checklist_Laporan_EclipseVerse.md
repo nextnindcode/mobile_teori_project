@@ -535,3 +535,44 @@ Laporan dapat dianggap siap dikumpulkan apabila:
 - [ ] Lampiran lengkap.
 - [ ] Repository yang dicantumkan adalah repository final yang disepakati tim.
 - [ ] Seluruh isi laporan sudah disesuaikan dengan implementasi final setelah perubahan masuk ke `main`.
+
+
+---
+
+# 11. STANDAR HEADING DAN DAFTAR ISI LAPORAN
+
+Gunakan level heading secara konsisten agar struktur laporan rapi dan daftar isi tidak dipenuhi judul gambar, tabel, maupun source code.
+
+| Level | Fungsi | Contoh |
+|---|---|---|
+| H1 — `#` | Judul bab | `BAB III — PERANCANGAN` |
+| H2 — `##` | Subbab utama | `3.8 ERD dan Kamus Data` |
+| H3 — `###` | Sub-subbab yang memang perlu ditampilkan di daftar isi | `3.8.1 Entity Relationship Diagram (ERD)` |
+| H4 — `####` | Judul/caption gambar | `Gambar 3.1. ERD EclipseVerse` |
+| H5 — `#####` | Judul/caption tabel | `Tabel 3.1. Kamus Data Users` |
+| H6 — `######` | Judul/caption source code | `Source Code 4.1. Proses Login` |
+
+## Aturan daftar isi
+
+- [ ] Daftar isi otomatis dibatasi sampai **H1–H3**.
+- [ ] H4, H5, dan H6 tidak dimasukkan ke daftar isi utama.
+- [ ] Jangan membuat H3 untuk setiap nama tabel di dalam kamus data.
+- [ ] Nama tabel cukup menjadi caption tabel (H5) atau judul tabel sesuai format dokumen, bukan subbab.
+- [ ] Gambar, tabel, dan source code tetap diberi nomor serta caption yang konsisten.
+- [ ] Daftar gambar dan daftar tabel dibuat terpisah dari daftar isi utama jika diwajibkan format laporan.
+- [ ] Terapkan aturan ini juga ketika memindahkan isi Markdown ke Word/Google Docs; pastikan pengaturan daftar isi hanya mengambil level heading 1–3.
+
+**Contoh struktur Bab III:**
+
+```text
+H1  BAB III — PERANCANGAN
+  H2  3.8 ERD dan Kamus Data
+    H3  3.8.1 Entity Relationship Diagram (ERD)
+      H4  Gambar 3.1. ERD EclipseVerse
+    H3  3.8.2 Kamus Data
+      H5  Tabel 3.1. Kamus Data Users
+      H5  Tabel 3.2. Kamus Data Products
+      H5  Tabel 3.3. Kamus Data Orders
+```
+
+Dengan susunan tersebut, daftar isi cukup menampilkan **3.8 ERD dan Kamus Data**, **3.8.1 ERD**, dan **3.8.2 Kamus Data**. Nama setiap tabel, gambar, dan source code tidak memenuhi daftar isi utama.
