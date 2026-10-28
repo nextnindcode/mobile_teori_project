@@ -63,12 +63,12 @@ WHERE question_text IN (
 ALTER TABLE public.game_scores
   DROP CONSTRAINT IF EXISTS game_scores_correct_count_check;
 ALTER TABLE public.game_scores
-  ADD CONSTRAINT game_scores_correct_count_check CHECK (correct_count BETWEEN 0 AND 10);
+  ADD CONSTRAINT game_scores_correct_count_check CHECK (correct_count BETWEEN 0 AND question_count);
 
 ALTER TABLE public.game_scores
   DROP CONSTRAINT IF EXISTS game_scores_question_count_check;
 ALTER TABLE public.game_scores
-  ADD CONSTRAINT game_scores_question_count_check CHECK (question_count = 10);
+  ADD CONSTRAINT game_scores_question_count_check CHECK (question_count BETWEEN 1 AND 20);
 
 CREATE OR REPLACE FUNCTION public.submit_quiz_attempt(p_answers jsonb)
 RETURNS jsonb
