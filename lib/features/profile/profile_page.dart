@@ -121,8 +121,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _load() async {
     final user = Supabase.instance.client.auth.currentUser;
-    final profile = user == null ? null : await LocalDb.getUserProfile(user.id);
-    final avatar = user == null ? null : await LocalDb.getPref('avatar_path_${user.id}');
+    final cachedUserId = user?.id ?? await LocalDb.getPref('active_user_id');
+    final profile = cachedUserId == null || cachedUserId.isEmpty
+        ? null
+        : await LocalDb.getUserProfile(cachedUserId);
+    final avatar = cachedUserId == null || cachedUserId.isEmpty
+        ? null
+        : await LocalDb.getPref('avatar_path_${cachedUserId}');
     String? remoteAvatarUrl;
     Map<String, dynamic>? remoteProfile;
     if (user != null) {
@@ -141,7 +146,7 @@ class _ProfilePageState extends State<ProfilePage> {
               .getPublicUrl(storagePath);
         }
       } catch (_) {
-        // Keep local avatar cache if the network is temporarily unavailable.
+        // Gunakan cache avatar lokal jika jaringan sedang tidak tersedia.
       }
     }
     final bio = await LocalDb.getPref('biometric_enabled');
@@ -197,7 +202,7 @@ class _ProfilePageState extends State<ProfilePage> {
               .timeout(const Duration(seconds: 8));
           displayedPath = Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(storagePath);
       } catch (_) {
-        // Keep the persistent, account-specific local copy if Storage is unavailable.
+        // Pertahankan salinan lokal khusus akun jika penyimpanan daring tidak tersedia.
       }
       if (!mounted) return;
       setState(() => _avatarPath = displayedPath);
@@ -244,7 +249,7 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
     } else {
-      // Toggle OFF harus menghentikan reminder event yang sudah terjadwal.
+      // Saat notifikasi dinonaktifkan, batalkan pengingat acara yang sudah dijadwalkan.
       try {
         final rows = await Supabase.instance.client
             .from('events')
