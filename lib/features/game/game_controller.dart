@@ -12,7 +12,6 @@ class GameController extends ChangeNotifier {
   int _roundDuration = 15;
   String? _loadError;
   final Map<int, String> _answers = {};
-  bool _memberChallenge = false;
   int _bestScore = 0;
   bool _isSubmitting = false;
 
@@ -30,7 +29,6 @@ class GameController extends ChangeNotifier {
   int get bestScore => _bestScore;
   int get correctCount => _correctCount;
   bool get isGameOver => _currentRound >= _questions.length;
-  bool get isMemberMode => _memberChallenge;
   String? get loadError => _loadError;
   bool get isSubmitting => _isSubmitting;
   GameQuestion get currentQuestion => _questions[_currentRound];
@@ -42,7 +40,7 @@ class GameController extends ChangeNotifier {
     return _questions[_currentRound].correctAnswer;
   }
 
-  Future<void> startGame({bool memberChallenge = false}) async {
+  Future<void> startGame() async {
     final session = ++_session;
     _timer?.cancel();
     _loadError = null;
@@ -82,7 +80,6 @@ class GameController extends ChangeNotifier {
 
       _questions.addAll(unique);
       _bestScore = bestScore;
-      _memberChallenge = memberChallenge;
       _roundDuration = 15; 
       _startTimer();
       notifyListeners();
@@ -154,7 +151,6 @@ class GameController extends ChangeNotifier {
           .toList();
       final result = await GameService.submitAnswers(
         answers,
-        memberChallenge: _memberChallenge,
       );
       _score = (result['score'] as num?)?.toInt() ?? 0;
       _correctCount = (result['correct_count'] as num?)?.toInt() ?? 0;
