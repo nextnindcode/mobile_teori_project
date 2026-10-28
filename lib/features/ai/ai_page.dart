@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../theme/app_theme.dart';
 import 'ai_service.dart';
 import '../membership/membership_service.dart';
@@ -317,13 +318,30 @@ class _AiPageState extends State<AiPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    msg['text'],
-                    style: AppTheme.textTheme.bodyLarge?.copyWith(
-                      color: isUser ? AppTheme.white : (isError ? Colors.red.shade700 : AppTheme.black),
-                      height: 1.4,
+                  if (isUser || isError)
+                    Text(
+                      msg['text'] as String,
+                      style: AppTheme.textTheme.bodyLarge?.copyWith(
+                        color: isUser ? AppTheme.white : Colors.red.shade700,
+                        height: 1.4,
+                      ),
+                    )
+                  else
+                    MarkdownBody(
+                      data: msg['text'] as String,
+                      selectable: true,
+                      styleSheet: MarkdownStyleSheet(
+                        p: AppTheme.textTheme.bodyLarge?.copyWith(
+                          color: AppTheme.black,
+                          height: 1.4,
+                        ),
+                        h1: AppTheme.textTheme.titleLarge?.copyWith(color: AppTheme.black),
+                        h2: AppTheme.textTheme.titleMedium?.copyWith(color: AppTheme.black),
+                        h3: AppTheme.textTheme.titleSmall?.copyWith(color: AppTheme.black),
+                        code: const TextStyle(fontFamily: 'monospace', color: AppTheme.black),
+                        blockquote: const TextStyle(color: AppTheme.black),
+                      ),
                     ),
-                  ),
                   if (isError)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
