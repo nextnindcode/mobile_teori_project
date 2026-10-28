@@ -98,24 +98,19 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 260),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: (child, animation) {
-          final slide = Tween<Offset>(
-            begin: const Offset(0.025, 0),
-            end: Offset.zero,
-          ).animate(animation);
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(position: slide, child: child),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: List<Widget>.generate(_pages.length, (index) {
+          return IgnorePointer(
+            ignoring: _currentIndex != index,
+            child: AnimatedOpacity(
+              opacity: _currentIndex == index ? 1 : 0,
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeInOut,
+              child: _pages[index],
+            ),
           );
-        },
-        child: KeyedSubtree(
-          key: ValueKey<int>(_currentIndex),
-          child: _pages[_currentIndex],
-        ),
+        }),
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
