@@ -6,7 +6,7 @@ import 'package:path/path.dart';
 class LocalDb {
   static Database? _db;
 
-  // ===== BUKA DATABASE =====
+  // ===== MEMBUKA BASIS DATA =====
   static Future<Database> get database async {
     if (_db != null) return _db!;
 
@@ -17,9 +17,9 @@ class LocalDb {
     return _db!;
   }
 
-  // ===== BIKIN TABEL (dipanggil saat pertama kali) =====
+  // ===== MEMBUAT TABEL SAAT PERTAMA KALI =====
   static Future<void> _onCreate(Database db, int version) async {
-    // 1. Cart
+    // 1. Keranjang belanja
     await db.execute('''
       CREATE TABLE cart_local (
         product_id INTEGER PRIMARY KEY,
@@ -29,7 +29,7 @@ class LocalDb {
       )
     ''');
 
-    // 2. Preferences
+    // 2. Preferensi
     await db.execute('''
       CREATE TABLE preferences (
         key TEXT PRIMARY KEY,
@@ -37,7 +37,7 @@ class LocalDb {
       )
     ''');
 
-    // 3. Members Cache
+    // 3. Cache data anggota
     await db.execute('''
       CREATE TABLE members_cache (
         id INTEGER PRIMARY KEY,
@@ -46,7 +46,7 @@ class LocalDb {
       )
     ''');
 
-    // 4. User Profile
+    // 4. Profil pengguna
     await db.execute('''
       CREATE TABLE user_profile (
         user_id TEXT PRIMARY KEY,
@@ -66,12 +66,12 @@ class LocalDb {
           email TEXT NOT NULL
         )
       ''');
-      // Legacy profiles have no Supabase UUID, so do not assign them to an account.
+      // Profil lama tidak memiliki UUID Supabase, jadi jangan kaitkan dengan akun tertentu.
       await db.execute('DROP TABLE user_profile_legacy');
     }
   }
 
-  // ===== CART =====
+  // ===== KERANJANG BELANJA =====
   static Future<List<Map<String, dynamic>>> getCart() async {
     final db = await database;
     return db.query('cart_local');
@@ -133,7 +133,7 @@ class LocalDb {
     await db.delete('cart_local');
   }
 
-  // ===== PREFERENCES =====
+  // ===== PREFERENSI =====
   static Future<String?> getPreference(String key) async {
     final db = await database;
     final result = await db.query(
@@ -157,7 +157,7 @@ class LocalDb {
   static Future<void> setPref(String key, String value) =>
       setPreference(key, value);
 
-  // ===== MEMBERS CACHE =====
+  // ===== CACHE DATA ANGGOTA =====
   static Future<void> cacheMembers(List<Map<String, dynamic>> members) =>
       saveMembers(members);
 
@@ -186,7 +186,7 @@ class LocalDb {
         .toList();
   }
 
-  // ===== USER PROFILE =====
+  // ===== PROFIL PENGGUNA =====
   static Future<void> saveProfile({
     required String userId,
     required String name,
@@ -209,8 +209,8 @@ class LocalDb {
 
   static Future<Map<String, dynamic>?> getUserProfile(String userId) => getProfile(userId);
 
-  /// Clears data that must never carry over to another signed-in account.
-  /// Device-level settings are preserved here; logout explicitly disables biometric login.
+  /// Hapus data yang tidak boleh terbawa ke akun lain.
+  /// Pengaturan perangkat tetap disimpan; proses keluar akan menonaktifkan login biometrik.
   static Future<void> clearAccountData() async {
     final db = await database;
     await db.delete('cart_local');
