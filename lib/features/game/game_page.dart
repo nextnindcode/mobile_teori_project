@@ -16,15 +16,11 @@ class GamePage extends StatefulWidget {
 
 class _GamePageState extends State<GamePage> {
   final SensorService _sensorService = SensorService();
+
   String? _selectedOption;
   bool _isAnswered = false;
   int _highlightedIndex = 0;
   int _lastRound = -1;
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -40,45 +36,85 @@ class _GamePageState extends State<GamePage> {
 
   void _startSensors(GameController controller) {
     _sensorService.stopSensors();
+
     _sensorService.listenSensors(
       onMove: (direction) {
-        if (!mounted || controller.questions.isEmpty || controller.isGameOver || _isAnswered) return;
+        if (!mounted ||
+            controller.questions.isEmpty ||
+            controller.isGameOver ||
+            _isAnswered) {
+          return;
+        }
+
+        final options = controller.currentQuestion.options.take(2).toList();
+
+        if (options.length < 2) return;
+
         setState(() {
-          final optionCount = controller.currentQuestion.options.length;
-          _highlightedIndex = (_highlightedIndex + direction) % optionCount;
-          if (_highlightedIndex < 0) _highlightedIndex += optionCount;
+          const visibleCount = 2;
+          _highlightedIndex = (_highlightedIndex + direction) % visibleCount;
+
+          if (_highlightedIndex < 0) {
+            _highlightedIndex += visibleCount;
+          }
         });
       },
       onConfirm: () {
-        if (controller.questions.isEmpty || controller.isGameOver || _isAnswered) return;
-        final selected = controller.currentQuestion.options[_highlightedIndex];
-        _handleAnswer(_highlightedIndex, selected, controller);
+        if (!mounted ||
+            controller.questions.isEmpty ||
+            controller.isGameOver ||
+            _isAnswered) {
+          return;
+        }
+
+        final options = controller.currentQuestion.options.take(2).toList();
+
+        if (options.isEmpty) return;
+
+        final index = _highlightedIndex.clamp(0, options.length - 1);
+
+        _handleAnswer(index, options[index], controller);
       },
     );
   }
 
-  Future<void> _handleAnswer(int index, String option, GameController controller) async {
+  Future<void> _handleAnswer(
+    int index,
+    String option,
+    GameController controller,
+  ) async {
     if (_isAnswered) return;
+
     controller.pauseTimer();
+
     setState(() {
       _highlightedIndex = index;
       _selectedOption = option;
       _isAnswered = true;
     });
+
     await Future.delayed(const Duration(milliseconds: 500));
+
     if (!mounted) return;
+
     await controller.answerQuestion(option);
   }
 
   Future<void> _startNewGame(GameController controller) async {
     _sensorService.stopSensors();
+
     setState(() {
       _lastRound = -1;
       _resetAnswerState();
     });
+
     await controller.startGame();
+
     if (!mounted) return;
-    _startSensors(controller);
+
+    if (controller.questions.isNotEmpty && !controller.isGameOver) {
+      _startSensors(controller);
+    }
   }
 
   @override
@@ -109,12 +145,59 @@ class _GamePageState extends State<GamePage> {
                 ),
               );
             }
-            if (controller.questions.isEmpty) return _buildStart(context, controller);
+
+            if (controller.questions.isEmpty) {
+              return _buildStart(context, controller);
+            }
+
             if (controller.isGameOver) {
               _sensorService.stopSensors();
               return _buildResult(context, controller);
             }
-            return _buildQuiz(context, controller);
+
+            // Halaman kuis dan status sensor di bagian bawah.
+            return Column(
+              children: [
+                Expanded(child: _buildQuiz(context, controller)),
+                SafeArea(
+                  top: false,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceSecondary,
+                      border: Border(
+                        top: BorderSide(color: AppTheme.borderSubtle, width: 1),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.screen_rotation_alt_rounded,
+                          size: 17,
+                          color: AppTheme.coolCyan,
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Miringkan HP untuk berpindah pilihan, '
+                            'gerakkan HP untuk konfirmasi, '
+                            'atau tap jawaban.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
           },
         ),
       ),
@@ -141,18 +224,28 @@ class _GamePageState extends State<GamePage> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.sports_esports_rounded, size: 72, color: Colors.white),
+              child: const Icon(
+                Icons.sports_esports_rounded,
+                size: 72,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 24),
             const Text(
               'Guess the Member!',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
+              style: TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+              ),
             ),
             const SizedBox(height: 12),
             const CosmicCard(
               child: Text(
                 'Kenali member Eclipse lewat posisi dan fun fact mereka.\n\n'
-                'Miringkan HP ke kiri/kanan untuk berpindah pilihan, lalu gerakkan HP untuk memilih. Kamu juga bisa langsung tap jawaban.',
+                'Miringkan HP ke kiri/kanan untuk berpindah pilihan, '
+                'lalu gerakkan HP untuk memilih. Kamu juga bisa '
+                'langsung tap jawaban.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppTheme.textSecondary, height: 1.5),
               ),
@@ -165,10 +258,15 @@ class _GamePageState extends State<GamePage> {
                   backgroundColor: AppTheme.eclipseViolet,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 onPressed: () => _startNewGame(controller),
-                child: const Text('Mulai Bermain', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Mulai Bermain',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -180,163 +278,214 @@ class _GamePageState extends State<GamePage> {
   Widget _buildQuiz(BuildContext context, GameController controller) {
     if (controller.currentRound != _lastRound) {
       _lastRound = controller.currentRound;
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(_resetAnswerState);
+        if (mounted) {
+          setState(_resetAnswerState);
+        }
       });
     }
 
     final question = controller.currentQuestion;
-    final progress = ((controller.currentRound + 1) / controller.questions.length).clamp(0.0, 1.0);
+    final options = question.options.take(2).toList();
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Progres kuis', style: TextStyle(color: AppTheme.textSecondary)),
-              Text(
-                '${controller.currentRound + 1}/${controller.questions.length}',
-                style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: AppTheme.surfaceSecondary,
-              color: AppTheme.eclipseViolet,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              const Icon(Icons.timer_outlined, size: 18, color: AppTheme.textSecondary),
-              const SizedBox(width: 6),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: (controller.timeLeft / controller.roundDuration).clamp(0.0, 1.0),
-                    minHeight: 7,
-                    backgroundColor: AppTheme.surfaceSecondary,
-                    color: controller.timeLeft > 5 ? AppTheme.coolCyan : AppTheme.error,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${controller.timeLeft}s',
-                style: TextStyle(
-                  color: controller.timeLeft > 5 ? AppTheme.textSecondary : AppTheme.error,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: AppTheme.cardGradient,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppTheme.eclipseViolet.withValues(alpha: 0.45)),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.eclipseViolet.withValues(alpha: 0.12),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
+    final progress =
+        ((controller.currentRound + 1) / controller.questions.length).clamp(
+          0.0,
+          1.0,
+        );
+
+    final timeProgress = (controller.timeLeft / controller.roundDuration).clamp(
+      0.0,
+      1.0,
+    );
+
+    return SafeArea(
+      bottom: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'TEBAK SIAPA MEMBER-NYA',
-                  style: TextStyle(
-                    color: AppTheme.coolCyan,
-                    fontSize: 10,
-                    letterSpacing: 1.4,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  'Progres kuis',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                 ),
-                const SizedBox(height: 12),
-                const Icon(Icons.auto_awesome_rounded, size: 38, color: AppTheme.coronaGold),
-                const SizedBox(height: 10),
                 Text(
-                  question.funFact,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, height: 1.4),
+                  '${controller.currentRound + 1}/'
+                  '${controller.questions.length}',
+                  style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 18),
-          SizedBox(
-            height: 58,
-            child: Row(
-              children: List.generate(question.options.length, (index) {
-                final option = question.options[index];
-                final selected = option == _selectedOption;
-                final highlighted = index == _highlightedIndex && !_isAnswered;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: index == 0 ? 5 : 0,
-                      left: index == 1 ? 5 : 0,
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: AppTheme.surfaceSecondary,
+                color: AppTheme.eclipseViolet,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Timer
+            Row(
+              children: [
+                const Icon(
+                  Icons.timer_outlined,
+                  size: 18,
+                  color: AppTheme.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: timeProgress,
+                      minHeight: 5,
+                      backgroundColor: AppTheme.surfaceSecondary,
+                      color: controller.timeLeft > 5
+                          ? AppTheme.coolCyan
+                          : AppTheme.error,
                     ),
-                    child: AnimatedScale(
-                      scale: highlighted ? 1.015 : 1,
-                      duration: const Duration(milliseconds: 160),
-                      child: ElevatedButton(
-                        onPressed: _isAnswered
-                            ? null
-                            : () => _handleAnswer(index, option, controller),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: selected
-                              ? AppTheme.eclipseViolet
-                              : AppTheme.surfaceElevated,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: selected
-                              ? AppTheme.eclipseViolet
-                              : AppTheme.surfaceElevated,
-                          disabledForegroundColor: Colors.white,
-                          elevation: highlighted ? 3 : 1,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: BorderSide(
-                              color: highlighted
-                                  ? AppTheme.coolCyan
-                                  : AppTheme.borderSubtle,
-                              width: highlighted ? 1.5 : 1,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${controller.timeLeft}s',
+                  style: TextStyle(
+                    color: controller.timeLeft > 5
+                        ? AppTheme.textSecondary
+                        : AppTheme.error,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Kartu soal
+            CosmicCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 28,
+                    color: AppTheme.coronaGold,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    question.funFact,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Dua kartu jawaban
+            SizedBox(
+              height: 130,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: List.generate(options.length, (index) {
+                  final option = options[index];
+
+                  // Hilangkan awalan A. atau B. dari teks jawaban.
+                  final displayOption = option.replaceFirst(
+                    RegExp(r'^[A-D]\.\s*'),
+                    '',
+                  );
+
+                  final selected = option == _selectedOption;
+                  final highlighted =
+                      index == _highlightedIndex && !_isAnswered;
+
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: index == 0 ? 5 : 0,
+                        left: index == 1 ? 5 : 0,
+                      ),
+                      child: AnimatedScale(
+                        scale: highlighted ? 1.015 : 1.0,
+                        duration: const Duration(milliseconds: 160),
+                        child: ElevatedButton(
+                          onPressed: _isAnswered
+                              ? null
+                              : () => _handleAnswer(index, option, controller),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: selected || highlighted
+                                ? AppTheme.eclipseViolet
+                                : AppTheme.surfaceElevated,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: selected
+                                ? AppTheme.eclipseViolet
+                                : AppTheme.surfaceElevated,
+                            disabledForegroundColor: Colors.white,
+                            elevation: highlighted ? 3 : 1,
+                            padding: const EdgeInsets.all(12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(
+                                color: highlighted
+                                    ? AppTheme.coolCyan
+                                    : AppTheme.borderSubtle,
+                                width: highlighted ? 1.5 : 1,
+                              ),
                             ),
                           ),
-                        ),
-                        child: Text(
-                          option,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            height: 1.2,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                String.fromCharCode(65 + index),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Flexible(
+                                child: Text(
+                                  displayOption,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 4,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -357,12 +506,20 @@ class _GamePageState extends State<GamePage> {
                 color: AppTheme.coronaGold.withValues(alpha: .14),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.emoji_events_rounded, size: 78, color: AppTheme.coronaGold),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                size: 78,
+                color: AppTheme.coronaGold,
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
               'Permainan Selesai!',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
+              style: TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+              ),
             ),
             const SizedBox(height: 18),
             CosmicCard(
@@ -371,14 +528,27 @@ class _GamePageState extends State<GamePage> {
                   Expanded(
                     child: Column(
                       children: [
-                        const Text('Skor Akhir', style: TextStyle(color: AppTheme.textSecondary)),
+                        const Text(
+                          'Skor Akhir',
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        ),
                         const SizedBox(height: 5),
                         Text(
                           '${controller.score}',
-                          style: const TextStyle(color: AppTheme.coolCyan, fontSize: 32, fontWeight: FontWeight.w900),
+                          style: const TextStyle(
+                            color: AppTheme.coolCyan,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                         const SizedBox(height: 5),
-                        const Text('Poin', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                        const Text(
+                          'Poin',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -386,16 +556,28 @@ class _GamePageState extends State<GamePage> {
                   Expanded(
                     child: Column(
                       children: [
-                        const Text('Jawaban Benar', style: TextStyle(color: AppTheme.textSecondary)),
+                        const Text(
+                          'Jawaban Benar',
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        ),
                         const SizedBox(height: 5),
                         Text(
-                          '${controller.correctCount}/${controller.questions.length}',
-                          style: const TextStyle(color: AppTheme.success, fontSize: 30, fontWeight: FontWeight.w900),
+                          '${controller.correctCount}/'
+                          '${controller.questions.length}',
+                          style: const TextStyle(
+                            color: AppTheme.success,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                         const SizedBox(height: 5),
                         Text(
                           'Tertinggi: ${controller.bestScore}',
-                          style: const TextStyle(color: AppTheme.coronaGold, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: AppTheme.coronaGold,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -405,7 +587,11 @@ class _GamePageState extends State<GamePage> {
             ),
             if (controller.loadError != null) ...[
               const SizedBox(height: 12),
-              Text(controller.loadError!, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.error)),
+              Text(
+                controller.loadError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppTheme.error),
+              ),
             ],
             const SizedBox(height: 22),
             SizedBox(
@@ -418,7 +604,9 @@ class _GamePageState extends State<GamePage> {
                   backgroundColor: AppTheme.eclipseViolet,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
               ),
             ),
