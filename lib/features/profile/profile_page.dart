@@ -99,6 +99,26 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _refreshLocation() async {
+    setState(() => _locationLoading = true);
+    try {
+      final position = await LocationService.getCurrentLocation();
+      if (!mounted || position == null) return;
+      setState(() {
+        _locationText =
+            '${position.latitude.toStringAsFixed(5)}, '
+            '${position.longitude.toStringAsFixed(5)}';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _locationText = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) setState(() => _locationLoading = false);
+    }
+  }
+
   Future<void> _load() async {
     final user = Supabase.instance.client.auth.currentUser;
     final profile = user == null ? null : await LocalDb.getUserProfile(user.id);
