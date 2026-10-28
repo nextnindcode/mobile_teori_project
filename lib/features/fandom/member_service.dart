@@ -11,7 +11,7 @@ class MemberService {
       final rows = await _client
           .from('members')
           .select(
-            'id,stage_name,position,team,description,fun_fact,profile_image_path',
+            '*',
           )
           .order('sort_order')
           .timeout(const Duration(seconds: 12));
@@ -21,7 +21,9 @@ class MemberService {
         final path = row['profile_image_path']?.toString() ?? '';
         row['image_url'] = path.isEmpty
             ? null
-            : _client.storage.from('eclipseverse-media').getPublicUrl(path);
+            : (path.startsWith('http')
+                ? path
+                : _client.storage.from('eclipseverse-media').getPublicUrl(path));
         return row;
       }).toList();
 
@@ -38,9 +40,7 @@ class MemberService {
     try {
       final row = await _client
           .from('members')
-          .select(
-            'id,stage_name,position,team,description,fun_fact,profile_image_path',
-          )
+          .select('*')
           .eq('id', id)
           .single()
           .timeout(const Duration(seconds: 12));
@@ -48,7 +48,9 @@ class MemberService {
       final path = data['profile_image_path']?.toString() ?? '';
       data['image_url'] = path.isEmpty
           ? null
-          : _client.storage.from('eclipseverse-media').getPublicUrl(path);
+          : (path.startsWith('http')
+              ? path
+              : _client.storage.from('eclipseverse-media').getPublicUrl(path));
       return Member.fromJson(data);
     } catch (_) {
       final cached = await LocalDb.getMembers();

@@ -12,11 +12,10 @@ class GameController extends ChangeNotifier {
   int _roundDuration = 15;
   String? _loadError;
   final Map<int, String> _answers = {};
-  bool _memberChallenge = false;
   int _bestScore = 0;
   bool _isSubmitting = false;
 
-  // Mencegah /10 -> /20 dan poin hilang 
+  // Menjaga satu sesi tetap berisi 10 soal 
   int _session = 0;
   bool _isTransitioning = false;
 
@@ -30,19 +29,18 @@ class GameController extends ChangeNotifier {
   int get bestScore => _bestScore;
   int get correctCount => _correctCount;
   bool get isGameOver => _currentRound >= _questions.length;
-  bool get isMemberMode => _memberChallenge;
   String? get loadError => _loadError;
   bool get isSubmitting => _isSubmitting;
   GameQuestion get currentQuestion => _questions[_currentRound];
 
-  // Jawaban benar soal aktif ('A'/'B')
-  // Null = tidak tersedia 
+  // Kunci jawaban tidak dikirim ke client; validasi dilakukan oleh Supabase.
+  // Null berarti UI tidak boleh menentukan benar/salah sebelum hasil server. 
   String? get currentCorrectAnswer {
     if (_questions.isEmpty || _currentRound >= _questions.length) return null;
     return _questions[_currentRound].correctAnswer;
   }
 
-  Future<void> startGame({bool memberChallenge = false}) async {
+  Future<void> startGame() async {
     final session = ++_session;
     _timer?.cancel();
     _loadError = null;
@@ -69,7 +67,8 @@ class GameController extends ChangeNotifier {
           id: (row['id'] as num).toInt(),
           funFact: '${row['question_text']}',
           options: labels,
-          correctAnswer: row['correct_option']?.toString(),  
+          correctAnswer: null, // Kunci jawaban tetap rahasia di server.
+          explanation: row['explanation']?.toString() ?? '',
         );
       }).toList();
 
@@ -81,8 +80,7 @@ class GameController extends ChangeNotifier {
 
       _questions.addAll(unique);
       _bestScore = bestScore;
-      _memberChallenge = memberChallenge;
-      _roundDuration = memberChallenge ? 10 : 15; 
+      _roundDuration = 15; 
       _startTimer();
       notifyListeners();
     } catch (e) {
@@ -105,7 +103,7 @@ class GameController extends ChangeNotifier {
         notifyListeners();
       } else {
         _timer?.cancel();
-        _answers[currentQuestion.id] = '';
+        _answers[currentQuestion.id] = 'SKIP';
         _goToNextRound();
       }
     });
@@ -153,7 +151,6 @@ class GameController extends ChangeNotifier {
           .toList();
       final result = await GameService.submitAnswers(
         answers,
-        memberChallenge: _memberChallenge,
       );
       _score = (result['score'] as num?)?.toInt() ?? 0;
       _correctCount = (result['correct_count'] as num?)?.toInt() ?? 0;

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/local_db.dart';
@@ -11,9 +10,8 @@ import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../event/event_model.dart';
 import '../event/event_page.dart' show formatEventDate;
-// ignore: unused_import
-import '../event/event_service.dart';
 import '../marketplace/product_detail_sheet.dart';
+import '../nearby/location_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,6 +23,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String _userName = 'Eclipse Lovers';
   String? _avatarPath;
+  String _currentLocation = 'Lokasi belum tersedia';
   int _userPoints = 0;
   bool _isLoadingPoints = true;
 
@@ -41,115 +40,207 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadAllData() async {
-    _loadProfile();
-    _loadPoints();
-    _loadEvents();
-    _loadProducts();
+    await Future.wait([
+      _loadProfile(),
+      _loadPoints(),
+      _loadEvents(),
+      _loadProducts(),
+      _loadCurrentLocation(),
+    ]);
+  }
+
+  Future<void> _loadCurrentLocation() async {
+    try {
+      final position = await LocationService.getCurrentLocation();
+      if (!mounted || position == null) return;
+      setState(() {
+        _currentLocation = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+      });
+    } catch (_) {
+      // Home tetap bisa dipakai saat izin lokasi tidak diberikan.
+    }
   }
 
   Future<void> _loadProfile() async {
     try {
-      final cached = await LocalDb.getUserProfile();
-      final avatar = await LocalDb.getPref('avatar_path');
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+
+      final cached = user == null
+          ? null
+          : await LocalDb.getUserProfile(user.id);
+
+      final avatar = user == null
+          ? await LocalDb.getPref('avatar_path')
+          : await LocalDb.getPref('avatar_path_${user.id}');
+
       if (mounted) {
         setState(() {
-          if (cached?['name'] != null &&
-              cached!['name'].toString().trim().isNotEmpty) {
-            _userName = cached['name'].toString();
+          final cachedName = cached?['name']?.toString().trim() ?? '';
+          if (cachedName.isNotEmpty) {
+            _userName = cachedName;
           }
           _avatarPath = avatar;
         });
       }
 
-      final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
-      final profile = await Supabase.instance.client
+
+      final profile = await client
           .from('profiles')
-          .select('display_name')
+          .select('display_name, avatar_path')
           .eq('id', user.id)
           .maybeSingle()
           .timeout(const Duration(seconds: 8));
+
       final name = profile?['display_name']?.toString().trim() ?? '';
-      if (mounted && name.isNotEmpty) setState(() => _userName = name);
-    } catch (_) {}
+      final remoteAvatar = profile?['avatar_path']?.toString().trim() ?? '';
+
+      final avatarUrl = remoteAvatar.isEmpty
+          ? null
+          : remoteAvatar.startsWith('http')
+          ? remoteAvatar
+          : client.storage
+                .from('eclipseverse-media')
+                .getPublicUrl(remoteAvatar);
+
+      if (!mounted) return;
+
+      setState(() {
+        if (name.isNotEmpty) {
+          _userName = name;
+        }
+        if (avatarUrl != null && avatarUrl.isNotEmpty) {
+          _avatarPath = avatarUrl;
+        }
+      });
+    } catch (_) {
+      // Profil lokal tetap digunakan jika permintaan gagal.
+    }
   }
 
   Future<void> _loadPoints() async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
+
       if (user == null) {
-        if (mounted) setState(() => _isLoadingPoints = false);
+        if (mounted) {
+          setState(() => _isLoadingPoints = false);
+        }
         return;
       }
+
       final stats = await Supabase.instance.client
           .from('user_points')
           .select('total_points')
           .eq('user_id', user.id)
           .maybeSingle()
           .timeout(const Duration(seconds: 8));
-      if (mounted) {
-        setState(() {
-          _userPoints = (stats?['total_points'] as num?)?.toInt() ?? 0;
-          _isLoadingPoints = false;
-        });
-      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _userPoints = (stats?['total_points'] as num?)?.toInt() ?? 0;
+        _isLoadingPoints = false;
+      });
     } catch (_) {
-      if (mounted) setState(() => _isLoadingPoints = false);
+      if (mounted) {
+        setState(() => _isLoadingPoints = false);
+      }
     }
   }
 
   Future<void> _loadEvents() async {
     try {
-      final rows = await Supabase.instance.client
+      final client = Supabase.instance.client;
+
+      final rows = await client
           .from('events')
           .select(
-            'id, title, description, event_date, venue, city, latitude, longitude',
+            'id, title, description, event_date, venue, city, '
+            'latitude, longitude, poster_path',
           )
           .eq('status', 'scheduled')
           .order('event_date')
           .limit(3)
           .timeout(const Duration(seconds: 8));
-      final events = (rows as List)
-          .map((row) => Event.fromJson(Map<String, dynamic>.from(row)))
-          .toList();
-      if (mounted) {
-        setState(() {
-          _upcomingEvents = events;
-          _isLoadingEvents = false;
-        });
-      }
+
+      final events = (rows as List).map((row) {
+        final data = Map<String, dynamic>.from(row);
+        final rawPath = data['poster_path']?.toString().trim() ?? '';
+
+        if (rawPath.isNotEmpty) {
+          if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
+            data['poster_path'] = rawPath;
+          } else {
+            var normalized = rawPath.replaceFirst(RegExp(r'^/+'), '');
+
+            if (normalized.startsWith('eclipseverse-media/')) {
+              normalized = normalized.substring('eclipseverse-media/'.length);
+            }
+
+            if (!normalized.startsWith('events/')) {
+              normalized = 'events/${normalized.split('/').last}';
+            }
+
+            data['poster_path'] = client.storage
+                .from('eclipseverse-media')
+                .getPublicUrl(normalized);
+          }
+        }
+
+        return Event.fromJson(data);
+      }).toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _upcomingEvents = events;
+        _isLoadingEvents = false;
+      });
     } catch (_) {
-      if (mounted) setState(() => _isLoadingEvents = false);
+      if (mounted) {
+        setState(() => _isLoadingEvents = false);
+      }
     }
   }
 
   Future<void> _loadProducts() async {
     try {
-      final rows = await Supabase.instance.client
+      final client = Supabase.instance.client;
+
+      final rows = await client
           .from('products')
           .select(
-            'id, name, description, price_idr, stock, cover_image_path, categories(name)',
+            'id, name, description, price_idr, stock, '
+            'cover_image_path, categories(name)',
           )
           .eq('is_published', true)
           .order('created_at', ascending: false)
           .limit(6)
           .timeout(const Duration(seconds: 8));
 
-      final list = (rows as List).map((item) {
+      final products = (rows as List).map((item) {
         final row = Map<String, dynamic>.from(item);
         final rawCategory = row['categories'];
+
         final category = rawCategory is Map
-            ? (rawCategory['name']?.toString() ?? 'Merchandise')
+            ? rawCategory['name']?.toString() ?? 'Merchandise'
             : 'Merchandise';
+
         final imagePath = row['cover_image_path']?.toString();
         String? imageUrl;
+
         if (imagePath != null && imagePath.trim().isNotEmpty) {
-          imageUrl = imagePath.startsWith('http')
+          imageUrl =
+              imagePath.startsWith('http://') ||
+                  imagePath.startsWith('https://')
               ? imagePath
-              : Supabase.instance.client.storage
+              : client.storage
                     .from('eclipseverse-media')
                     .getPublicUrl(imagePath);
         }
+
         return Product(
           id: (row['id'] as num).toInt(),
           name: row['name']?.toString() ?? 'Produk',
@@ -161,14 +252,16 @@ class _HomePageState extends State<HomePage> {
         );
       }).toList();
 
-      if (mounted) {
-        setState(() {
-          _featuredProducts = list;
-          _isLoadingProducts = false;
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _featuredProducts = products;
+        _isLoadingProducts = false;
+      });
     } catch (_) {
-      if (mounted) setState(() => _isLoadingProducts = false);
+      if (mounted) {
+        setState(() => _isLoadingProducts = false);
+      }
     }
   }
 
@@ -177,16 +270,24 @@ class _HomePageState extends State<HomePage> {
   }
 
   ImageProvider? get _avatarImage {
-    final p = _avatarPath;
-    if (p == null) return null;
-    final f = File(p);
-    return f.existsSync() ? FileImage(f) : null;
+    final path = _avatarPath;
+
+    if (path == null || path.isEmpty) return null;
+
+    if (path.startsWith('https://') || path.startsWith('http://')) {
+      return NetworkImage(path);
+    }
+
+    final file = File(path);
+    return file.existsSync() ? FileImage(file) : null;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.deepSpace,
+      floatingActionButton: _buildFloatingMiniGameButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: Row(
@@ -230,58 +331,35 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(width: 6),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadAllData,
-        color: AppTheme.eclipseViolet,
-        backgroundColor: AppTheme.surfaceElevated,
-        child: ListView(
+      body: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) => Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 14 * (1 - value)),
+            child: child,
+          ),
+        ),
+        child: RefreshIndicator(
+          onRefresh: _loadAllData,
+          color: AppTheme.eclipseViolet,
+          backgroundColor: AppTheme.surfaceElevated,
+          child: ListView(
           padding: const EdgeInsets.only(bottom: 36),
           children: [
             _buildHeroHeader(),
-
-            const SizedBox(height: 24),
-
-            // 2. Cosmic Quick Actions (Grid)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded( // <--- FIX OVERFLOW 1
-                    child: Text(
-                      'Jelajahi Universe',
-                      style: Theme.of(context).textTheme.titleLarge
-                          ?.copyWith(color: AppTheme.textPrimary),
-                    ),
-                  ),
-                  const Text(
-                    'Fitur Utama',
-                    style: TextStyle(
-                      color: AppTheme.coolCyan,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
+            _buildObservatoryShortcut(),
+            const SizedBox(height: 18),
             _buildQuickActionGrid(),
-
             const SizedBox(height: 28),
-
-            // 3. Mini Game Banner (Sensor + Reward points)
-            _buildGameBanner(),
-
-            const SizedBox(height: 28),
-
-            // 4. Upcoming Events from Real API
             _buildUpcomingEventsSection(),
-
             const SizedBox(height: 28),
-
-            // 5. Featured Products from Real API
             _buildFeaturedProductsSection(),
           ],
+          ),
         ),
       ),
     );
@@ -361,10 +439,11 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          'Selamat datang di semesta Eclipse',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Text(
+                          'Lokasi kamu: $_currentLocation',
+                          maxLines: 2,
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
                           style: TextStyle(
                             color: AppTheme.textSecondary,
                             fontSize: 12,
@@ -413,9 +492,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
-
               const Text(
                 'A Little Piece of Your Universe',
                 style: TextStyle(
@@ -428,19 +505,18 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Pantau jadwal tur, merchandise eksklusif, hingga asisten AI dalam satu platform terpadu.',
+                'Pantau jadwal tur, merchandise eksklusif, '
+                'hingga asisten AI dalam satu platform terpadu.',
                 style: TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 13,
                   height: 1.45,
                 ),
               ),
-
               const SizedBox(height: 18),
-
               Row(
                 children: [
-                  Expanded( // <--- FIX OVERFLOW 2
+                  Expanded(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.eclipseViolet,
@@ -466,7 +542,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded( // <--- FIX OVERFLOW 2
+                  Expanded(
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.coolCyan,
@@ -499,26 +575,133 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildObservatoryShortcut() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: () => _open(Routes.observatory),
+          child: Ink(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: AppTheme.cardGradient,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: AppTheme.coronaGold.withValues(alpha: 0.38),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.eclipseViolet.withValues(alpha: 0.16),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.coronaGold.withValues(alpha: 0.13),
+                    border: Border.all(
+                      color: AppTheme.coronaGold.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.nightlight_round,
+                    color: AppTheme.coronaGold,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Lunar Observatory',
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Jelajahi fase Bulan dan jadwal gerhana',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: AppTheme.coolCyan,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickActionGrid() {
     final actions = [
-      {'label': 'Nearby', 'icon': Icons.near_me_outlined, 'color': AppTheme.coronaGold, 'route': Routes.nearby},
-      {'label': 'Eclipse AI', 'icon': Icons.auto_awesome_outlined, 'color': AppTheme.eclipseViolet, 'route': Routes.ai},
-      {'label': 'Kurs & Waktu', 'icon': Icons.currency_exchange_rounded, 'color': AppTheme.coolCyan, 'route': Routes.tools},
-      {'label': 'Redeem Poin', 'icon': Icons.card_giftcard_rounded, 'color': AppTheme.coronaGold, 'route': Routes.redeem},
+      {
+        'label': 'Nearby',
+        'icon': Icons.near_me_outlined,
+        'color': AppTheme.coronaGold,
+        'route': Routes.nearby,
+      },
+      {
+        'label': 'Eclipse AI',
+        'icon': Icons.auto_awesome_outlined,
+        'color': AppTheme.eclipseViolet,
+        'route': Routes.ai,
+      },
+      {
+        'label': 'Kurs & Waktu',
+        'icon': Icons.currency_exchange_rounded,
+        'color': AppTheme.coolCyan,
+        'route': Routes.tools,
+      },
+      {
+        'label': 'Redeem Poin',
+        'icon': Icons.card_giftcard_rounded,
+        'color': AppTheme.coronaGold,
+        'route': Routes.redeem,
+      },
     ];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4, childAspectRatio: 0.88,
-          crossAxisSpacing: 10, mainAxisSpacing: 10,
+          crossAxisCount: 4,
+          childAspectRatio: 0.88,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
         ),
         itemCount: actions.length,
         itemBuilder: (context, index) {
           final item = actions[index];
           final color = item['color'] as Color;
+
           return InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: () => _open(item['route'] as String),
@@ -532,15 +715,31 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.16), shape: BoxShape.circle),
-                    child: Icon(item['icon'] as IconData, color: color, size: 22),
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.16),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      item['icon'] as IconData,
+                      color: color,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(item['label'] as String, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                    child: Text(
+                      item['label'] as String,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -551,87 +750,56 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildGameBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: AppTheme.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppTheme.borderSubtle),
-      ),
-      child: InkWell(
-        onTap: () => _open(Routes.game),
-        child: Row(
-          children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.eclipseViolet.withValues(alpha: 0.35),
-                    blurRadius: 12,
-                  ),
-                ],
+  Widget _buildFloatingMiniGameButton() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _open(Routes.game),
+          borderRadius: BorderRadius.circular(28),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: AppTheme.textPrimary.withValues(alpha: 0.22),
               ),
-              child: const Icon(
-                Icons.sports_esports_rounded,
-                color: Colors.white,
-                size: 28,
-              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.eclipseViolet.withValues(alpha: 0.28),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded( // <--- FIX OVERFLOW 3
-                        child: Text(
-                          'Guess the Member',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      CosmicBadge(
-                        text: 'SENSOR',
-                        color: AppTheme.coronaGold,
-                        textColor: AppTheme.coronaGold,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                      ),
-                    ],
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.sports_esports_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Mini Games',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Mainkan mini-game sensor & dapatkan poin redeem photocard!',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 12,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(width: 4),
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppTheme.coronaGold,
+                  size: 14,
+                ),
+              ],
             ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 14,
-              color: AppTheme.textSecondary,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -645,7 +813,7 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Expanded( // <--- FIX OVERFLOW 4
+              Expanded(
                 child: Text(
                   'Event Mendatang',
                   maxLines: 1,
@@ -689,10 +857,11 @@ class _HomePageState extends State<HomePage> {
               itemCount: _upcomingEvents.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
-                final e = _upcomingEvents[index];
+                final event = _upcomingEvents[index];
+
                 return InkWell(
                   borderRadius: BorderRadius.circular(20),
-                  onTap: () => _open(Routes.eventDetail, arguments: e.id),
+                  onTap: () => _open(Routes.eventDetail, arguments: event.id),
                   child: Container(
                     width: 260,
                     padding: const EdgeInsets.all(16),
@@ -707,7 +876,7 @@ class _HomePageState extends State<HomePage> {
                         Row(
                           children: [
                             CosmicBadge(
-                              text: e.city.toUpperCase(),
+                              text: event.city.toUpperCase(),
                               color: AppTheme.coolCyan,
                               textColor: AppTheme.coolCyan,
                             ),
@@ -721,7 +890,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          e.title,
+                          event.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -741,7 +910,7 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                e.venue,
+                                event.venue,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -754,7 +923,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          formatEventDate(e.eventDate),
+                          formatEventDate(event.eventDate),
                           style: const TextStyle(
                             color: AppTheme.coronaGold,
                             fontSize: 11,
@@ -780,7 +949,7 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Expanded( // <--- FIX OVERFLOW 5
+              Expanded(
                 child: Text(
                   'Merchandise Pilihan',
                   maxLines: 1,
@@ -824,15 +993,16 @@ class _HomePageState extends State<HomePage> {
               itemCount: _featuredProducts.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
-                final p = _featuredProducts[index];
+                final product = _featuredProducts[index];
+
                 return InkWell(
                   borderRadius: BorderRadius.circular(20),
                   onTap: () {
-                    showModalBottomSheet(
+                    showModalBottomSheet<void>(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (_) => ProductDetailSheet(product: p),
+                      builder: (_) => ProductDetailSheet(product: product),
                     );
                   },
                   child: Container(
@@ -848,7 +1018,7 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Expanded(
                           child: CosmicNetworkImage(
-                            imageUrl: p.imageUrl,
+                            imageUrl: product.imageUrl,
                             width: double.infinity,
                             fit: BoxFit.cover,
                           ),
@@ -859,7 +1029,7 @@ class _HomePageState extends State<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                p.category.toUpperCase(),
+                                product.category.toUpperCase(),
                                 style: const TextStyle(
                                   color: AppTheme.coolCyan,
                                   fontSize: 9,
@@ -868,7 +1038,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                p.name,
+                                product.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -879,7 +1049,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Rp ${p.price}',
+                                'Rp ${product.price}',
                                 style: const TextStyle(
                                   color: AppTheme.coronaGold,
                                   fontSize: 12,

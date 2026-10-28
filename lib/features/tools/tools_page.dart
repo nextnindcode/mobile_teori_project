@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:eclipseverse/theme/app_theme.dart';
 import 'currency_tab.dart';
 import 'time_tab.dart';
 
-/// Route /tools, argumen: initialTab (0 = Kurs, 1 = Waktu), bawaan 0.
+/// Eclipse Tools: konversi mata uang dan zona waktu.
 class ToolsPage extends StatefulWidget {
   final int initialTab;
   const ToolsPage({super.key, this.initialTab = 0});
@@ -10,18 +11,16 @@ class ToolsPage extends StatefulWidget {
   State<ToolsPage> createState() => _ToolsPageState();
 }
 
-class _ToolsPageState extends State<ToolsPage>
-    with SingleTickerProviderStateMixin {
+class _ToolsPageState extends State<ToolsPage> with SingleTickerProviderStateMixin {
   late final TabController _tc;
   bool _argRead = false;
 
-  static int _clamp01(int v) => v < 0 ? 0 : (v > 1 ? 1 : v);
+  static int _validTab(int value) => value < 0 ? 0 : (value > 1 ? 1 : value);
 
   @override
   void initState() {
     super.initState();
-    _tc = TabController(
-        length: 2, vsync: this, initialIndex: _clamp01(widget.initialTab));
+    _tc = TabController(length: 2, vsync: this, initialIndex: _validTab(widget.initialTab));
   }
 
   @override
@@ -29,8 +28,8 @@ class _ToolsPageState extends State<ToolsPage>
     super.didChangeDependencies();
     if (_argRead) return;
     _argRead = true;
-    final a = ModalRoute.of(context)?.settings.arguments;
-    if (a is int) _tc.index = _clamp01(a);
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is int) _tc.index = _validTab(args);
   }
 
   @override
@@ -46,10 +45,14 @@ class _ToolsPageState extends State<ToolsPage>
         title: const Text('Eclipse Tools'),
         bottom: TabBar(
           controller: _tc,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          tabs: const [Tab(text: 'Kurs'), Tab(text: 'Waktu')],
+          isScrollable: false,
+          labelColor: AppTheme.coolCyan,
+          unselectedLabelColor: AppTheme.textSecondary,
+          indicatorColor: AppTheme.coronaGold,
+          tabs: const [
+            Tab(text: 'Kurs'),
+            Tab(text: 'Waktu'),
+          ],
         ),
       ),
       body: TabBarView(

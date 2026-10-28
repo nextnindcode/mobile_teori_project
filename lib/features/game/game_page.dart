@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
 import 'game_controller.dart';
 import 'sensor_service.dart';
-import '../membership/membership_service.dart';
-import '../../core/routes.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
@@ -16,40 +16,11 @@ class GamePage extends StatefulWidget {
 
 class _GamePageState extends State<GamePage> {
   final SensorService _sensorService = SensorService();
+
   String? _selectedOption;
   bool _isAnswered = false;
-  bool? _isCorrect;
   int _highlightedIndex = 0;
-  bool _memberChallenge = false;
   int _lastRound = -1;
-
-  bool _isLoadingMember = true;
-  bool _isMember = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _cekStatusMember();
-  }
-
-  Future<void> _cekStatusMember() async {
-    try {
-      final isMember = await MembershipService.isActive();
-      if (mounted) {
-        setState(() {
-          _isMember = isMember;
-          _isLoadingMember = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _isMember = false;
-          _isLoadingMember = false;
-        });
-      }
-    }
-  }
 
   @override
   void dispose() {
@@ -57,45 +28,62 @@ class _GamePageState extends State<GamePage> {
     super.dispose();
   }
 
-  void _resetLocalState() {
+  void _resetAnswerState() {
     _selectedOption = null;
     _isAnswered = false;
-    _isCorrect = null;
     _highlightedIndex = 0;
   }
 
   void _startSensors(GameController controller) {
     _sensorService.stopSensors();
+
     _sensorService.listenSensors(
       onMove: (direction) {
-        if (!mounted) return;
-        if (controller.questions.isEmpty) return;
-        if (controller.isGameOver) return;
-        if (_isAnswered) return;
+        if (!mounted ||
+            controller.questions.isEmpty ||
+            controller.isGameOver ||
+            _isAnswered) {
+          return;
+        }
+
+        final options = controller.currentQuestion.options.take(2).toList();
+
+        if (options.length < 2) return;
+
         setState(() {
-          final optionCount = controller.currentQuestion.options.length;
-          final visibleCount = optionCount > 2 ? 2 : optionCount;
+          const visibleCount = 2;
           _highlightedIndex = (_highlightedIndex + direction) % visibleCount;
-          if (_highlightedIndex < 0) _highlightedIndex = visibleCount - 1;
+
+          if (_highlightedIndex < 0) {
+            _highlightedIndex += visibleCount;
+          }
         });
       },
       onConfirm: () {
-        if (!_isAnswered &&
-            controller.questions.isNotEmpty &&
-            !controller.isGameOver) {
-          final selected = controller.currentQuestion.options[_highlightedIndex];
-          _handleAnswer(_highlightedIndex, selected, controller);
+        if (!mounted ||
+            controller.questions.isEmpty ||
+            controller.isGameOver ||
+            _isAnswered) {
+          return;
         }
+
+        final options = controller.currentQuestion.options.take(2).toList();
+
+        if (options.isEmpty) return;
+
+        final index = _highlightedIndex.clamp(0, options.length - 1);
+
+        _handleAnswer(index, options[index], controller);
       },
     );
   }
 
-  void _handleAnswer(int index, String option, GameController controller) async {
+  Future<void> _handleAnswer(
+    int index,
+    String option,
+    GameController controller,
+  ) async {
     if (_isAnswered) return;
-
-    final correct = controller.currentCorrectAnswer?.trim().toUpperCase();
-    final picked = option.split('.').first.trim().toUpperCase();
-    final isCorrect = (correct == null || correct.isEmpty) ? null : correct == picked;
 
     controller.pauseTimer();
 
@@ -103,26 +91,30 @@ class _GamePageState extends State<GamePage> {
       _highlightedIndex = index;
       _selectedOption = option;
       _isAnswered = true;
-      _isCorrect = isCorrect;
     });
 
-    await Future.delayed(const Duration(milliseconds: 1000));
+    await Future.delayed(const Duration(milliseconds: 500));
+
     if (!mounted) return;
 
     await controller.answerQuestion(option);
   }
 
-  Future<void> _startNewGame(GameController controller,
-      {required bool memberChallenge}) async {
+  Future<void> _startNewGame(GameController controller) async {
     _sensorService.stopSensors();
+
     setState(() {
-      _memberChallenge = memberChallenge;
       _lastRound = -1;
-      _resetLocalState();
+      _resetAnswerState();
     });
-    await controller.startGame(memberChallenge: memberChallenge);
+
+    await controller.startGame();
+
     if (!mounted) return;
-    _startSensors(controller);
+
+    if (controller.questions.isNotEmpty && !controller.isGameOver) {
+      _startSensors(controller);
+    }
   }
 
   @override
@@ -133,18 +125,15 @@ class _GamePageState extends State<GamePage> {
         backgroundColor: AppTheme.deepSpace,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          title: Text(_memberChallenge ? 'Tantangan Member' : 'Guess the Member'),
+          title: const Text('Guess the Member'),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => Navigator.pop(context),
           ),
         ),
         body: Consumer<GameController>(
-          builder: (context, controller, child) {
-            if (_isLoadingMember) {
-              return const CosmicLoading(message: 'Menyiapkan Game...');
-            }
-            if (controller.loadError != null) {
+          builder: (context, controller, _) {
+            if (controller.loadError != null && controller.questions.isEmpty) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
@@ -156,24 +145,69 @@ class _GamePageState extends State<GamePage> {
                 ),
               );
             }
+
             if (controller.questions.isEmpty) {
-              return _buildStartScreen(context, controller);
+              return _buildStart(context, controller);
             }
+
             if (controller.isGameOver) {
               _sensorService.stopSensors();
-              return _buildGameOverScreen(context, controller);
+              return _buildResult(context, controller);
             }
-            return _buildPlayScreen(context, controller);
+
+            // Halaman kuis dan status sensor di bagian bawah.
+            return Column(
+              children: [
+                Expanded(child: _buildQuiz(context, controller)),
+                SafeArea(
+                  top: false,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceSecondary,
+                      border: Border(
+                        top: BorderSide(color: AppTheme.borderSubtle, width: 1),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.screen_rotation_alt_rounded,
+                          size: 17,
+                          color: AppTheme.coolCyan,
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Miringkan HP untuk berpindah pilihan, '
+                            'gerakkan HP untuk konfirmasi, '
+                            'atau tap jawaban.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
           },
         ),
       ),
     );
   }
 
-  Widget _buildStartScreen(BuildContext context, GameController controller) {
+  Widget _buildStart(BuildContext context, GameController controller) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -184,314 +218,407 @@ class _GamePageState extends State<GamePage> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.eclipseViolet.withValues(alpha: 0.4),
-                    blurRadius: 30,
-                    spreadRadius: 5,
+                    color: AppTheme.eclipseViolet.withValues(alpha: .35),
+                    blurRadius: 28,
+                    spreadRadius: 4,
                   ),
                 ],
               ),
-              child: const Icon(Icons.sports_esports, size: 80, color: Colors.white),
+              child: const Icon(
+                Icons.sports_esports_rounded,
+                size: 72,
+                color: Colors.white,
+              ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             const Text(
               'Guess the Member!',
               style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary),
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+              ),
             ),
-            const SizedBox(height: 16),
-            CosmicCard(
-              child: const Text(
-                'Baca petunjuk, lalu tebak membernya.\n\n'
-                'Miringkan HP ke Kiri/Kanan untuk memilih, dan anggukkan HP untuk konfirmasi jawaban. '
-                'Atau gunakan sentuhan (Tap).',
+            const SizedBox(height: 12),
+            const CosmicCard(
+              child: Text(
+                'Kenali member Eclipse lewat posisi dan fun fact mereka.\n\n'
+                'Miringkan HP ke kiri/kanan untuk berpindah pilihan, '
+                'lalu gerakkan HP untuk memilih. Kamu juga bisa '
+                'langsung tap jawaban.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppTheme.textSecondary, height: 1.5),
               ),
             ),
-            const SizedBox(height: 40),
-
-            // TOMBOL 1: Main Biasa
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.eclipseViolet,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                onPressed: () => _startNewGame(controller, memberChallenge: false),
-                child: const Text('Mulai Bermain',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // TOMBOL 2: Tantangan Member
-            // Kalau bukan membership klik tantangan member tidak bisa, nanti diarahkan ke paket membership 
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.workspace_premium),
-                label: const Text('Tantangan Member 10 detik/ronde'),
-                onPressed: () async {
-                  try {
-                    final active = await MembershipService.isActive();
-                    if (!context.mounted) return;
-                    if (!active) {
-                      Navigator.pushNamed(context, Routes.membership);
-                      return;
-                    }
-                    await _startNewGame(controller, memberChallenge: true);
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Status membership gagal diperiksa: $e')),
-                    );
-                  }
-                },
-              ),
-            ),
-
-            if (!_isMember)
-              const Padding(
-                padding: EdgeInsets.only(top: 16),
-                child: Text(
-                  '*Kumpulkan poin dan tukarkan dengan Photocard eksklusif dengan menjadi Member!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: AppTheme.coronaGold,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold),
+                onPressed: () => _startNewGame(controller),
+                child: const Text(
+                  'Mulai Bermain',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPlayScreen(BuildContext context, GameController controller) {
+  Widget _buildQuiz(BuildContext context, GameController controller) {
     if (controller.currentRound != _lastRound) {
       _lastRound = controller.currentRound;
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(_resetLocalState);
+        if (mounted) {
+          setState(_resetAnswerState);
+        }
       });
     }
 
     final question = controller.currentQuestion;
+    final options = question.options.take(2).toList();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              CosmicBadge(
-                text: 'Ronde ${controller.currentRound + 1}/${controller.questions.length}',
-                color: AppTheme.coolCyan,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: (controller.timeLeft / controller.roundDuration).clamp(0.0, 1.0),
-              backgroundColor: AppTheme.surfaceSecondary,
-              color: controller.timeLeft > 5 ? AppTheme.coolCyan : AppTheme.error,
-              minHeight: 10,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Sisa waktu: ${controller.timeLeft} detik',
-            style: TextStyle(
-              color: controller.timeLeft > 5 ? AppTheme.textSecondary : AppTheme.error,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-          CosmicCard(
-            child: Column(
+    final progress =
+        ((controller.currentRound + 1) / controller.questions.length).clamp(
+          0.0,
+          1.0,
+        );
+
+    final timeProgress = (controller.timeLeft / controller.roundDuration).clamp(
+      0.0,
+      1.0,
+    );
+
+    return SafeArea(
+      bottom: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.format_quote_rounded, size: 48, color: AppTheme.coolCyan),
-                const SizedBox(height: 12),
+                const Text(
+                  'Progres kuis',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                ),
                 Text(
-                  question.funFact,
-                  textAlign: TextAlign.center,
+                  '${controller.currentRound + 1}/'
+                  '${controller.questions.length}',
                   style: const TextStyle(
-                      color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, height: 1.4),
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: Row(
-              children: List.generate(
-                question.options.length > 2 ? 2 : question.options.length,
-                (index) {
-                  final option = question.options[index];
-                  final isSelected = option == _selectedOption;
-                  final isHighlighted = index == _highlightedIndex;
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: AppTheme.surfaceSecondary,
+                color: AppTheme.eclipseViolet,
+              ),
+            ),
+            const SizedBox(height: 10),
 
-                  Color buttonColor = AppTheme.surfaceElevated;
-                  Color textColor = AppTheme.textPrimary;
-                  Color borderColor = AppTheme.borderSubtle;
+            // Timer
+            Row(
+              children: [
+                const Icon(
+                  Icons.timer_outlined,
+                  size: 18,
+                  color: AppTheme.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: timeProgress,
+                      minHeight: 5,
+                      backgroundColor: AppTheme.surfaceSecondary,
+                      color: controller.timeLeft > 5
+                          ? AppTheme.coolCyan
+                          : AppTheme.error,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${controller.timeLeft}s',
+                  style: TextStyle(
+                    color: controller.timeLeft > 5
+                        ? AppTheme.textSecondary
+                        : AppTheme.error,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
 
-                  if (isHighlighted && !_isAnswered) {
-                    buttonColor = AppTheme.eclipseViolet;
-                    textColor = Colors.white;
-                    borderColor = AppTheme.eclipseViolet;
-                  }
+            // Kartu soal
+            CosmicCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 28,
+                    color: AppTheme.coronaGold,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    question.funFact,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
 
-                  if (_isAnswered && isSelected) {
-                    if (_isCorrect == true) {
-                      buttonColor = AppTheme.success;
-                      borderColor = AppTheme.success;
-                    } else if (_isCorrect == false) {
-                      buttonColor = AppTheme.error;
-                      borderColor = AppTheme.error;
-                    } else {
-                      buttonColor = AppTheme.coolCyan;
-                      borderColor = AppTheme.coolCyan;
-                    }
-                    textColor = Colors.white;
-                  }
+            // Dua kartu jawaban
+            SizedBox(
+              height: 130,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: List.generate(options.length, (index) {
+                  final option = options[index];
+
+                  // Hilangkan awalan A. atau B. dari teks jawaban.
+                  final displayOption = option.replaceFirst(
+                    RegExp(r'^[A-D]\.\s*'),
+                    '',
+                  );
+
+                  final selected = option == _selectedOption;
+                  final highlighted =
+                      index == _highlightedIndex && !_isAnswered;
 
                   return Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      padding: EdgeInsets.only(
+                        right: index == 0 ? 5 : 0,
+                        left: index == 1 ? 5 : 0,
+                      ),
                       child: AnimatedScale(
-                        scale: isHighlighted ? 1.02 : 1.0,
-                        duration: const Duration(milliseconds: 200),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: buttonColor,
-                              foregroundColor: textColor,
-                              elevation: isHighlighted ? 8 : 2,
-                              shadowColor: AppTheme.eclipseViolet.withValues(alpha: 0.3),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(color: borderColor, width: 2),
+                        scale: highlighted ? 1.015 : 1.0,
+                        duration: const Duration(milliseconds: 160),
+                        child: ElevatedButton(
+                          onPressed: _isAnswered
+                              ? null
+                              : () => _handleAnswer(index, option, controller),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: selected || highlighted
+                                ? AppTheme.eclipseViolet
+                                : AppTheme.surfaceElevated,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: selected
+                                ? AppTheme.eclipseViolet
+                                : AppTheme.surfaceElevated,
+                            disabledForegroundColor: Colors.white,
+                            elevation: highlighted ? 3 : 1,
+                            padding: const EdgeInsets.all(12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(
+                                color: highlighted
+                                    ? AppTheme.coolCyan
+                                    : AppTheme.borderSubtle,
+                                width: highlighted ? 1.5 : 1,
                               ),
                             ),
-                            onPressed: _isAnswered
-                                ? null
-                                : () => _handleAnswer(index, option, controller),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  option,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                String.fromCharCode(65 + index),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
                                 ),
-                                if (_isAnswered && isSelected && _isCorrect != null) ...[
-                                  const SizedBox(height: 6),
-                                  Icon(
-                                    _isCorrect! ? Icons.check_circle : Icons.cancel,
-                                    color: Colors.white,
-                                    size: 22,
+                              ),
+                              const SizedBox(height: 8),
+                              Flexible(
+                                child: Text(
+                                  displayOption,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 4,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.3,
                                   ),
-                                ],
-                              ],
-                            ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   );
-                },
+                }),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Text(
-              'Miring ke Kiri/Kanan: Geser Jawaban • Anggukkan: Konfirmasi Jawaban',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildGameOverScreen(BuildContext context, GameController controller) {
+  Widget _buildResult(BuildContext context, GameController controller) {
     if (controller.isSubmitting) {
       return const CosmicLoading(message: 'Menghitung skor...');
     }
 
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.coronaGold.withValues(alpha: 0.2),
+                color: AppTheme.coronaGold.withValues(alpha: .14),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.emoji_events_rounded, size: 80, color: AppTheme.coronaGold),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                size: 78,
+                color: AppTheme.coronaGold,
+              ),
             ),
-            const SizedBox(height: 24),
-            const Text('Permainan Selesai!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            const Text(
+              'Permainan Selesai!',
+              style: TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 18),
             CosmicCard(
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Column(
-                    children: [
-                      const Text('Skor Akhir', style: TextStyle(color: AppTheme.textSecondary)),
-                      const SizedBox(height: 4),
-                      Text('${controller.score}',
-                          style: const TextStyle(color: AppTheme.coolCyan, fontSize: 32, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Text('Terbaik: ${controller.bestScore}',
-                          style: const TextStyle(color: AppTheme.coronaGold, fontSize: 12, fontWeight: FontWeight.bold)),
-                    ],
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Skor Akhir',
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          '${controller.score}',
+                          style: const TextStyle(
+                            color: AppTheme.coolCyan,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          'Poin',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Container(height: 60, width: 1, color: AppTheme.borderSubtle, margin: const EdgeInsets.symmetric(horizontal: 24)),
-                  Column(
-                    children: [
-                      const Text('Benar', style: TextStyle(color: AppTheme.textSecondary)),
-                      const SizedBox(height: 4),
-                      Text('${controller.correctCount}/${controller.questions.length}',
-                          style: const TextStyle(color: AppTheme.success, fontSize: 32, fontWeight: FontWeight.bold)),
-                    ],
+                  Container(width: 1, height: 70, color: AppTheme.borderSubtle),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Jawaban Benar',
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          '${controller.correctCount}/'
+                          '${controller.questions.length}',
+                          style: const TextStyle(
+                            color: AppTheme.success,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Tertinggi: ${controller.bestScore}',
+                          style: const TextStyle(
+                            color: AppTheme.coronaGold,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
+            if (controller.loadError != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                controller.loadError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppTheme.error),
+              ),
+            ],
+            const SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
+                onPressed: () => _startNewGame(controller),
+                icon: const Icon(Icons.replay_rounded),
+                label: const Text('Main Lagi'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.eclipseViolet,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                onPressed: () => _startNewGame(controller, memberChallenge: _memberChallenge),
-                child: const Text('Main Lagi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Kembali ke Home',
-                  style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                context,
+                Routes.shell,
+                (route) => false,
+              ),
+              icon: const Icon(Icons.home_outlined),
+              label: const Text('Kembali ke Home'),
             ),
           ],
         ),

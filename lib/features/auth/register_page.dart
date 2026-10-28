@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth_service.dart';
+import '../../core/local_db.dart';
+import '../../core/offline_auth_service.dart';
+import '../../core/secure_store.dart';
 import '../../theme/app_theme.dart';
 import '../../core/routes.dart';
 
@@ -38,9 +41,15 @@ class _RegisterPageState extends State<RegisterPage> {
         throw Exception('Registrasi gagal. Silakan coba lagi.');
       }
 
-      // =========================================================
-      // TAMBAHAN BAGIAN C: SIMPAN NOTIFIKASI WELCOME KE INBOX
-      // =========================================================
+      // Akun baru tidak boleh mewarisi data lokal dari akun sebelumnya.
+      await LocalDb.clearAccountData();
+      await LocalDb.setPref('active_user_id', '');
+      await LocalDb.setPref('biometric_enabled', '0');
+      await SecureStore.deleteCredentials();
+      await OfflineAuthService.clear();
+      await LocalDb.setPref('offline_mode', '0');
+
+      // Simpan notifikasi sambutan ke kotak masuk pengguna.
       try {
         await Supabase.instance.client.from('notifications').insert({
           'user_id': user.id,
@@ -49,17 +58,27 @@ class _RegisterPageState extends State<RegisterPage> {
           'type': 'system',
         });
       } catch (e) {
-        // Jika gagal simpan notif, registrasi tetap lanjut
+        // Registrasi tetap dilanjutkan jika notifikasi gagal disimpan.
         debugPrint('Gagal menyimpan notifikasi welcome: $e');
       }
-      // =========================================================
 
       if (response.session != null) {
         await AuthService.cacheUserLocally(user);
+        final cachedProfile = await LocalDb.getProfile(user.id);
+        if (cachedProfile != null) {
+          await OfflineAuthService.saveCredentials(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            userId: user.id,
+            name: cachedProfile['name']?.toString() ?? _nameController.text.trim(),
+            profileEmail: cachedProfile['email']?.toString() ?? _emailController.text.trim(),
+          );
+        }
+        await LocalDb.setPref('offline_mode', '0');
         if (!mounted) return;
         Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
       } else {
-        // Supabase email confirmation is enabled: user must confirm before login.
+        // Konfirmasi email Supabase aktif, jadi pengguna harus mengonfirmasi email sebelum masuk.
         if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
         Navigator.pop(context);
@@ -117,7 +136,7 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ===== 1. GAMBAR ATAS (ANIMASI GERHANA) =====
+                  // ===== 1. ILUSTRASI GERHANA =====
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -151,7 +170,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ===== 2. JUDUL =====
+                  // ===== 2. JUDUL HALAMAN =====
                   Text(
                     'Buat Akun',
                     style: AppTheme.textTheme.headlineMedium?.copyWith(
@@ -166,7 +185,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ===== 3. FORM NAMA =====
+                  // ===== 3. FORMULIR NAMA =====
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
@@ -178,7 +197,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 4. FORM EMAIL =====
+                  // ===== 4. FORMULIR EMAIL =====
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
@@ -191,7 +210,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 5. FORM PASSWORD =====
+                  // ===== 5. FORMULIR KATA SANDI =====
                   TextFormField(
                     controller: _passwordController,
                     decoration: InputDecoration(
@@ -214,7 +233,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ===== 6. TOMBOL DAFTAR =====
+                  // ===== 6. TOMBOL PENDAFTARAN =====
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -230,7 +249,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 7. LINK KEMBALI KE LOGIN =====
+                  // ===== 7. TAUTAN KEMBALI KE HALAMAN MASUK =====
                   TextButton(
                     onPressed: () {
                       Navigator.pop(context); // Balik ke halaman Login

@@ -18,6 +18,7 @@ class Routes {
   static const String eventDetail = '/event-detail';
   static const String memberDetail = '/member-detail';
   static const String tools = '/tools';
+  static const String observatory = '/observatory';
 
   // AI, Nearby, Game, Notif
   static const String nearby = '/nearby';

@@ -16,12 +16,10 @@ class TimeService {
   static const london = ZoneOption('London (UK)', 'Europe/London');
   static const japan = ZoneOption('Jepang (Tokyo)', 'Asia/Tokyo');
   static const singapore = ZoneOption('Singapura', 'Asia/Singapore');
-  static const malaysia = ZoneOption('Malaysia (KL)', 'Asia/Kuala_Lumpur');
   static const thailand = ZoneOption('Thailand (Bangkok)', 'Asia/Bangkok');
   static const kst = ZoneOption('KST (Seoul)', 'Asia/Seoul');
 
-  /// 8 zona wajib per requirement Master Prompt:
-  /// WIB, WITA, WIT, London, Jepang, Singapura, Malaysia, Thailand
+  /// Zona yang digunakan untuk hasil konversi (Malaysia sementara dihapus).
   static const requiredZones = [
     wib,
     wita,
@@ -29,7 +27,6 @@ class TimeService {
     london,
     japan,
     singapore,
-    malaysia,
     thailand,
   ];
 
@@ -44,7 +41,6 @@ class TimeService {
     london,
     japan,
     singapore,
-    malaysia,
     thailand,
     kst,
   ];
@@ -74,7 +70,23 @@ class TimeService {
   }
 
   /// Label zona -> waktu di zona itu
+  /// Mengembalikan waktu setiap zona dengan key singkat untuk kebutuhan tes/API.
   static Map<String, tz.TZDateTime> convertAll(DateTime utc) => {
-    for (final z in requiredZones) z.label: at(utc, z.tzName),
+    for (final z in requiredZones) _shortLabel(z): at(utc, z.tzName),
   };
+
+  static String _shortLabel(ZoneOption zone) {
+    switch (zone.label) {
+      case 'WIB (Jakarta)':
+        return 'WIB';
+      case 'WITA (Makassar)':
+        return 'WITA';
+      case 'WIT (Jayapura)':
+        return 'WIT';
+      case 'London (UK)':
+        return 'London';
+      default:
+        return zone.label;
+    }
+  }
 }

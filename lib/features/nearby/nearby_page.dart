@@ -18,7 +18,8 @@ import 'compass_widget.dart';
 import 'location_service.dart';
 
 class NearbyPage extends StatefulWidget {
-  const NearbyPage({super.key});
+  final int? initialEventId;
+  const NearbyPage({super.key, this.initialEventId});
 
   @override
   State<NearbyPage> createState() => _NearbyPageState();
@@ -47,7 +48,78 @@ class _NearbyPageState extends State<NearbyPage> {
   void initState() {
     super.initState();
     _initCompass();
-    _loadNearbyData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prepareLocationAndLoad());
+  }
+
+  Future<void> _prepareLocationAndLoad() async {
+    var shouldTryLocation = true;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final permission = await Geolocator.checkPermission();
+      if (!serviceEnabled ||
+          permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        final proceed = await showModalBottomSheet<bool>(
+          context: context,
+          backgroundColor: AppTheme.surfaceElevated,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          builder: (ctx) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.location_on_outlined, size: 36, color: AppTheme.coolCyan),
+                  const SizedBox(height: 12),
+                  Text('Aktifkan lokasi?', style: Theme.of(ctx).textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  const Text('EclipseVerse menggunakan lokasi perangkat untuk mengurutkan event terdekat dan membantu navigasi. Kamu tetap bisa melihat event tanpa mengaktifkan lokasi.'),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Lanjutkan'),
+                    ),
+                  ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Nanti saja'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        if (proceed != true) {
+          shouldTryLocation = false;
+        } else {
+          if (!serviceEnabled) {
+            await Geolocator.openLocationSettings();
+          }
+          if (permission == LocationPermission.denied) {
+            final requested = await Geolocator.requestPermission();
+            shouldTryLocation = requested == LocationPermission.whileInUse ||
+                requested == LocationPermission.always;
+          } else if (permission == LocationPermission.deniedForever) {
+            await Geolocator.openAppSettings();
+            final refreshed = await Geolocator.checkPermission();
+            shouldTryLocation = refreshed == LocationPermission.whileInUse ||
+                refreshed == LocationPermission.always;
+          }
+        }
+      }
+    } catch (error) {
+      debugPrint('Location permission prompt failed: $error');
+    }
+    if (mounted) await _loadNearbyData(tryLocation: shouldTryLocation);
   }
 
   void _initCompass() {
@@ -72,7 +144,7 @@ class _NearbyPageState extends State<NearbyPage> {
     super.dispose();
   }
 
-  Future<void> _loadNearbyData() async {
+  Future<void> _loadNearbyData({bool tryLocation = true}) async {
     setState(() {
       _loading = true;
       _error = null;
@@ -80,10 +152,14 @@ class _NearbyPageState extends State<NearbyPage> {
 
     try {
       // 1. Fetch user location (graceful fallback)
-      try {
-        _userPosition = await LocationService.getCurrentLocation();
-      } catch (locErr) {
-        debugPrint('Location service note: $locErr');
+      if (tryLocation) {
+        try {
+          _userPosition = await LocationService.getCurrentLocation();
+        } catch (locErr) {
+          debugPrint('Location service note: $locErr');
+        }
+      } else {
+        _userPosition = null;
       }
 
       // 2. Fetch events and filter upcoming/ongoing only
@@ -92,10 +168,26 @@ class _NearbyPageState extends State<NearbyPage> {
 
       // Only show upcoming / ongoing events (not past)
       final filtered = allEvents.where((e) {
-        final notPast = e.eventDate.isAfter(now.subtract(const Duration(hours: 12)));
+        final notPast = e.eventDate.isAfter(
+          now.subtract(const Duration(hours: 12)),
+        );
         final validCoords = _validCoordinate(e.latitude, e.longitude);
         return notPast && validCoords;
       }).toList();
+
+      final routeArg = ModalRoute.of(context)?.settings.arguments;
+      final requestedId = widget.initialEventId ?? (routeArg is int ? routeArg : null);
+      // Saat dipanggil dari detail, pertahankan event yang diminta meski bukan event mendatang.
+      if (requestedId != null && !filtered.any((event) => event.id == requestedId)) {
+        try {
+          final requestedEvent = await EventService.fetchEventDetail(requestedId);
+          if (_validCoordinate(requestedEvent.latitude, requestedEvent.longitude)) {
+            filtered.insert(0, requestedEvent);
+          }
+        } catch (_) {
+          // Jangan mengganti event yang gagal dimuat dengan event acak.
+        }
+      }
 
       // Sort by distance if user position is available
       if (_userPosition != null) {
@@ -121,7 +213,12 @@ class _NearbyPageState extends State<NearbyPage> {
         _activeEvents = filtered;
         _loading = false;
         if (filtered.isNotEmpty) {
-          _selectedEvent = filtered.first;
+          if (requestedId == null) {
+            _selectedEvent = filtered.first;
+          } else {
+            final requestedEvents = filtered.where((event) => event.id == requestedId).toList();
+            _selectedEvent = requestedEvents.isEmpty ? null : requestedEvents.first;
+          }
         }
       });
 
@@ -138,7 +235,11 @@ class _NearbyPageState extends State<NearbyPage> {
   }
 
   bool _validCoordinate(double lat, double lon) =>
-      lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 && !(lat == 0 && lon == 0);
+      lat >= -90 &&
+      lat <= 90 &&
+      lon >= -180 &&
+      lon <= 180 &&
+      !(lat == 0 && lon == 0);
 
   Future<void> _selectEvent(Event event) async {
     setState(() {
@@ -184,7 +285,10 @@ class _NearbyPageState extends State<NearbyPage> {
       final coordinates = geometry['coordinates'] as List;
       final points = coordinates.map((pair) {
         final values = pair as List;
-        return LatLng((values[1] as num).toDouble(), (values[0] as num).toDouble());
+        return LatLng(
+          (values[1] as num).toDouble(),
+          (values[0] as num).toDouble(),
+        );
       }).toList();
 
       if (!mounted) return;
@@ -217,7 +321,8 @@ class _NearbyPageState extends State<NearbyPage> {
     final lat2 = event.latitude * math.pi / 180;
     final deltaLon = (event.longitude - lon) * math.pi / 180;
     final y = math.sin(deltaLon) * math.cos(lat2);
-    final x = math.cos(lat1) * math.sin(lat2) -
+    final x =
+        math.cos(lat1) * math.sin(lat2) -
         math.sin(lat1) * math.cos(lat2) * math.cos(deltaLon);
     return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
   }
@@ -272,7 +377,10 @@ class _NearbyPageState extends State<NearbyPage> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.coronaGold.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
@@ -313,7 +421,11 @@ class _NearbyPageState extends State<NearbyPage> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const Icon(Icons.location_on, size: 16, color: AppTheme.textSecondary),
+                  const Icon(
+                    Icons.location_on,
+                    size: 16,
+                    color: AppTheme.textSecondary,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -352,7 +464,7 @@ class _NearbyPageState extends State<NearbyPage> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        Navigator.pushNamed(
+                        Navigator.pushReplacementNamed(
                           context,
                           Routes.eventDetail,
                           arguments: event.id,
@@ -429,8 +541,9 @@ class _NearbyPageState extends State<NearbyPage> {
                     initialZoom: 12,
                     minZoom: 3,
                     maxZoom: 18,
-                    interactionOptions:
-                        const InteractionOptions(flags: InteractiveFlag.all),
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all,
+                    ),
                   ),
                   children: [
                     TileLayer(
@@ -487,7 +600,7 @@ class _NearbyPageState extends State<NearbyPage> {
                     ),
                     const RichAttributionWidget(
                       attributions: [
-                        TextSourceAttribution('OpenStreetMap contributors')
+                        TextSourceAttribution('OpenStreetMap contributors'),
                       ],
                     ),
                   ],
@@ -550,8 +663,8 @@ class _NearbyPageState extends State<NearbyPage> {
                                 Text(
                                   _headingDegrees == null
                                       ? (_userPosition == null
-                                          ? 'GPS nonaktif · Menampilkan peta umum'
-                                          : 'Kompas siap · Sentuh pin event')
+                                            ? 'GPS nonaktif · Menampilkan peta umum'
+                                            : 'Kompas siap · Sentuh pin event')
                                       : 'Kompas ${_headingDegrees!.round()}° · Tujuan ${bearing?.round() ?? 0}°',
                                   style: const TextStyle(
                                     fontSize: 11,
@@ -582,7 +695,135 @@ class _NearbyPageState extends State<NearbyPage> {
                   ),
                 ),
 
-                // 3. Floating Compass
+                // 3. Swipeable event cards, ordered by distance when GPS is available.
+                if (_activeEvents.isNotEmpty)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 18,
+                    child: SizedBox(
+                      height: 142,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _activeEvents.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) {
+                          final event = _activeEvents[index];
+                          final distance = _userPosition == null
+                              ? null
+                              : LocationService.distanceKm(
+                                  _userPosition!.latitude,
+                                  _userPosition!.longitude,
+                                  event.latitude,
+                                  event.longitude,
+                                );
+                          return SizedBox(
+                            width: 270,
+                            child: Card(
+                              color: AppTheme.surfaceElevated.withValues(
+                                alpha: 0.97,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(
+                                  color: target?.id == event.id
+                                      ? AppTheme.coronaGold
+                                      : AppTheme.borderSubtle,
+                                  width: target?.id == event.id ? 2 : 1,
+                                ),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () => _selectEvent(event),
+                                child: Row(
+                                  children: [
+                                    if (event.imageUrl != null &&
+                                        event.imageUrl!.isNotEmpty)
+                                      Image.network(
+                                        event.imageUrl!,
+                                        width: 86,
+                                        height: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) => Container(
+                                          width: 86,
+                                          color: AppTheme.deepSpace,
+                                          child: const Icon(
+                                            Icons.event,
+                                            color: AppTheme.coolCyan,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        width: 86,
+                                        color: AppTheme.deepSpace,
+                                        child: const Icon(
+                                          Icons.event,
+                                          color: AppTheme.coolCyan,
+                                        ),
+                                      ),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              event.title,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: AppTheme.textPrimary,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 5),
+                                            Text(
+                                              event.city,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: AppTheme.textSecondary,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                            if (distance != null)
+                                              Text(
+                                                '${distance.toStringAsFixed(1)} km dari kamu',
+                                                style: const TextStyle(
+                                                  color: AppTheme.coronaGold,
+                                                  fontSize: 10,
+                                                ),
+                                              ),
+                                            const Spacer(),
+                                            const Text(
+                                              'Pilih & lihat rute →',
+                                              style: TextStyle(
+                                                color: AppTheme.coolCyan,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                // 4. Floating Compass
                 Positioned(
                   top: 96,
                   right: 16,

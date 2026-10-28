@@ -129,6 +129,40 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
             ),
           ],
         ),
+        if (m.extraDetails.isNotEmpty) ...[
+          const SizedBox(height: AppTheme.spacingMedium),
+          Text(
+            'Informasi Member',
+            style: t.titleLarge?.copyWith(color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppTheme.spacingXSmall),
+          Card(
+            color: AppTheme.surfaceElevated,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                children: m.extraDetails.entries.map((entry) {
+                  final label = entry.key
+                      .replaceAll('_', ' ')
+                      .split(' ')
+                      .map((word) => word.isEmpty ? word : word[0].toUpperCase() + word.substring(1))
+                      .join(' ');
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: Text(label, style: const TextStyle(color: AppTheme.textSecondary))),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(entry.value.toString(), textAlign: TextAlign.end, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600))),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: AppTheme.spacingMedium),
         Text(
           'Deskripsi',

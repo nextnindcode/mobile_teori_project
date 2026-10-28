@@ -1,7 +1,7 @@
 import 'package:local_auth/local_auth.dart';
 
-/// Kontrak serah-terima H11 (ke A): isSupported() dan authenticate() -> bool.
-/// Aplikasi tidak menyimpan data biometrik; OS hanya mengembalikan berhasil/gagal.
+/// Menyediakan pemeriksaan dukungan perangkat dan autentikasi biometrik.
+/// Aplikasi tidak menyimpan data biometrik; sistem operasi hanya mengembalikan status berhasil atau gagal.
 class BiometricService {
   static final LocalAuthentication _auth = LocalAuthentication();
 
@@ -22,7 +22,7 @@ class BiometricService {
         localizedReason: 'Verifikasi untuk membuka EclipseVerse',
       );
     } catch (_) {
-      // dibatalkan, gagal, atau tidak didukung -> false
+      // Jika dibatalkan, gagal, atau tidak didukung, kembalikan false.
       return false;
     }
   }

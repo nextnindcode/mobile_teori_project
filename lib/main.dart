@@ -14,6 +14,7 @@ import 'features/event/event_page.dart';
 import 'features/event/event_detail_page.dart';
 import 'features/fandom/member_detail_page.dart';
 import 'features/tools/tools_page.dart';
+import 'features/tools/observatory_page.dart';
 import 'features/shell/main_shell.dart';
 import 'features/ai/ai_page.dart';
 import 'features/game/game_page.dart';
@@ -30,8 +31,8 @@ Future<void> main() async {
   // inisialisasi zona waktu buat konversi
   tz.initializeTimeZones();
 
-  // Semua anggota menggunakan satu Supabase project yang sama.
-  // Tidak ada lagi ketergantungan pada XAMPP, localhost, atau IP laptop.
+  // Semua anggota menggunakan satu proyek Supabase yang sama.
+  // Aplikasi tidak lagi bergantung pada XAMPP, localhost, atau alamat IP laptop.
   await Supabase.initialize(
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.publishableKey,
@@ -75,6 +76,7 @@ class MyApp extends StatelessWidget {
         Routes.eventDetail: (_) => const EventDetailPage(),
         Routes.memberDetail: (_) => const MemberDetailPage(),
         Routes.tools: (_) => const ToolsPage(),
+        Routes.observatory: (_) => const ObservatoryPage(),
         Routes.catalog: (_) => const CatalogPage(),
         Routes.cart: (_) => const CartPage(),
         Routes.orders: (_) => const OrdersPage(),

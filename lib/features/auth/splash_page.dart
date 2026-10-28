@@ -64,7 +64,7 @@ class _SplashPageState extends State<SplashPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.primaryDark,
+      backgroundColor: AppTheme.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -101,7 +101,7 @@ class _SplashPageState extends State<SplashPage> {
                       width: 100,
                       height: 100,
                       decoration: const BoxDecoration(
-                        color: AppTheme.primaryDark, // Sama dengan background
+                        color: AppTheme.background,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -119,7 +119,22 @@ class _SplashPageState extends State<SplashPage> {
               ),
             ),
             const SizedBox(height: 24),
-            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                color: AppTheme.coronaGold,
+                strokeWidth: 2.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Menyiapkan semestamu...',
+              style: AppTheme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+                letterSpacing: 0.3,
+              ),
+            ),
           ],
         ),
       ),

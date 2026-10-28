@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_underscores
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -110,6 +112,27 @@ class _EventListPageState extends State<EventListPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (e.imageUrl != null && e.imageUrl!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Image.network(
+                                    e.imageUrl!,
+                                    height: 150,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                          height: 150,
+                                          width: double.infinity,
+                                          color: AppTheme.surfaceElevated,
+                                          child: const Center(
+                                            child: Icon(Icons.image_not_supported_outlined, color: AppTheme.textSecondary, size: 36),
+                                          ),
+                                        ),
+                                  ),
+                                ),
+                              ),
                             // Row Header: City Badge & Date Status
                             Row(
                               children: [

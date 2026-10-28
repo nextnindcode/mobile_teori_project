@@ -49,6 +49,7 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
   }
 
   void _flip() {
+    if (!widget.isOwned) return;
     if (_controller.isAnimating) return;
     if (_controller.isCompleted) {
       _controller.reverse();
@@ -98,7 +99,7 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
           ),
           const SizedBox(height: 12),
           GestureDetector(
-            onTap: _flip,
+            onTap: widget.isOwned ? _flip : null,
             child: AnimatedBuilder(
               animation: _animation,
               builder: (context, child) {
@@ -162,16 +163,22 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(
-              widget.card.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                color: AppTheme.surfaceElevated,
-                child: const Center(
-                  child: Icon(Icons.broken_image, color: Colors.white54, size: 48),
+            if (widget.card.imageUrl.trim().isNotEmpty)
+              Image.network(
+                widget.card.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  color: AppTheme.surfaceElevated,
+                  child: const Center(
+                    child: Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                  ),
                 ),
+              )
+            else
+              Container(
+                color: AppTheme.surfaceElevated,
+                child: const Center(child: Icon(Icons.image_not_supported_outlined, color: AppTheme.textSecondary, size: 48)),
               ),
-            ),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

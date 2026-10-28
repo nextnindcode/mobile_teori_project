@@ -19,7 +19,7 @@ class SecureStore {
     await _storage.delete(key: _keyToken);
   }
 
-  // TAMBAHKAN FUNGSI SAVE CREDENTIALS, GET CREDENTIALS, DAN DELETE CREDENTIALS
+  // Fungsi untuk menyimpan, membaca, dan menghapus kredensial biometrik.
   static Future<void> saveCredentials(String email, String password) async {
     await _storage.write(key: _keyEmail, value: email);
     await _storage.write(key: _keyPassword, value: password);

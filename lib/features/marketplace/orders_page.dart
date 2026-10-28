@@ -189,7 +189,11 @@ class _OrdersPageState extends State<OrdersPage> {
                               : fullId;
 
                           return Card(
-                            color: Colors.white,
+                            color: AppTheme.surfaceElevated,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: const BorderSide(color: AppTheme.borderSubtle),
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
@@ -216,8 +220,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                               'Pesanan #$shortId',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w800,
-                                                color:
-                                                    AppTheme.surfaceSecondary,
+                                                color: AppTheme.textPrimary,
                                               ),
                                             ),
                                             const SizedBox(height: 3),
@@ -227,7 +230,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                                   .textTheme
                                                   .bodySmall
                                                   ?.copyWith(
-                                                    color: Colors.grey,
+                                                    color: AppTheme.textSecondary,
                                                   ),
                                             ),
                                           ],
@@ -250,7 +253,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                           style: const TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w800,
-                                            color: AppTheme.surfaceSecondary,
+                                            color: AppTheme.textPrimary,
                                           ),
                                         ),
                                       ),
@@ -268,12 +271,10 @@ class _OrdersPageState extends State<OrdersPage> {
                                           prod['cover_image_path'];
 
                                       // Gambar dari Supabase Storage
-                                      final imageUrl =
-                                          (imagePath != null &&
-                                              imagePath.isNotEmpty)
-                                          ? Supabase.instance.client.storage
-                                                .from('eclipseverse-media')
-                                                .getPublicUrl(imagePath)
+                                      final imageUrl = (imagePath != null && imagePath.toString().isNotEmpty)
+                                          ? (imagePath.toString().startsWith('http')
+                                              ? imagePath.toString()
+                                              : Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(imagePath.toString()))
                                           : null;
 
                                       return Padding(
@@ -313,8 +314,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                                 '$qty x $prodName',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w600,
-                                                  color:
-                                                      AppTheme.surfaceSecondary,
+                                                  color: AppTheme.textPrimary,
                                                 ),
                                               ),
                                             ),
@@ -333,14 +333,14 @@ class _OrdersPageState extends State<OrdersPage> {
                                         '${order['item_count'] ?? 0} item',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
-                                          color: AppTheme.surfaceSecondary, // 👈 Warnanya diubah
+                                          color: AppTheme.textPrimary, // 👈 Warnanya diubah
                                         ),
                                       ),
                                       Text(
                                         _rupiah(order['total']),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w800,
-                                          color: AppTheme.surfaceSecondary,
+                                          color: AppTheme.coronaGold,
                                           fontSize: 16,
                                         ),
                                       ),

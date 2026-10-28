@@ -6,9 +6,10 @@ import '../../core/session_timeout_service.dart';
 import '../fandom/fandom_page.dart';
 import '../feedback/feedback_page.dart';
 import '../profile/profile_page.dart';
+import '../tools/observatory_page.dart';
 import 'home_page.dart';
 
-// Kerangka utama EclipseVerse; logout tersedia dari halaman Profil.
+// Kerangka utama EclipseVerse; tombol keluar tersedia di halaman Profil.
 class MainShell extends StatefulWidget {
   final Future<void> Function()? onLogout;
 
@@ -20,11 +21,13 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
+  Key _homeKey = UniqueKey();
   bool _checkingTimeout = false;
 
   List<Widget> get _pages => [
-        const HomePage(),
+        HomePage(key: _homeKey),
         const FandomPage(),
+        const ObservatoryPage(),
         const FeedbackPage(),
         ProfilePage(onLogout: widget.onLogout),
       ];
@@ -73,7 +76,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Sesi berakhir karena aplikasi tidak aktif lebih dari 2 menit. Silakan login lagi.'),
+          content: Text(
+            'Sesi berakhir setelah aplikasi tidak aktif selama 4 hari. Silakan login lagi.',
+          ),
         ),
       );
     } catch (e) {
@@ -84,22 +89,61 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   }
 
   void _onTabTapped(int index) {
-    setState(() => _currentIndex = index);
+    setState(() {
+      if (index == 0 && _currentIndex != 0) {
+        _homeKey = UniqueKey();
+      }
+      _currentIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: List<Widget>.generate(_pages.length, (index) {
+          return IgnorePointer(
+            ignoring: _currentIndex != index,
+            child: AnimatedOpacity(
+              opacity: _currentIndex == index ? 1 : 0,
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeInOut,
+              child: _pages[index],
+            ),
+          );
+        }),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Member'),
-          BottomNavigationBarItem(icon: Icon(Icons.forum_outlined), activeIcon: Icon(Icons.forum), label: 'Saran'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline),
+            activeIcon: Icon(Icons.people),
+            label: 'Member',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.nightlight_outlined),
+            activeIcon: Icon(Icons.nightlight_round),
+            label: 'Observatory',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.forum_outlined),
+            activeIcon: Icon(Icons.forum),
+            label: 'Saran',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profil',
+          ),
         ],
       ),
     );

@@ -10,6 +10,7 @@ class Member {
   final String description;
   final String funFact;
   final String? imageUrl;
+  final Map<String, dynamic> extraDetails;
 
   const Member({
     required this.id,
@@ -19,6 +20,7 @@ class Member {
     required this.description,
     required this.funFact,
     required this.imageUrl,
+    this.extraDetails = const {},
   });
 
   String get initial =>
@@ -46,6 +48,12 @@ class Member {
       description: '${json['description'] ?? ''}',
       funFact: '${json['fun_fact'] ?? ''}',
       imageUrl: json['image_url']?.toString(),
+      extraDetails: Map<String, dynamic>.fromEntries(json.entries.where((entry) {
+        const known = {'id', 'stage_name', 'position', 'team', 'description', 'fun_fact', 'image_url', 'profile_image_path', 'sort_order', 'created_at', 'updated_at', 'is_active'};
+        final key = entry.key.toLowerCase();
+        final value = entry.value;
+        return !known.contains(key) && !key.contains('image') && !key.endsWith('_path') && value != null && value.toString().trim().isNotEmpty;
+      })),
     );
   }
 
@@ -57,6 +65,7 @@ class Member {
     'description': description,
     'fun_fact': funFact,
     'image_url': imageUrl,
+    ...extraDetails,
   };
 }
 

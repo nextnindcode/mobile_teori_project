@@ -1,7 +1,11 @@
+// ignore_for_file: unnecessary_underscores
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../theme/app_theme.dart';
+import '../../core/local_db.dart';
+import '../../core/routes.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../notification/notification_service.dart';
 import '../tools/time_service.dart';
@@ -53,8 +57,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
     });
     try {
       final e = await EventService.fetchEventDetail(id);
+      final reminderSaved = await LocalDb.getPref('event_reminder_$id');
       if (!mounted) return;
-      setState(() => _event = e);
+      setState(() {
+        _event = e;
+        _reminderOn = reminderSaved == '1';
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
@@ -76,11 +84,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
       final ok = await NotificationService.scheduleEventReminder(e);
       if (!mounted) return;
       if (ok == true) {
+        await LocalDb.setPref('event_reminder_${e.id}', '1');
         setState(() => _reminderOn = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pengingat jadwal berhasil diaktifkan!'),
-            backgroundColor: AppTheme.success,
           ),
         );
       } else {
@@ -125,6 +133,39 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        if (e.imageUrl != null && e.imageUrl!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.network(
+                e.imageUrl!,
+                height: 220,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 120,
+                  color: AppTheme.surfaceElevated,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.image_not_supported_outlined,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        // Route shortcut to LBS, carrying the selected event ID.
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () =>
+                Navigator.pushReplacementNamed(context, Routes.nearby, arguments: e.id),
+            icon: const Icon(Icons.directions),
+            label: const Text('Lihat rute di peta'),
+          ),
+        ),
+        const SizedBox(height: 12),
         // Hero Card
         Container(
           padding: const EdgeInsets.all(22),
@@ -462,35 +503,44 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
         ),
 
-        const SizedBox(height: 28),
+        const SizedBox(height: 18),
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.schedule, color: AppTheme.coolCyan, size: 18),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Pengingat dijadwalkan menggunakan WIB (Asia/Jakarta), terlepas dari zona waktu perangkat.',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
 
-        // Reminder Button
+        // Setelah diaktifkan, status pengingat disimpan dan tombol tidak bisa ditekan lagi.
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
-            backgroundColor: e.isPast
-                ? AppTheme.surfaceSecondary
-                : (_reminderOn
-                      ? AppTheme.surfaceSecondary
-                      : AppTheme.eclipseViolet),
-            foregroundColor: Colors.white,
+            backgroundColor: AppTheme.surfaceSecondary,
+            foregroundColor: AppTheme.textSecondary,
+            disabledBackgroundColor: AppTheme.surfaceSecondary,
+            disabledForegroundColor: AppTheme.textSecondary,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radius),
+              side: const BorderSide(color: AppTheme.borderSubtle),
             ),
           ),
-          onPressed: e.isPast ? null : () => _toggleReminder(e),
+          onPressed: (e.isPast || _reminderOn) ? null : () => _toggleReminder(e),
           icon: Icon(
-            _reminderOn
-                ? Icons.notifications_off_outlined
-                : Icons.notification_add_outlined,
+            _reminderOn ? Icons.notifications_active_outlined : Icons.notification_add_outlined,
             size: 20,
           ),
           label: Text(
             e.isPast
                 ? 'Event Sudah Berakhir'
-                : (_reminderOn
-                      ? 'Batalkan Pengingat Notifikasi'
-                      : 'Ingatkan Saya (Notifikasi)'),
+                : (_reminderOn ? 'Pengingat Sudah Aktif' : 'Ingatkan Saya'),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),

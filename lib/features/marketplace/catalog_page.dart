@@ -22,6 +22,7 @@ class _CatalogPageState extends State<CatalogPage> {
   String? _errorMessage;
   String _search = '';
   String _category = 'Semua';
+  bool _hasMembershipHistory = false;
   final TextEditingController _searchController = TextEditingController();
 
   static const Map<String, String> _categories = {
@@ -32,9 +33,16 @@ class _CatalogPageState extends State<CatalogPage> {
     'Koleksi': 'collectible',
   };
 
+  List<String> get _visibleCategoryLabels => _categories.keys
+      .where((label) => label != 'Koleksi' || _hasMembershipHistory)
+      .toList();
+
   List<Product> get _filteredProducts {
     final query = _search.trim().toLowerCase();
     final filtered = _products.where((product) {
+      if (product.category.toLowerCase() == 'collectible' && !_hasMembershipHistory) {
+        return false;
+      }
       final matchesSearch =
           query.isEmpty ||
           product.name.toLowerCase().contains(query) ||
@@ -93,7 +101,21 @@ class _CatalogPageState extends State<CatalogPage> {
     }
 
     try {
-      final rows = await Supabase.instance.client
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user != null) {
+        try {
+          final history = await client
+              .from('user_memberships')
+              .select('id')
+              .eq('user_id', user.id)
+              .limit(1);
+          _hasMembershipHistory = history.isNotEmpty;
+        } catch (_) {
+          _hasMembershipHistory = false;
+        }
+      }
+      final rows = await client
           .from('products')
           .select(
             'id,name,description,price_idr,stock,cover_image_path,categories!inner(slug)',
@@ -204,10 +226,10 @@ class _CatalogPageState extends State<CatalogPage> {
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
-              itemCount: _categories.length,
+              itemCount: _visibleCategoryLabels.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final label = _categories.keys.elementAt(index);
+                final label = _visibleCategoryLabels[index];
                 final selected = label == _category;
                 return ChoiceChip(
                   label: Text(label),

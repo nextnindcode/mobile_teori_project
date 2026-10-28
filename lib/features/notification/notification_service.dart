@@ -4,8 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
-
-// import '../../core/local_db.dart';
+import '../../core/local_db.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -17,6 +16,8 @@ class NotificationService {
     if (_initialized) return true;
 
     tzdata.initializeTimeZones();
+    // Reminder EclipseVerse selalu memakai zona waktu WIB, bukan zona perangkat.
+    tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
@@ -47,7 +48,7 @@ class NotificationService {
   //   final isEnabled = (await LocalDb.getPref('notification_enabled')) == '1';
   //   if (!isEnabled) return;
 
-  //   final scheduledTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
+  //   final scheduledTime = tz.TZDateTime.now(tz.getLocation('Asia/Jakarta')).add(const Duration(seconds: 10));
 
   //   const androidDetails = AndroidNotificationDetails(
   //     'eclipse_test_channel',
@@ -69,7 +70,11 @@ class NotificationService {
 
   // Menampilkan notifikasi order berhasil dibuat.
   static Future<void> showOrderConfirmed(dynamic orderId) async {
-    await init();
+    // Hormati preferensi pengguna sebelum menampilkan notifikasi pesanan.
+    final enabled = await LocalDb.getPref('notification_enabled');
+    if (enabled != '1') return;
+    final granted = await init();
+    if (!granted) return;
     const androidDetails = AndroidNotificationDetails(
       'eclipse_order_channel',
       'Order Notifications',
@@ -81,13 +86,16 @@ class NotificationService {
     await _notificationsPlugin.show(
       id: 1000 + (int.tryParse('$orderId') ?? 0),
       title: 'Pesanan Berhasil Dikonfirmasi',
-      body: 'Pesanan #$orderId berhasil dibuat dan tercatat di blockchain.',
+      body: 'Pesanan #$orderId berhasil dibuat. Terima kasih telah berbelanja di EclipseVerse!',
       notificationDetails: const NotificationDetails(android: androidDetails),
     );
   }
 
   // Jadwalkan pengingat event (24 jam dan 1 jam sebelum event).
   static Future<bool> scheduleEventReminder(dynamic event) async {
+    // Jangan menjadwalkan ulang reminder jika pengguna sudah mematikan notifikasi.
+    final enabled = await LocalDb.getPref('notification_enabled');
+    if (enabled != '1') return false;
     final granted = await init();
     if (!granted) return false;
 
@@ -115,45 +123,10 @@ class NotificationService {
 
     final durationUntilEvent = eventDate.difference(now);
 
-    // if (durationUntilEvent.inHours >= 24) {
-    //   final scheduled24h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 24)), tz.local);
-    //   if (scheduled24h.isAfter(tz.TZDateTime.now(tz.local))) {
-    //     await _notificationsPlugin.zonedSchedule(
-    //       id: id * 10 + 1,
-    //       title: 'Pengingat Event: Besok!',
-    //       body: '$title akan berlangsung dalam 24 jam.',
-    //       scheduledDate: scheduled24h,
-    //       notificationDetails: const NotificationDetails(android: androidDetails),
-    //       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-    //     );
-    //   }
-    // }
-
-  //   if (durationUntilEvent.inHours >= 1) {
-  //     final scheduled1h = tz.TZDateTime.from(
-  //       eventDate.subtract(const Duration(hours: 1)),
-  //       tz.local,
-  //     );
-  //     if (scheduled1h.isAfter(tz.TZDateTime.now(tz.local))) {
-  //       await _notificationsPlugin.zonedSchedule(
-  //         id: id * 10 + 2,
-  //         title: 'Pengingat Event: Segera Dimulai!',
-  //         body: '$title akan dimulai dalam 1 jam.',
-  //         scheduledDate: scheduled1h,
-  //         notificationDetails: const NotificationDetails(
-  //           android: androidDetails,
-  //         ),
-  //         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-  //       );
-  //     }
-  //   }
-
-  //   return true;
-  // }
-
- if (durationUntilEvent.inHours >= 24) {
-      final scheduled24h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 24)), tz.UTC);
-      if (scheduled24h.isAfter(tz.TZDateTime.now(tz.UTC))) {
+    if (durationUntilEvent.inHours >= 24) {
+      final jakarta = tz.getLocation('Asia/Jakarta');
+      final scheduled24h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 24)), jakarta);
+      if (scheduled24h.isAfter(tz.TZDateTime.now(tz.local))) {
         await _notificationsPlugin.zonedSchedule(
           id: id * 10 + 1,
           title: 'Pengingat Event: Besok!',
@@ -166,8 +139,9 @@ class NotificationService {
     }
 
     if (durationUntilEvent.inHours >= 1) {
-      final scheduled1h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 1)), tz.UTC);
-      if (scheduled1h.isAfter(tz.TZDateTime.now(tz.UTC))) {
+      final jakarta = tz.getLocation('Asia/Jakarta');
+      final scheduled1h = tz.TZDateTime.from(eventDate.subtract(const Duration(hours: 1)), jakarta);
+      if (scheduled1h.isAfter(tz.TZDateTime.now(tz.local))) {
         await _notificationsPlugin.zonedSchedule(
           id: id * 10 + 2,
           title: 'Pengingat Event: Segera Dimulai!',
