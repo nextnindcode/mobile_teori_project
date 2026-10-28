@@ -18,23 +18,23 @@ class SensorService {
     _moveLocked = false;
     _confirmLocked = false;
 
-    // 1. Accelerometer: miringkan HP ke atas/bawah untuk memilih jawaban 
+    // Accelerometer: miringkan HP kiri/kanan untuk berpindah A <-> B.
     _accelSubscription = accelerometerEventStream().listen(
       (event) {
         if (_moveLocked) return;
 
-        if (event.y > 7.0) {
+        if (event.x > 5.0) {
           _moveLocked = true;
-          onMove(-1); // Geser ke atas
+          onMove(1);
           _moveCooldown?.cancel();
-          _moveCooldown = Timer(const Duration(milliseconds: 1200), () {
+          _moveCooldown = Timer(const Duration(milliseconds: 900), () {
             _moveLocked = false;
           });
-        } else if (event.y < -7.0) {
+        } else if (event.x < -5.0) {
           _moveLocked = true;
-          onMove(1); // Geser ke bawah
+          onMove(-1);
           _moveCooldown?.cancel();
-          _moveCooldown = Timer(const Duration(milliseconds: 1000), () {
+          _moveCooldown = Timer(const Duration(milliseconds: 900), () {
             _moveLocked = false;
           });
         }
@@ -42,12 +42,15 @@ class SensorService {
       onError: (Object error) {
         debugPrint('Accelerometer tidak tersedia: $error');
       },
+      cancelOnError: false,
     );
 
-    // 2. Gyroscope dengan menganggukkan hp untuk mengonfirmasi jawaban 
+    // Gyroscope: gerakan anggukan/putaran kecil untuk mengonfirmasi pilihan.
+    // Threshold dibuat lebih realistis daripada versi sebelumnya agar sensor
+    // tidak terasa "mati" di perangkat dengan sensitivitas berbeda.
     _gyroSubscription = gyroscopeEventStream().listen(
       (event) {
-        if (_confirmLocked || event.x.abs() < 1.8) return;
+        if (_confirmLocked || event.x.abs() < 2.5) return;
 
         _confirmLocked = true;
         onConfirm();
@@ -59,6 +62,7 @@ class SensorService {
       onError: (Object error) {
         debugPrint('Gyroscope tidak tersedia: $error');
       },
+      cancelOnError: false,
     );
   }
 
@@ -71,5 +75,7 @@ class SensorService {
     _gyroSubscription = null;
     _moveCooldown = null;
     _confirmCooldown = null;
+    _moveLocked = false;
+    _confirmLocked = false;
   }
 }
