@@ -110,7 +110,22 @@ class _SplashPageState extends State<SplashPage> {
               ),
             ),
             const SizedBox(height: 24),
-            const SizedBox(\n              width: 22,\n              height: 22,\n              child: CircularProgressIndicator(\n                color: AppTheme.coronaGold,\n                strokeWidth: 2.4,\n              ),\n            ),\n            const SizedBox(height: 12),\n            Text(\n              'Menyiapkan semestamu...',\n              style: AppTheme.textTheme.bodyMedium?.copyWith(\n                color: AppTheme.textSecondary,\n                letterSpacing: 0.3,\n              ),\n            ),
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                color: AppTheme.coronaGold,
+                strokeWidth: 2.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Menyiapkan semestamu...',
+              style: AppTheme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+                letterSpacing: 0.3,
+              ),
+            ),
           ],
         ),
       ),
