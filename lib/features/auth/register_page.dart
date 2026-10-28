@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth_service.dart';
 import '../../core/local_db.dart';
+import '../../core/offline_auth_service.dart';
 import '../../core/secure_store.dart';
 import '../../theme/app_theme.dart';
 import '../../core/routes.dart';
@@ -40,15 +41,15 @@ class _RegisterPageState extends State<RegisterPage> {
         throw Exception('Registrasi gagal. Silakan coba lagi.');
       }
 
-      // A newly created account must not inherit leftover local state from a prior account.
+      // Akun baru tidak boleh mewarisi data lokal dari akun sebelumnya.
       await LocalDb.clearAccountData();
       await LocalDb.setPref('active_user_id', '');
       await LocalDb.setPref('biometric_enabled', '0');
       await SecureStore.deleteCredentials();
+      await OfflineAuthService.clear();
+      await LocalDb.setPref('offline_mode', '0');
 
-      // =========================================================
-      // TAMBAHAN BAGIAN C: SIMPAN NOTIFIKASI WELCOME KE INBOX
-      // =========================================================
+      // Simpan notifikasi sambutan ke kotak masuk pengguna.
       try {
         await Supabase.instance.client.from('notifications').insert({
           'user_id': user.id,
@@ -57,7 +58,7 @@ class _RegisterPageState extends State<RegisterPage> {
           'type': 'system',
         });
       } catch (e) {
-        // Jika gagal simpan notif, registrasi tetap lanjut
+        // Registrasi tetap dilanjutkan jika notifikasi gagal disimpan.
         debugPrint('Gagal menyimpan notifikasi welcome: $e');
       }
       // =========================================================
@@ -67,7 +68,7 @@ class _RegisterPageState extends State<RegisterPage> {
         if (!mounted) return;
         Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
       } else {
-        // Supabase email confirmation is enabled: user must confirm before login.
+        // Konfirmasi email Supabase aktif, jadi pengguna harus mengonfirmasi email sebelum masuk.
         if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
         Navigator.pop(context);
