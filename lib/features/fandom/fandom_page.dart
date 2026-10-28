@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
@@ -15,6 +16,9 @@ class FandomPage extends StatefulWidget {
 class _FandomPageState extends State<FandomPage> {
   final _search = TextEditingController();
   List<Member> _all = [];
+  String _teamFilter = 'Semua';
+  static const _teams = ['Semua', 'Vocal Team', 'Performance Team', 'Hip-Hop Team'];
+
   bool _loading = true;
   String? _error;
 
@@ -48,10 +52,19 @@ class _FandomPageState extends State<FandomPage> {
 
   List<Member> get _filtered {
     final q = _search.text.trim().toLowerCase();
-    if (q.isEmpty) return _all;
-    return _all.where((m) =>
-        m.stageName.toLowerCase().contains(q) ||
-        m.position.toLowerCase().contains(q)).toList();
+    return _all.where((m) {
+      final matchFilter =
+          _teamFilter == 'Semua' ||
+          m.team.toLowerCase() == _teamFilter.toLowerCase();
+
+      final matchSearch =
+          q.isEmpty ||
+          m.stageName.toLowerCase().contains(q) ||
+          m.position.toLowerCase().contains(q) ||
+          m.team.toLowerCase().contains(q);
+
+      return matchFilter && matchSearch;
+    }).toList();
   }
 
   @override
@@ -59,7 +72,7 @@ class _FandomPageState extends State<FandomPage> {
     return Scaffold(
       backgroundColor: AppTheme.deepSpace,
       appBar: AppBar(
-        title: const Text('Direktori Member Eclipse'),
+        title: const Text('Direktori Member EclipseVerse'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -72,24 +85,108 @@ class _FandomPageState extends State<FandomPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: AppTheme.cosmicHeroGradient,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: AppTheme.borderSubtle),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AppTheme.coolCyan.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: AppTheme.coolCyan,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Temukan member favoritmu',
+                          style: TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _loading
+                              ? 'Menyiapkan direktori member...'
+                              : '${_all.length} member • pilih untuk melihat profil',
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             child: TextField(
               controller: _search,
               onChanged: (_) => setState(() {}),
               style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'Cari nama member atau posisi (Vocal, Dancer...)...',
+                hintText: 'Cari nama member, posisi, atau team...',
                 prefixIcon: const Icon(Icons.search, color: AppTheme.coolCyan),
                 suffixIcon: _search.text.isEmpty
                     ? null
                     : IconButton(
-                        icon: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: AppTheme.textSecondary,
+                        ),
                         onPressed: () {
                           _search.clear();
                           setState(() {});
                         },
                       ),
               ),
+            ),
+          ),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: _teams.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final team = _teams[index];
+                final selected = _teamFilter == team;
+                return ChoiceChip(
+                  label: Text(team),
+                  selected: selected,
+                  selectedColor: AppTheme.eclipseViolet,
+                  backgroundColor: AppTheme.surfaceElevated,
+                  labelStyle: TextStyle(
+                    color: selected ? Colors.white : AppTheme.textSecondary,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 12,
+                  ),
+                  onSelected: (_) => setState(() => _teamFilter = team),
+                );
+              },
             ),
           ),
           Expanded(child: _buildBody()),
@@ -100,7 +197,7 @@ class _FandomPageState extends State<FandomPage> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const CosmicLoading(message: 'Memuat profil 13 member Eclipse...');
+      return const CosmicLoading(message: 'Memuat profil member Eclipse...');
     }
     if (_error != null) {
       return CosmicErrorView(message: _error!, onRetry: _load);
@@ -109,14 +206,14 @@ class _FandomPageState extends State<FandomPage> {
     if (list.isEmpty) {
       return CosmicEmptyView(
         title: 'Member Tidak Ditemukan',
-        subtitle: 'Tidak ada member dengan kata kunci "${_search.text}".',
+        subtitle: 'Tidak ada member dengan filter "$_teamFilter" dan pencarian "${_search.text}".',
         icon: Icons.person_search_rounded,
         action: OutlinedButton(
           onPressed: () {
             _search.clear();
-            setState(() {});
+            setState(() => _teamFilter = 'Semua');
           },
-          child: const Text('Reset Pencarian'),
+          child: const Text('Reset Filter & Pencarian'),
         ),
       );
     }
@@ -129,7 +226,7 @@ class _FandomPageState extends State<FandomPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.88,
+          childAspectRatio: 0.72,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -140,7 +237,7 @@ class _FandomPageState extends State<FandomPage> {
 
           return Container(
             decoration: BoxDecoration(
-              color: AppTheme.surfaceElevated,
+              gradient: AppTheme.cardGradient,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppTheme.borderSubtle),
             ),
@@ -153,7 +250,7 @@ class _FandomPageState extends State<FandomPage> {
                 arguments: m.id,
               ),
               child: Padding(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -171,15 +268,46 @@ class _FandomPageState extends State<FandomPage> {
                           ),
                         ],
                       ),
-                      child: Center(
-                        child: Text(
-                          m.initial,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      child: ClipOval(
+                        child: m.imageUrl != null && m.imageUrl!.isNotEmpty
+                            ? Image.network(
+                                m.imageUrl!,
+                                fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return const Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                errorBuilder: (_, _, _) => Center(
+                                  child: Text(
+                                    m.initial,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  m.initial,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -194,6 +322,28 @@ class _FandomPageState extends State<FandomPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.nebulaIndigo.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppTheme.nebulaIndigo.withValues(alpha: 0.4),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        m.team,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppTheme.coolCyan,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Text(
                       m.position,
                       maxLines: 2,
@@ -202,7 +352,7 @@ class _FandomPageState extends State<FandomPage> {
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppTheme.textSecondary,
-                        height: 1.25,
+                        height: 1.2,
                       ),
                     ),
                   ],

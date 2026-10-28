@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/routes.dart';
 import 'theme/app_theme.dart';
@@ -14,9 +15,15 @@ import 'features/nearby/nearby_page.dart';
 import 'features/redeem/redeem_page.dart';
 import 'features/notification/notification_page.dart';
 
-// Entry point khusus untuk melihat UI tanpa login/backend.
+// Entry point untuk preview UI tanpa login. Supabase tetap diinisialisasi agar
+// halaman yang membaca data publik (misalnya Home) dapat menampilkan data asli.
 // Gunakan: flutter run -t lib/main_preview.dart
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: 'https://swnnzsqwudezuvromgfm.supabase.co',
+    publishableKey: 'sb_publishable_vyYETtO5DqB0R0bv6H0qfA_mtiExTSp',
+  );
   runApp(const EclipseVersePreviewApp());
 }
 

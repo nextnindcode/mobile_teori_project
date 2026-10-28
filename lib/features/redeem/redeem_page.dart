@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
+
 import '../../theme/app_theme.dart';
+import '../../theme/cosmic_widgets.dart';
+import '../../core/routes.dart';
 import 'eclipse_card_model.dart';
+import 'photocard_flip_dialog.dart';
 import 'redeem_service.dart';
+import '../membership/membership_service.dart';
 
 class RedeemPage extends StatefulWidget {
   const RedeemPage({super.key});
@@ -12,35 +18,49 @@ class RedeemPage extends StatefulWidget {
 
 class _RedeemPageState extends State<RedeemPage> {
   bool _isLoading = true;
+  bool _isMember = false;
   String? _errorMessage;
   int _userPoints = 0;
+  int _redeemQuota = 0;
   List<int> _ownedCardIds = [];
+  List<EclipseCard> _cards = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _loadData();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Mengambil poin dan kartu dari API backend 
-      final data = await RedeemService.getUserStats();
+      final isMember = await MembershipService.isActive();
+      final membership = await MembershipService.currentMembership();
+      final quota = (membership?['redeem_quota'] as num?)?.toInt() ?? 0;
+      final results = await Future.wait([
+        RedeemService.getUserStats(),
+        RedeemService.getCards(),
+      ]);
+
+      if (!mounted) return;
+      final data = results[0] as Map<String, dynamic>;
       setState(() {
-        _userPoints = data['points'] ?? 0;
-        // Konversi list dari API ke List<int> 
+        _isMember = isMember && quota > 0;
+        _redeemQuota = quota;
+        _userPoints = data['points'] as int? ?? 0;
         _ownedCardIds = (data['owned_cards'] as List? ?? [])
             .map((value) => int.tryParse(value.toString()) ?? 0)
             .where((id) => id > 0)
             .toList();
+        _cards = results[1] as List<EclipseCard>;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
         _isLoading = false;
@@ -48,88 +68,117 @@ class _RedeemPageState extends State<RedeemPage> {
     }
   }
 
-  Future<void> _verifyBlockchain() async {
-    try {
-      final result = await RedeemService.verifyBlockchain();
-      if (!mounted) return;
-      final valid = result['valid'] == true;
-      final count = result['block_count'] ?? 0;
-      final invalidId = result['invalid_block_id'];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            valid
-                ? 'Blockchain valid: $count blok terverifikasi.'
-                : 'Verifikasi gagal pada blok $invalidId.',
-          ),
-          backgroundColor: valid ? Colors.green : Colors.red,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memverifikasi blockchain: $e')),
-      );
-    }
+  void _openCardDetail(EclipseCard card, bool isOwned) {
+    showDialog(
+      context: context,
+      builder: (_) => PhotocardFlipDialog(card: card, isOwned: isOwned),
+    );
   }
 
   Future<void> _handleRedeem(EclipseCard card) async {
-    // Cek poin terlebih dahulu 
-    if (_userPoints < card.cost) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Poin kamu tidak cukup!'), backgroundColor: Colors.red),
-      );
+    if (!_isMember || _redeemQuota <= 0) {
+      _showUpgradeDialog();
       return;
     }
 
-    // Tampilkan dialog konfirmasi 
-    bool? confirm = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Konfirmasi Redeem'),
-        content: Text('Tukar ${card.cost} poin dengan kartu ${card.name}?'),
+        backgroundColor: AppTheme.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Konfirmasi Redeem',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Gunakan 1 kuota membership untuk membuka kartu "${card.name}"? Poin tidak dipotong.',
+          style: const TextStyle(color: AppTheme.textSecondary),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Tukar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.eclipseViolet),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Tukar'),
+          ),
         ],
       ),
     );
 
     if (confirm != true) return;
-
     setState(() => _isLoading = true);
 
     try {
-      // Panggil API untuk memproses redeem kartu 
-      await RedeemService.redeemCard(card.id, card.cost);
-      if (mounted) {
+      final success = await RedeemService.redeemCard(card.id);
+      if (!mounted) return;
+      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Berhasil mendapatkan ${card.name}!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text('Selamat! Kartu "${card.name}" berhasil didapatkan!'),
+            backgroundColor: AppTheme.success,
+          ),
         );
-        _fetchData(); // Refresh data poin dan kartu 
+        await _loadData();
+        if (mounted) _openCardDetail(card, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal redeem kartu. Coba lagi nanti.'), backgroundColor: AppTheme.error),
+        );
+        setState(() => _isLoading = false);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal redeem: $e'), backgroundColor: Colors.red),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: AppTheme.error),
+      );
       setState(() => _isLoading = false);
     }
+  }
+
+  void _showUpgradeDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.workspace_premium, color: AppTheme.coronaGold),
+            SizedBox(width: 8),
+            Text('Membership Diperlukan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'Fitur Redeem Photocard memerlukan kuota membership aktif. Beli atau perpanjang membership EclipseVerse kamu sekarang.',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Nanti', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.eclipseViolet),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushNamed(context, Routes.membership).then((_) => _loadData());
+            },
+            child: const Text('Lihat Membership'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.deepSpace,
       appBar: AppBar(
-        title: const Text('Redeem Card'),
+        title: const Text('Koleksi Photocard'),
+        backgroundColor: AppTheme.deepSpace,
         actions: [
-          IconButton(
-            onPressed: _verifyBlockchain,
-            tooltip: 'Verifikasi blockchain',
-            icon: const Icon(Icons.verified_outlined),
-          ),
+          IconButton(icon: const Icon(Icons.refresh), tooltip: 'Segarkan data', onPressed: _loadData),
         ],
       ),
       body: _buildBody(),
@@ -137,85 +186,92 @@ class _RedeemPageState extends State<RedeemPage> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppTheme.primaryDark));
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 60, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Gagal memuat data\n$_errorMessage', textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: 200, 
-                child: ElevatedButton(
-                  style: AppTheme.primaryButtonStyle,
-                  onPressed: _fetchData,
-                  child: const Text('Coba Lagi'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+    if (_isLoading) return const CosmicLoading(message: 'Memuat koleksi kartu...');
+    if (_errorMessage != null) return CosmicErrorView(message: _errorMessage!, onRetry: _loadData);
+    if (_cards.isEmpty && _ownedCardIds.isEmpty) {
+      return const CosmicEmptyView(title: 'Belum Ada Kartu', subtitle: 'Saat ini belum ada kartu yang bisa ditukar.', icon: Icons.style);
     }
 
     return Column(
       children: [
-        // Header Poin User 
+        if (!_isMember || _redeemQuota <= 0)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(top: 20, left: 20, right: 20),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.error.withValues(alpha: .1),
+              border: Border.all(color: AppTheme.error.withValues(alpha: .5)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.info_outline, color: AppTheme.error, size: 32),
+                const SizedBox(height: 8),
+                const Text('Kuota Redeem Habis', style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 4),
+                const Text(
+                  'Kartu yang sudah dimiliki tetap bisa dilihat & di-flip. Untuk membuka kartu baru, kamu membutuhkan kuota membership.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.eclipseViolet),
+                    onPressed: () => Navigator.pushNamed(context, Routes.membership).then((_) => _loadData()),
+                    child: const Text('Lihat Membership'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         Container(
           width: double.infinity,
+          margin: const EdgeInsets.all(20),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryDark.withValues(alpha: 0.3), 
-                blurRadius: 10, 
-                offset: const Offset(0, 5)
-              ),
-            ],
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: AppTheme.eclipseViolet.withValues(alpha: .3), blurRadius: 15)],
           ),
-          child: Column(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              const Text(
-                'Total Poin Kamu', 
-                style: TextStyle(color: Colors.white70, fontSize: 16)
+              Column(
+                children: [
+                  const Text('Total Poin', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text('$_userPoints', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                '$_userPoints',
-                style: const TextStyle(
-                  color: Colors.white, 
-                  fontSize: 48, 
-                  fontWeight: FontWeight.bold
-                ),
+              Container(width: 1, height: 40, color: Colors.white54),
+              Column(
+                children: [
+                  const Text('Sisa Kuota', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text('$_redeemQuota', style: TextStyle(color: _redeemQuota > 0 ? AppTheme.coronaGold : AppTheme.error, fontSize: 32, fontWeight: FontWeight.bold)),
+                ],
               ),
             ],
           ),
         ),
-        
-        // Grid Kartu Member 
+
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 0, bottom: 100),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 0.7, 
+              childAspectRatio: .6,
             ),
-            itemCount: dummyCards.length,
+            itemCount: _cards.length,
             itemBuilder: (context, index) {
-              final card = dummyCards[index];
-              final isOwned = _ownedCardIds.contains(card.id);
-              return _buildCardItem(card, isOwned);
+              final card = _cards[index];
+              return _buildCardItem(card, _ownedCardIds.contains(card.id));
             },
           ),
         ),
@@ -224,135 +280,84 @@ class _RedeemPageState extends State<RedeemPage> {
   }
 
   Widget _buildCardItem(EclipseCard card, bool isOwned) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.white,
+    final canRedeem = _isMember && _redeemQuota > 0;
+    return CosmicCard(
+      padding: EdgeInsets.zero,
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05), 
-            blurRadius: 10, 
-            offset: const Offset(0, 5)
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Bagian Gambar Kartu 
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Gambar dari URL 
-                  Image.network(
-                    card.imageUrl,
-                    fit: BoxFit.cover, 
-                    
-                    // Tampilan jika gambar sedang loading 
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: AppTheme.greyLight,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryDark),
-                        ),
-                      );
-                    },
-
-                    // Tampilan jika link gambar mati/error 
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppTheme.greyLight,
-                        child: const Center(
-                          child: Icon(Icons.broken_image, color: AppTheme.grey, size: 40),
-                        ),
-                      );
-                    },
-                  ),
-                  
-                  // Jika kartu belum dimiliki: Efek Gelap + Gembok
-                  if (!isOwned) 
-                    Container(
-                      color: Colors.black.withValues(alpha: 0.65),
-                      child: const Center(
-                        child: Icon(Icons.lock, color: Colors.white, size: 50),
+        onTap: () => _openCardDetail(card, isOwned),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: isOwned ? 0 : 4, sigmaY: isOwned ? 0 : 4),
+                      child: Image.network(
+                        card.imageUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, progress) => progress == null
+                            ? child
+                            : Container(color: AppTheme.surfaceSecondary, child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.coolCyan))),
+                        errorBuilder: (context, error, stackTrace) => Container(color: AppTheme.surfaceSecondary, child: const Center(child: Icon(Icons.broken_image, color: AppTheme.textSecondary, size: 40))),
                       ),
                     ),
-                  
-                  // Jika kartu sudah dimiliki: Label "OWNED"
-                  if (isOwned)
+                    if (!isOwned)
+                      Container(
+                        color: Colors.black.withValues(alpha: .5),
+                        child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 50)),
+                      ),
+                    if (isOwned)
+                      const Positioned(top: 8, right: 8, child: CosmicBadge(text: 'OWNED', color: Colors.green)),
                     Positioned(
-                      top: 8,
+                      bottom: 8,
                       right: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'OWNED',
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .6), shape: BoxShape.circle),
+                        child: const Icon(Icons.flip, size: 16, color: AppTheme.coolCyan),
                       ),
                     ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Text(card.name, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 6),
+                  Text(
+                    isOwned ? 'Ketuk untuk Flip 3D' : 'Gunakan 1 Kuota Redeem',
+                    style: TextStyle(color: isOwned ? AppTheme.coolCyan : AppTheme.coronaGold, fontSize: 11, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isOwned ? AppTheme.surfaceSecondary : (canRedeem ? AppTheme.eclipseViolet : Colors.grey.shade600),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: isOwned ? () => _openCardDetail(card, true) : (canRedeem ? () => _handleRedeem(card) : _showUpgradeDialog),
+                      child: Text(isOwned ? 'Buka Kartu' : (canRedeem ? 'Tukar' : 'Perlu Member'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          
-          // Bagian Detail dan Tombol
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              children: [
-                Text(
-                  card.name,
-                  style: AppTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                if (isOwned)
-                  const Text(
-                    'Sudah Dimiliki', 
-                    style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)
-                  )
-                else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${card.cost} Poin', 
-                        style: TextStyle(
-                          color: AppTheme.primaryDark, 
-                          fontWeight: FontWeight.bold
-                        )
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 12),
-                
-                // Tombol Tukar 
-                SizedBox(
-                  width: double.infinity,
-                  height: 40,
-                  child: ElevatedButton(
-                    style: AppTheme.primaryButtonStyle,
-                    onPressed: isOwned ? null : () => _handleRedeem(card),
-                    child: Text(isOwned ? 'Dimiliki' : 'Tukar'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

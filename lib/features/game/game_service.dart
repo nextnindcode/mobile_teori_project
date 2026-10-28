@@ -1,30 +1,76 @@
-import '../../core/api_service.dart';
-import '../../core/local_db.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/local_db.dart';
 
 class GameService {
-  // 1. Ambil skor terbaik dari SQLite lokal
+  static final _client = Supabase.instance.client;
+
+  static const int questionsPerSession = 10;
+  static const int questionBankSize = 20;
+
   static Future<int> getBestScore() async {
-    final bestScoreStr = await LocalDb.getPreference('best_score');
-    return int.tryParse(bestScoreStr ?? '0') ?? 0;
-  }
-
-  // 2. Simpan skor terbaik baru ke SQLite
-  static Future<void> saveBestScore(int score) async {
-    await LocalDb.setPreference('best_score', score.toString());
-  }
-
-  // 3. Kirim skor ke server backend (PHP)
-  static Future<void> kirimSkorKeServer(int score, int correctCount) async {
+    final user = _client.auth.currentUser;
+    final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
+    final local = int.tryParse(await LocalDb.getPreference(scoreKey) ?? '0') ?? 0;
+    if (user == null) return local;
     try {
-      await ApiService.post('/game/score', {
-        'score': score,
-        'correct_count': correctCount,
-      });
-    } catch (e) {
-      // Skor tetap tersimpan di SQLite lokal.
-      debugPrint('Gagal mengirim skor ke server: $e');
+      final row = await _client
+          .from('game_scores')
+          .select('score')
+          .eq('user_id', user.id)
+          .order('score', ascending: false)
+          .limit(1)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
+      final remote = (row?['score'] as num?)?.toInt() ?? 0;
+      return remote > local ? remote : local;
+    } catch (_) {
+      return local;
     }
   }
 
+  static Future<void> saveBestScore(int score) async {
+    final user = _client.auth.currentUser;
+    final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
+    await LocalDb.setPreference(scoreKey, score.toString());
+  }
+
+  /// Ambil maksimal 20 soal aktif dari bank, lalu acak dan gunakan 10 soal.
+  static Future<List<Map<String, dynamic>>> fetchQuestions() async {
+    final rows = await _client
+        .from('quiz_questions_public')
+        .select('id,question_text,options,difficulty,points,explanation')
+        .limit(questionBankSize)
+        .timeout(const Duration(seconds: 8));
+
+    if (rows.length < questionsPerSession) {
+      throw Exception('Bank soal belum cukup. Minimal $questionsPerSession soal aktif diperlukan.');
+    }
+
+    final questions = rows.map((row) => Map<String, dynamic>.from(row)).toList()..shuffle();
+    return questions.take(questionsPerSession).toList();
+  }
+
+  static Future<Map<String, dynamic>> submitAnswers(
+    List<Map<String, dynamic>> answers,
+  ) async {
+    if (answers.length != questionsPerSession) {
+      throw Exception('Satu sesi harus berisi tepat $questionsPerSession jawaban.');
+    }
+
+    final result = await _client.rpc(
+      'submit_quiz_attempt',
+      params: {'p_answers': answers},
+    ).timeout(const Duration(seconds: 10));
+
+    return Map<String, dynamic>.from(result as Map);
+  }
+
+  static Future<void> saveUnverifiedScoreLocally(int score) async {
+    final user = _client.auth.currentUser;
+    final scoreKey = user == null ? 'best_score_guest' : 'best_score_${user.id}';
+    await LocalDb.setPreference(scoreKey, score.toString());
+  }
+
+  static void logFailure(Object error) => debugPrint('Game/Supabase: $error');
 }

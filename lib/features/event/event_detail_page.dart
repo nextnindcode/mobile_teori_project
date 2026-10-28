@@ -1,7 +1,14 @@
+// ignore_for_file: unnecessary_underscores
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 import '../../theme/app_theme.dart';
+import '../../core/local_db.dart';
+import '../../core/routes.dart';
 import '../../theme/cosmic_widgets.dart';
 import '../notification/notification_service.dart';
+import '../tools/time_service.dart';
 import 'event_model.dart';
 import 'event_page.dart' show formatEventDate;
 import 'event_service.dart';
@@ -22,6 +29,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
   bool _reminderOn = false;
   String? _error;
   int? _id;
+
+  String _selectedTzName = 'Asia/Jakarta';
 
   @override
   void didChangeDependencies() {
@@ -48,8 +57,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
     });
     try {
       final e = await EventService.fetchEventDetail(id);
+      final reminderSaved = await LocalDb.getPref('event_reminder_$id');
       if (!mounted) return;
-      setState(() => _event = e);
+      setState(() {
+        _event = e;
+        _reminderOn = reminderSaved == '1';
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
@@ -62,9 +75,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
       await NotificationService.cancelEventReminder(e.id);
       if (!mounted) return;
       setState(() => _reminderOn = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pengingat dibatalkan')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Pengingat dibatalkan')));
       return;
     }
     try {
@@ -72,11 +84,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
       final ok = await NotificationService.scheduleEventReminder(e);
       if (!mounted) return;
       if (ok == true) {
+        await LocalDb.setPref('event_reminder_${e.id}', '1');
         setState(() => _reminderOn = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pengingat jadwal berhasil diaktifkan!'),
-            backgroundColor: AppTheme.success,
           ),
         );
       } else {
@@ -100,21 +112,60 @@ class _EventDetailPageState extends State<EventDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.deepSpace,
-      appBar: AppBar(
-        title: Text(_event?.title ?? 'Detail Event'),
-      ),
+      appBar: AppBar(title: Text(_event?.title ?? 'Detail Event')),
       body: _loading
           ? const CosmicLoading(message: 'Memuat informasi detail event...')
           : _error != null
-              ? CosmicErrorView(message: _error!, onRetry: _load)
-              : _buildEventBody(_event!),
+          ? CosmicErrorView(message: _error!, onRetry: _load)
+          : _buildEventBody(_event!),
     );
   }
 
   Widget _buildEventBody(Event e) {
+    // 8 required timezones
+    final zones = TimeService.requiredZones;
+    final convertedTime = TimeService.at(e.eventDate, _selectedTzName);
+    final selectedZoneOption = zones.firstWhere(
+      (z) => z.tzName == _selectedTzName,
+      orElse: () => zones.first,
+    );
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        if (e.imageUrl != null && e.imageUrl!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.network(
+                e.imageUrl!,
+                height: 220,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 120,
+                  color: AppTheme.surfaceElevated,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.image_not_supported_outlined,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        // Route shortcut to LBS, carrying the selected event ID.
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () =>
+                Navigator.pushReplacementNamed(context, Routes.nearby, arguments: e.id),
+            icon: const Icon(Icons.directions),
+            label: const Text('Lihat rute di peta'),
+          ),
+        ),
+        const SizedBox(height: 12),
         // Hero Card
         Container(
           padding: const EdgeInsets.all(22),
@@ -135,9 +186,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: (e.isPast ? AppTheme.textMuted : AppTheme.coronaGold).withValues(alpha: 0.15),
+                      color:
+                          (e.isPast ? AppTheme.textMuted : AppTheme.coronaGold)
+                              .withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -145,7 +201,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: e.isPast ? AppTheme.textSecondary : AppTheme.coronaGold,
+                        color: e.isPast
+                            ? AppTheme.textSecondary
+                            : AppTheme.coronaGold,
                       ),
                     ),
                   ),
@@ -164,7 +222,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
               const SizedBox(height: 14),
               Row(
                 children: [
-                  const Icon(Icons.schedule, size: 16, color: AppTheme.coronaGold),
+                  const Icon(
+                    Icons.schedule,
+                    size: 16,
+                    color: AppTheme.coronaGold,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     formatEventDate(e.eventDate),
@@ -175,6 +237,134 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        // Timezone Converter Box (Master Prompt requirement: WIB, WITA, WIT, London, Jepang, Singapura, Malaysia, Thailand)
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceElevated,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppTheme.eclipseViolet.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.eclipseViolet.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.public,
+                      color: AppTheme.coolCyan,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Konversi Zona Waktu Dunia',
+                          style: TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          'Waktu event otomatis dikonversi ke zona pilihan',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Horizontal Chips for 8 Timezones
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: zones.map((z) {
+                    final isSel = z.tzName == _selectedTzName;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(z.label),
+                        selected: isSel,
+                        selectedColor: AppTheme.eclipseViolet,
+                        backgroundColor: AppTheme.deepSpace,
+                        labelStyle: TextStyle(
+                          color: isSel ? Colors.white : AppTheme.textSecondary,
+                          fontSize: 11,
+                          fontWeight: isSel
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                        onSelected: (_) {
+                          setState(() => _selectedTzName = z.tzName);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.deepSpace,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Waktu di ${selectedZoneOption.label}:',
+                      style: const TextStyle(
+                        color: AppTheme.coolCyan,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      DateFormat('EEEE, dd MMMM yyyy · HH:mm')
+                          .format(convertedTime),
+                      style: const TextStyle(
+                        color: AppTheme.coronaGold,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Zona IANA: $_selectedTzName (Offset: ${convertedTime.timeZoneOffset.isNegative ? '-' : '+'}${convertedTime.timeZoneOffset.inHours} Jam)',
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -200,7 +390,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       color: AppTheme.nebulaIndigo.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.place_outlined, color: AppTheme.coolCyan, size: 20),
+                    child: const Icon(
+                      Icons.place_outlined,
+                      color: AppTheme.coolCyan,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -209,7 +403,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       children: [
                         const Text(
                           'Lokasi & Venue',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -234,7 +431,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       color: AppTheme.eclipseViolet.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.my_location_rounded, color: AppTheme.eclipseViolet, size: 20),
+                    child: const Icon(
+                      Icons.my_location_rounded,
+                      color: AppTheme.eclipseViolet,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -243,7 +444,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       children: [
                         const Text(
                           'Koordinat GPS',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -286,7 +490,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                e.description.isEmpty ? 'Tidak ada keterangan tambahan.' : e.description,
+                e.description.isEmpty
+                    ? 'Tidak ada keterangan tambahan.'
+                    : e.description,
                 style: const TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 13,
@@ -297,29 +503,44 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
         ),
 
-        const SizedBox(height: 28),
+        const SizedBox(height: 18),
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.schedule, color: AppTheme.coolCyan, size: 18),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Pengingat dijadwalkan menggunakan WIB (Asia/Jakarta), terlepas dari zona waktu perangkat.',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
 
-        // Reminder Button
+        // Setelah diaktifkan, status pengingat disimpan dan tombol tidak bisa ditekan lagi.
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
-            backgroundColor: e.isPast
-                ? AppTheme.surfaceSecondary
-                : (_reminderOn ? AppTheme.surfaceSecondary : AppTheme.eclipseViolet),
-            foregroundColor: Colors.white,
+            backgroundColor: AppTheme.surfaceSecondary,
+            foregroundColor: AppTheme.textSecondary,
+            disabledBackgroundColor: AppTheme.surfaceSecondary,
+            disabledForegroundColor: AppTheme.textSecondary,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radius),
+              side: const BorderSide(color: AppTheme.borderSubtle),
             ),
           ),
-          onPressed: e.isPast ? null : () => _toggleReminder(e),
+          onPressed: (e.isPast || _reminderOn) ? null : () => _toggleReminder(e),
           icon: Icon(
-            _reminderOn ? Icons.notifications_off_outlined : Icons.notification_add_outlined,
+            _reminderOn ? Icons.notifications_active_outlined : Icons.notification_add_outlined,
             size: 20,
           ),
           label: Text(
             e.isPast
                 ? 'Event Sudah Berakhir'
-                : (_reminderOn ? 'Batalkan Pengingat Notifikasi' : 'Ingatkan Saya (Notifikasi)'),
+                : (_reminderOn ? 'Pengingat Sudah Aktif' : 'Ingatkan Saya'),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),

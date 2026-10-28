@@ -1,18 +1,34 @@
-import 'package:eclipseverse/core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/local_db.dart';
 import 'member_model.dart';
-import 'shared/json_utils.dart';
 
 class MemberService {
-  /// Ambil 13 member dari server dan isi cache `members_cache`.
-  /// Jika server gagal, pakai cache (Fandom tetap tampil saat offline).
+  static final _client = Supabase.instance.client;
+
   static Future<List<Member>> fetchMembers() async {
     try {
-      final data = await ApiService.get('/members');
-      final list = asList(data);
-      await LocalDb.saveMembers(list);
-      return list.map(Member.fromJson).toList();
+      final rows = await _client
+          .from('members')
+          .select(
+            '*',
+          )
+          .order('sort_order')
+          .timeout(const Duration(seconds: 12));
+
+      final data = rows.map((item) {
+        final row = Map<String, dynamic>.from(item);
+        final path = row['profile_image_path']?.toString() ?? '';
+        row['image_url'] = path.isEmpty
+            ? null
+            : (path.startsWith('http')
+                ? path
+                : _client.storage.from('eclipseverse-media').getPublicUrl(path));
+        return row;
+      }).toList();
+
+      await LocalDb.saveMembers(data);
+      return data.map(Member.fromJson).toList();
     } catch (_) {
       final cached = await LocalDb.getMembers();
       if (cached.isEmpty) rethrow;
@@ -22,14 +38,23 @@ class MemberService {
 
   static Future<Member> fetchDetail(int id) async {
     try {
-      final data = await ApiService.get(
-        '/members/detail',
-        query: {'id': '$id'},
-      );
-      return Member.fromJson(asObject(data));
+      final row = await _client
+          .from('members')
+          .select('*')
+          .eq('id', id)
+          .single()
+          .timeout(const Duration(seconds: 12));
+      final data = Map<String, dynamic>.from(row);
+      final path = data['profile_image_path']?.toString() ?? '';
+      data['image_url'] = path.isEmpty
+          ? null
+          : (path.startsWith('http')
+              ? path
+              : _client.storage.from('eclipseverse-media').getPublicUrl(path));
+      return Member.fromJson(data);
     } catch (_) {
       final cached = await LocalDb.getMembers();
-      final hit = cached.where((m) => toInt(m['id']) == id);
+      final hit = cached.where((item) => int.tryParse('${item['id']}') == id);
       if (hit.isEmpty) rethrow;
       return Member.fromJson(hit.first);
     }

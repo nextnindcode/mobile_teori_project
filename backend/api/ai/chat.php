@@ -34,8 +34,8 @@ $input = json_decode(file_get_contents('php://input'), true);
 $message = trim($input['message'] ?? '');
 
 // Validasi pesan
-if (empty($message) || mb_strlen($message) > 300) {
-    Response::error("Pesan harus antara 1-300 karakter.", "VALIDATION_ERROR", 422);
+if (empty($message) || mb_strlen($message) > 500) {
+    Response::error("Pesan harus antara 1-500 karakter.", "VALIDATION_ERROR", 422);
 }
 
 // Ambil Konteks dari Database
@@ -70,7 +70,7 @@ try {
 }
 
 // Panggil Gemini AI
-$systemPrompt = "Kamu Eclipse AI, asisten aplikasi EclipseVerse. Jawab dalam Bahasa Indonesia, maksimal 120 kata. Jawab HANYA berdasarkan KONTEKS di bawah. Jika jawabannya tidak ada di konteks, katakan kamu tidak tahu.\n\nKONTEKS:\n" . $context;
+$systemPrompt = "Kamu Eclipse AI, asisten aplikasi EclipseVerse. Jawab dalam Bahasa Indonesia, maksimal 150 kata. Jawab HANYA berdasarkan KONTEKS di bawah. Jika jawabannya tidak ada di konteks, katakan kamu tidak tahu.\n\nKONTEKS:\n" . $context;
 $url = "https://generativelanguage.googleapis.com/v1beta/models/" . $geminiModel . ":generateContent?key=" . $geminiApiKey;
 
 $data = [

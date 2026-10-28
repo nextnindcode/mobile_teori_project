@@ -1,78 +1,100 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'game_model.dart';
-import 'game_service.dart'; 
+import 'game_service.dart';
 
 class GameController extends ChangeNotifier {
-  final List<Map<String, String>> _allMembers = [
-    {'name': 'Solen', 'funFact': 'Menulis lagu debut Eclipse di kamar kos'},
-    {'name': 'Lunar', 'funFact': 'Hafal 40 lagu tema film animasi'},
-    {'name': 'Astra', 'funFact': 'Pernah menjadi penyiar radio kampus'},
-    {'name': 'Orion', 'funFact': 'Juara kompetisi breakdance tingkat provinsi'},
-    {'name': 'Vega', 'funFact': 'Koreografer pertama lagu "Penumbra"'},
-    {'name': 'Nova', 'funFact': 'Bisa menari sambil memainkan yo-yo'},
-    {'name': 'Zephyr', 'funFact': 'Menulis lirik rap dalam tiga bahasa'},
-    {'name': 'Atlas', 'funFact': 'Kolektor sepatu edisi terbatas'},
-    {'name': 'Lyra', 'funFact': 'Pernah menjadi juara lomba debat sekolah'},
-    {'name': 'Cassio', 'funFact': 'Pernah menjadi model majalah sekolah'},
-    {'name': 'Rigel', 'funFact': 'Membuat 10 beat dalam satu malam'},
-    {'name': 'Altair', 'funFact': 'Bermain gitar sejak usia 7 tahun'},
-    {'name': 'Mira', 'funFact': 'Anggota termuda yang hobi merakit puzzle 1000 keping'},
-  ];
-
   final List<GameQuestion> _questions = [];
   int _currentRound = 0;
   int _score = 0;
   int _correctCount = 0;
   int _timeLeft = 15;
-  int _bestScore = 0; 
+  int _roundDuration = 15;
+  String? _loadError;
+  final Map<int, String> _answers = {};
+  int _bestScore = 0;
+  bool _isSubmitting = false;
+
+  // Menjaga satu sesi tetap berisi 10 soal 
+  int _session = 0;
+  bool _isTransitioning = false;
+
   Timer? _timer;
 
   List<GameQuestion> get questions => _questions;
   int get currentRound => _currentRound;
   int get score => _score;
   int get timeLeft => _timeLeft;
-  int get bestScore => _bestScore; 
-  int get correctCount => _correctCount; 
-  bool get isGameOver => _currentRound >= 10;
+  int get roundDuration => _roundDuration;
+  int get bestScore => _bestScore;
+  int get correctCount => _correctCount;
+  bool get isGameOver => _currentRound >= _questions.length;
+  String? get loadError => _loadError;
+  bool get isSubmitting => _isSubmitting;
   GameQuestion get currentQuestion => _questions[_currentRound];
 
-  void startGame() async {
-    try {
-      _bestScore = await GameService.getBestScore();
-    } catch (e) {
-      _bestScore = 0; 
-      debugPrint('SQLite tidak didukung di Web, best score di-reset.');
-    }
-    
-    _generateQuestions();
+  // Kunci jawaban tidak dikirim ke client; validasi dilakukan oleh Supabase.
+  // Null berarti UI tidak boleh menentukan benar/salah sebelum hasil server. 
+  String? get currentCorrectAnswer {
+    if (_questions.isEmpty || _currentRound >= _questions.length) return null;
+    return _questions[_currentRound].correctAnswer;
+  }
+
+  Future<void> startGame() async {
+    final session = ++_session;
+    _timer?.cancel();
+    _loadError = null;
+    _questions.clear();
+    _answers.clear();
     _currentRound = 0;
     _score = 0;
     _correctCount = 0;
-    _startTimer();
+    _isSubmitting = false;
+    _isTransitioning = false;
     notifyListeners();
-  }
 
-  void _generateQuestions() {
-    _questions.clear();
-    final shuffledMembers = List<Map<String, String>>.from(_allMembers)..shuffle();
-    final selectedMembers = shuffledMembers.take(10).toList();
+    try {
+      final bestScore = await GameService.getBestScore();
+      final rows = await GameService.fetchQuestions();
+      if (session != _session) return; 
 
-    for (var member in selectedMembers) {
-      String correct = member['name']!;
-      String fact = member['funFact']!;
-      List<String> wrongOptions = _allMembers.where((m) => m['name'] != correct).map((m) => m['name']!).toList()..shuffle();
-      
-      // Hanya mengambil 1 jawaban salah (total ada 2 pilihan jawaban)
-      List<String> options = [correct, ...wrongOptions.take(1)]..shuffle();
+      final parsed = rows.map((row) {
+        final options = Map<String, dynamic>.from(row['options'] as Map);
+        final labels = options.entries
+            .map((entry) => '${entry.key}. ${entry.value}')
+            .toList();
+        return GameQuestion(
+          id: (row['id'] as num).toInt(),
+          funFact: '${row['question_text']}',
+          options: labels,
+          correctAnswer: null, // Kunci jawaban tetap rahasia di server.
+          explanation: row['explanation']?.toString() ?? '',
+        );
+      }).toList();
 
-      _questions.add(GameQuestion(funFact: fact, options: options, correctAnswer: correct));
+      final seenIds = <int>{};
+      final unique = <GameQuestion>[];
+      for (final q in parsed) {
+        if (seenIds.add(q.id)) unique.add(q);
+      }
+
+      _questions.addAll(unique);
+      _bestScore = bestScore;
+      _roundDuration = 15; 
+      _startTimer();
+      notifyListeners();
+    } catch (e) {
+      if (session != _session) return;
+      _bestScore = 0;
+      _loadError = 'Soal belum dapat dimuat. Periksa koneksi internet. $e';
+      _questions.clear();
+      notifyListeners();
     }
   }
 
   void _startTimer() {
     _timer?.cancel();
-    _timeLeft = 15;
+    _timeLeft = _roundDuration;
     notifyListeners();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -81,53 +103,76 @@ class GameController extends ChangeNotifier {
         notifyListeners();
       } else {
         _timer?.cancel();
-        nextRound(isCorrect: false);
+        _answers[currentQuestion.id] = 'SKIP';
+        _goToNextRound();
       }
     });
   }
 
-  void answerQuestion(String selectedAnswer) {
+  // Hentikan timer tanpa memajukan ronde — dipanggil saat user menjawab
+  // Supaya timer tidak auto-advance saat UI menampilkan feedback benar/salah
+  void pauseTimer() {
     _timer?.cancel();
-    bool isCorrect = selectedAnswer == currentQuestion.correctAnswer;
-    nextRound(isCorrect: isCorrect);
   }
 
-  void nextRound({required bool isCorrect}) async {
-    if (isCorrect) {
-      _score += 10;
-      _correctCount++;
-    }
+  // Rekam jawaban user lalu maju ke ronde berikutnya
+  Future<void> answerQuestion(String selectedAnswer) async {
+    if (_isTransitioning) return;
+    _timer?.cancel();
+    final question = currentQuestion;
+    final answerKey = selectedAnswer.split('.').first.trim();
+    _answers[question.id] = answerKey;
+    await _goToNextRound();
+  }
 
-    if (_currentRound < 9) {
+  Future<void> _goToNextRound() async {
+    if (_isTransitioning) return;
+    _isTransitioning = true;
+
+    if (_currentRound < _questions.length - 1) {
       _currentRound++;
+      _isTransitioning = false;
       _startTimer();
       return;
     }
 
+    // Ronde terakhir — submit ke server
     _currentRound++;
-
-    if (_score > _bestScore) {
-      _bestScore = _score;
-      try {
-        await GameService.saveBestScore(_bestScore);
-      } catch (e) {
-        debugPrint('Gagal menyimpan skor lokal: $e');
-      }
-    }
-
-    // Kegagalan jaringan tidak boleh membuat layar hasil permainan menggantung.
-    try {
-      await GameService.kirimSkorKeServer(_score, _correctCount);
-    } catch (e) {
-      debugPrint('Gagal mengirim skor ke server: $e');
-    }
-
+    _timer?.cancel();
+    _isSubmitting = true;
     notifyListeners();
+
+    try {
+      final answers = _questions
+          .map((q) => {
+                'question_id': q.id,
+                'answer': _answers[q.id] ?? '',
+              })
+          .toList();
+      final result = await GameService.submitAnswers(
+        answers,
+      );
+      _score = (result['score'] as num?)?.toInt() ?? 0;
+      _correctCount = (result['correct_count'] as num?)?.toInt() ?? 0;
+      if (_score > _bestScore) {
+        _bestScore = _score;
+        await GameService.saveBestScore(_bestScore);
+      }
+      _loadError = null;
+    } catch (e) {
+      _loadError = 'Skor belum dapat diverifikasi oleh server: $e';
+      GameService.logFailure(e);
+    } finally {
+      _isSubmitting = false;
+      _isTransitioning = false;
+      notifyListeners();
+    }
   }
 
   @override
   void dispose() {
+    _session++;
     _timer?.cancel();
     super.dispose();
   }
-}
+} 

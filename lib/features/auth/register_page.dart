@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/auth_service.dart';
+import '../../core/local_db.dart';
+import '../../core/offline_auth_service.dart';
+import '../../core/secure_store.dart';
 import '../../theme/app_theme.dart';
+import '../../core/routes.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -24,30 +30,91 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await ApiService.post('/auth/register', {
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'password': _passwordController.text,
-      });
+      final response = await AuthService.register(
+        name: _nameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      
+      final user = response.user;
+      if (user == null) {
+        throw Exception('Registrasi gagal. Silakan coba lagi.');
+      }
 
-      if (response['success'] == true) {
+      // Akun baru tidak boleh mewarisi data lokal dari akun sebelumnya.
+      await LocalDb.clearAccountData();
+      await LocalDb.setPref('active_user_id', '');
+      await LocalDb.setPref('biometric_enabled', '0');
+      await SecureStore.deleteCredentials();
+      await OfflineAuthService.clear();
+      await LocalDb.setPref('offline_mode', '0');
+
+      // Simpan notifikasi sambutan ke kotak masuk pengguna.
+      try {
+        await Supabase.instance.client.from('notifications').insert({
+          'user_id': user.id,
+          'title': 'Selamat Datang di EclipseVerse! 🌟',
+          'message': 'Halo ${_nameController.text}, selamat bergabung di semesta Eclipse. Jangan lupa lengkapi profilmu dan mainkan Mini Game untuk mendapatkan Photocard!',
+          'type': 'system',
+        });
+      } catch (e) {
+        // Registrasi tetap dilanjutkan jika notifikasi gagal disimpan.
+        debugPrint('Gagal menyimpan notifikasi welcome: $e');
+      }
+
+      if (response.session != null) {
+        await AuthService.cacheUserLocally(user);
+        final cachedProfile = await LocalDb.getProfile(user.id);
+        if (cachedProfile != null) {
+          await OfflineAuthService.saveCredentials(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            userId: user.id,
+            name: cachedProfile['name']?.toString() ?? _nameController.text.trim(),
+            profileEmail: cachedProfile['email']?.toString() ?? _emailController.text.trim(),
+          );
+        }
+        await LocalDb.setPref('offline_mode', '0');
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
+      } else {
+        // Konfirmasi email Supabase aktif, jadi pengguna harus mengonfirmasi email sebelum masuk.
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        Navigator.pop(context);
+        messenger.showSnackBar(
           const SnackBar(
-            content: Text('Registrasi berhasil, silakan login'),
+            content: Text(
+              'Registrasi berhasil. Periksa email untuk konfirmasi, lalu login.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Balik ke halaman login
       }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Registrasi gagal: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -69,7 +136,7 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ===== 1. GAMBAR ATAS (ANIMASI GERHANA) =====
+                  // ===== 1. ILUSTRASI GERHANA =====
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -103,7 +170,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ===== 2. JUDUL =====
+                  // ===== 2. JUDUL HALAMAN =====
                   Text(
                     'Buat Akun',
                     style: AppTheme.textTheme.headlineMedium?.copyWith(
@@ -118,7 +185,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ===== 3. FORM NAMA =====
+                  // ===== 3. FORMULIR NAMA =====
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
@@ -130,7 +197,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 4. FORM EMAIL =====
+                  // ===== 4. FORMULIR EMAIL =====
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
@@ -143,7 +210,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 5. FORM PASSWORD =====
+                  // ===== 5. FORMULIR KATA SANDI =====
                   TextFormField(
                     controller: _passwordController,
                     decoration: InputDecoration(
@@ -166,7 +233,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ===== 6. TOMBOL DAFTAR =====
+                  // ===== 6. TOMBOL PENDAFTARAN =====
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -182,7 +249,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ===== 7. LINK KEMBALI KE LOGIN =====
+                  // ===== 7. TAUTAN KEMBALI KE HALAMAN MASUK =====
                   TextButton(
                     onPressed: () {
                       Navigator.pop(context); // Balik ke halaman Login

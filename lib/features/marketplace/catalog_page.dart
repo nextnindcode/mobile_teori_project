@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/api_service.dart';
 import '../../core/routes.dart';
 import '../../models/products.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
-import 'product_detail_sheet.dart';
+import 'product_detail_sheet.dart'; // <-- Panggil file bottom sheet
 
 class CatalogPage extends StatefulWidget {
   final bool previewMode;
@@ -22,6 +22,7 @@ class _CatalogPageState extends State<CatalogPage> {
   String? _errorMessage;
   String _search = '';
   String _category = 'Semua';
+  bool _hasMembershipHistory = false;
   final TextEditingController _searchController = TextEditingController();
 
   static const Map<String, String> _categories = {
@@ -32,9 +33,16 @@ class _CatalogPageState extends State<CatalogPage> {
     'Koleksi': 'collectible',
   };
 
+  List<String> get _visibleCategoryLabels => _categories.keys
+      .where((label) => label != 'Koleksi' || _hasMembershipHistory)
+      .toList();
+
   List<Product> get _filteredProducts {
     final query = _search.trim().toLowerCase();
-    return _products.where((product) {
+    final filtered = _products.where((product) {
+      if (product.category.toLowerCase() == 'collectible' && !_hasMembershipHistory) {
+        return false;
+      }
       final matchesSearch =
           query.isEmpty ||
           product.name.toLowerCase().contains(query) ||
@@ -45,6 +53,15 @@ class _CatalogPageState extends State<CatalogPage> {
           product.category.toLowerCase() == selectedCategory;
       return matchesSearch && matchesCategory;
     }).toList();
+
+    // Urutkan yang ready di atas, yang habis di bawah
+    filtered.sort((a, b) {
+      final aOut = a.stock <= 0 ? 1 : 0;
+      final bOut = b.stock <= 0 ? 1 : 0;
+      return aOut.compareTo(bOut);
+    });
+
+    return filtered;
   }
 
   @override
@@ -72,37 +89,10 @@ class _CatalogPageState extends State<CatalogPage> {
             id: 101,
             name: 'Eclipse: First Light Album',
             category: 'album',
-            description: 'Album debut EclipseVerse dengan photobook dan collectible card.',
+            description: 'Album debut EclipseVerse.',
             price: 189000,
             stock: 25,
             imageUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=500',
-          ),
-          Product(
-            id: 102,
-            name: 'Lunar Wave Hoodie',
-            category: 'apparel',
-            description: 'Hoodie nyaman dengan desain Lunar Wave.',
-            price: 325000,
-            stock: 12,
-            imageUrl: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=500',
-          ),
-          Product(
-            id: 103,
-            name: 'Moonlight Photocard Set',
-            category: 'collectible',
-            description: 'Satu set photocard edisi Moonlight.',
-            price: 79000,
-            stock: 50,
-            imageUrl: 'https://images.unsplash.com/photo-1572378203089-70a1b2a2d1e1?q=80&w=500',
-          ),
-          Product(
-            id: 104,
-            name: 'EclipseVerse Light Keyring',
-            category: 'accessory',
-            description: 'Aksesori keyring dengan logo EclipseVerse.',
-            price: 45000,
-            stock: 40,
-            imageUrl: 'https://images.unsplash.com/photo-1584268868487-1df0d61c1622?q=80&w=500',
           ),
         ];
         _isLoading = false;
@@ -111,20 +101,55 @@ class _CatalogPageState extends State<CatalogPage> {
     }
 
     try {
-      final response = await ApiService.get('/products');
-      if (response['success'] != true) {
-        throw ApiException(
-          response['message']?.toString() ??
-              'Gagal memuat daftar produk dari server.',
-          'API_ERROR',
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user != null) {
+        try {
+          final history = await client
+              .from('user_memberships')
+              .select('id')
+              .eq('user_id', user.id)
+              .limit(1);
+          _hasMembershipHistory = history.isNotEmpty;
+        } catch (_) {
+          _hasMembershipHistory = false;
+        }
+      }
+      final rows = await client
+          .from('products')
+          .select(
+            'id,name,description,price_idr,stock,cover_image_path,categories!inner(slug)',
+          )
+          .eq('is_published', true)
+          .order('created_at', ascending: false)
+          .limit(100)
+          .timeout(const Duration(seconds: 10));
+      final products = <Product>[];
+      for (final item in rows) {
+        final row = Map<String, dynamic>.from(item);
+        final category = Map<String, dynamic>.from(row['categories'] as Map);
+        final slug = '${category['slug']}';
+        final imagePath = row['cover_image_path']?.toString();
+        final imageUrl = (imagePath == null || imagePath.isEmpty)
+            ? null
+            : Supabase.instance.client.storage
+                  .from('eclipseverse-media')
+                  .getPublicUrl(imagePath);
+        products.add(
+          Product(
+            id: (row['id'] as num).toInt(),
+            name: '${row['name']}',
+            category: slug,
+            description: '${row['description'] ?? ''}',
+            price: (row['price_idr'] as num).toInt(),
+            stock: (row['stock'] as num).toInt(),
+            imageUrl: imageUrl,
+          ),
         );
       }
-      final List data = response['data'] as List? ?? [];
       if (!mounted) return;
       setState(() {
-        _products = data
-            .map((item) => Product.fromJson(Map<String, dynamic>.from(item)))
-            .toList();
+        _products = products;
         _isLoading = false;
       });
     } catch (e) {
@@ -172,7 +197,7 @@ class _CatalogPageState extends State<CatalogPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Search Bar
+          // Search
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
             child: TextField(
@@ -185,36 +210,35 @@ class _CatalogPageState extends State<CatalogPage> {
                 suffixIcon: _search.isEmpty
                     ? null
                     : IconButton(
-                        tooltip: 'Hapus pencarian',
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _search = '');
                         },
-                        icon: const Icon(
-                          Icons.close,
-                          color: AppTheme.textSecondary,
-                          size: 18,
-                        ),
+                        icon: const Icon(Icons.close, size: 18),
                       ),
               ),
             ),
           ),
 
-          // 2. Category Filter Chips
+          // Kategori
           SizedBox(
             height: 38,
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
-              itemCount: _categories.length,
+              itemCount: _visibleCategoryLabels.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final label = _categories.keys.elementAt(index);
+                final label = _visibleCategoryLabels[index];
                 final selected = label == _category;
                 return ChoiceChip(
                   label: Text(label),
                   selected: selected,
-                  onSelected: (_) => setState(() => _category = label),
+                  onSelected: (_) {
+                    setState(() {
+                      _category = label;
+                    });
+                  },
                   backgroundColor: AppTheme.surfaceElevated,
                   selectedColor: AppTheme.eclipseViolet,
                   labelStyle: TextStyle(
@@ -237,14 +261,14 @@ class _CatalogPageState extends State<CatalogPage> {
 
           const SizedBox(height: 10),
 
-          // 3. Status Bar (Count)
+          // Status
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 2),
             child: Row(
               children: [
                 Text(
                   _isLoading
-                      ? 'Memuat katalog merchandise...'
+                      ? 'Memuat katalog...'
                       : '${visibleProducts.length} produk ditemukan',
                   style: const TextStyle(
                     color: AppTheme.textSecondary,
@@ -275,7 +299,7 @@ class _CatalogPageState extends State<CatalogPage> {
 
           const SizedBox(height: 6),
 
-          // 4. Products Grid or Explicit Error/Empty State
+          // Grid
           Expanded(child: _buildContent(visibleProducts)),
         ],
       ),
@@ -286,8 +310,6 @@ class _CatalogPageState extends State<CatalogPage> {
     if (_isLoading) {
       return const CosmicLoading(message: 'Menghubungkan ke Eclipse Store...');
     }
-
-    // Notice: if API actually failed, show ErrorView with Retry, NEVER show a fake successful empty state!
     if (_errorMessage != null) {
       return CosmicErrorView(
         message: _errorMessage!,
@@ -295,11 +317,10 @@ class _CatalogPageState extends State<CatalogPage> {
         icon: Icons.cloud_off_rounded,
       );
     }
-
     if (visibleProducts.isEmpty) {
       return CosmicEmptyView(
-        title: 'Tidak Ada Produk Ditemukan',
-        subtitle: 'Coba ubah kata kunci pencarian atau ganti kategori filter.',
+        title: 'Tidak Ada Produk',
+        subtitle: 'Coba ubah kata kunci atau ganti filter.',
         icon: Icons.search_off_rounded,
         action: OutlinedButton(
           onPressed: () {
@@ -327,15 +348,15 @@ class _CatalogPageState extends State<CatalogPage> {
           mainAxisSpacing: 12,
         ),
         itemCount: visibleProducts.length,
-        itemBuilder: (context, index) {
-          final product = visibleProducts[index];
-          return _buildProductCard(product);
-        },
+        itemBuilder: (context, index) =>
+            _buildProductCard(visibleProducts[index]),
       ),
     );
   }
 
   Widget _buildProductCard(Product product) {
+    final isOutOfStock = product.stock <= 0;
+
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surfaceElevated,
@@ -344,16 +365,26 @@ class _CatalogPageState extends State<CatalogPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => ProductDetailSheet(product: product),
-        ),
+        onTap: () {
+          if (isOutOfStock) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Maaf, stok produk ini sedang habis.'),
+              ),
+            );
+            return;
+          }
+          // Panggil Bottom Sheet yang udah kita pisah
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => ProductDetailSheet(product: product),
+          );
+        },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image with resolved URL & Category Badge
             Expanded(
               child: Stack(
                 fit: StackFit.expand,
@@ -362,31 +393,58 @@ class _CatalogPageState extends State<CatalogPage> {
                     imageUrl: product.imageUrl,
                     fit: BoxFit.cover,
                   ),
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.deepSpace.withValues(alpha: 0.85),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.borderSubtle),
-                      ),
-                      child: Text(
-                        product.category.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.coolCyan,
-                          letterSpacing: 0.5,
+                  if (isOutOfStock)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: const Text(
+                            'HABIS',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  if (product.stock <= 5)
+                  if (!isOutOfStock)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.deepSpace.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.borderSubtle),
+                        ),
+                        child: Text(
+                          product.category.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.coolCyan,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (!isOutOfStock && product.stock <= 5)
                     Positioned(
                       top: 8,
                       right: 8,
@@ -400,9 +458,7 @@ class _CatalogPageState extends State<CatalogPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          product.stock == 0
-                              ? 'HABIS'
-                              : 'Sisa ${product.stock}',
+                          'Sisa ${product.stock}',
                           style: const TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
@@ -414,8 +470,6 @@ class _CatalogPageState extends State<CatalogPage> {
                 ],
               ),
             ),
-
-            // Product Details
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -425,9 +479,11 @@ class _CatalogPageState extends State<CatalogPage> {
                     product.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: isOutOfStock
+                          ? AppTheme.textSecondary
+                          : AppTheme.textPrimary,
                       fontSize: 13,
                       height: 1.25,
                     ),
@@ -435,34 +491,35 @@ class _CatalogPageState extends State<CatalogPage> {
                   const SizedBox(height: 6),
                   Text(
                     _formatRupiah(product.price),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
-                      color: AppTheme.coronaGold,
+                      color: isOutOfStock
+                          ? AppTheme.textSecondary
+                          : AppTheme.coronaGold,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
                       Icon(
-                        product.stock > 0
-                            ? Icons.check_circle_outline
-                            : Icons.cancel_outlined,
+                        isOutOfStock
+                            ? Icons.cancel_outlined
+                            : Icons.check_circle_outline,
                         size: 12,
-                        color: product.stock > 0
-                            ? AppTheme.success
-                            : AppTheme.error,
+                        color: isOutOfStock ? AppTheme.error : AppTheme.success,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        product.stock > 0
-                            ? 'Stok: ${product.stock}'
-                            : 'Stok habis',
+                        isOutOfStock ? 'Stok habis' : 'Stok: ${product.stock}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: product.stock > 0
-                              ? AppTheme.textSecondary
-                              : AppTheme.error,
+                          fontWeight: isOutOfStock
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: isOutOfStock
+                              ? AppTheme.error
+                              : AppTheme.textSecondary,
                         ),
                       ),
                     ],

@@ -11,12 +11,14 @@ class Routes {
   static const String catalog = '/catalog';
   static const String cart = '/cart';
   static const String orders = '/orders';
+  static const String membership = '/membership';
 
   // Fandom & Tools & Events
   static const String events = '/events';
   static const String eventDetail = '/event-detail';
   static const String memberDetail = '/member-detail';
   static const String tools = '/tools';
+  static const String observatory = '/observatory';
 
   // AI, Nearby, Game, Notif
   static const String nearby = '/nearby';
