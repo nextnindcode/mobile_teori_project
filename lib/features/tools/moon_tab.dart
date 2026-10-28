@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:eclipseverse/theme/app_theme.dart';
 
@@ -36,8 +37,31 @@ class MoonTab extends StatelessWidget {
   }
 
   String _indonesianDate(DateTime date) {
-    const weekdays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const weekdays = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
+
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+
     return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
@@ -45,13 +69,20 @@ class MoonTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final phase = _phaseFraction(now);
-    final illumination = ((1 - math.cos(2 * math.pi * phase)) / 2 * 100).round();
+
+    final illumination = ((1 - math.cos(2 * math.pi * phase)) / 2 * 100)
+        .round();
+
     final nextNewMoonDays = (1 - phase) * _synodicMonth;
     final nextFullMoonDays = ((0.5 - phase + 1) % 1) * _synodicMonth;
+
     final nextMoonEvent = nextNewMoonDays < nextFullMoonDays
         ? 'Bulan Baru'
         : 'Purnama';
-    final daysUntilMoonEvent = math.min(nextNewMoonDays, nextFullMoonDays).round();
+
+    final daysUntilMoonEvent = math
+        .min(nextNewMoonDays, nextFullMoonDays)
+        .round();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -66,16 +97,42 @@ class MoonTab extends StatelessWidget {
           child: Stack(
             children: [
               const Positioned(
-                right: 0, top: 0,
-                child: Icon(Icons.auto_awesome, size: 58, color: Color(0x55FFFFFF)),
+                right: 0,
+                top: 0,
+                child: Icon(
+                  Icons.auto_awesome,
+                  size: 58,
+                  color: Color(0x55FFFFFF),
+                ),
               ),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('LUNAR OBSERVATORY', style: TextStyle(color: AppTheme.coolCyan, fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 12),
-                Text('Kenali Bulan\ndi langit malam', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 26, height: 1.15)),
-                const SizedBox(height: 8),
-                const Text('Pantau fase Bulan dan jadwal gerhana berikutnya dari Eclipse Tools.', style: TextStyle(color: AppTheme.textSecondary, height: 1.5)),
-              ]),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'LUNAR OBSERVATORY',
+                    style: TextStyle(
+                      color: AppTheme.coolCyan,
+                      fontSize: 10,
+                      letterSpacing: 1.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Kenali Bulan\ndi langit malam',
+                    style: Theme.of(context).textTheme.headlineMedium
+                        ?.copyWith(fontSize: 26, height: 1.15),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Pantau fase Bulan dan jadwal gerhana berikutnya dari Eclipse Tools.',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -85,38 +142,93 @@ class MoonTab extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: AppTheme.cardGradient,
             borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-            border: Border.all(color: AppTheme.eclipseViolet.withValues(alpha: 0.45)),
+            border: Border.all(
+              color: AppTheme.eclipseViolet.withValues(alpha: 0.45),
+            ),
           ),
-          child: Column(children: [
-            const Row(children: [
-              Icon(Icons.nightlight_round, color: AppTheme.coronaGold),
-              SizedBox(width: 8),
-              Text('FASE BULAN SAAT INI', style: TextStyle(color: AppTheme.coolCyan, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1)),
-            ]),
-            const SizedBox(height: 14),
-            Text(_phaseEmoji(phase), style: const TextStyle(fontSize: 86)),
-            const SizedBox(height: 4),
-            Text(_phaseName(phase), style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 6),
-            Text(_indonesianDate(now), style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 16),
-            Row(children: [
-              Expanded(child: _stat(context, 'Penerangan', '$illumination%', Icons.brightness_6_outlined)),
-              const SizedBox(width: 10),
-              Expanded(child: _stat(context, 'Berikutnya', nextMoonEvent, Icons.event_outlined)),
-            ]),
-            const SizedBox(height: 10),
-            Text('Perkiraan $nextMoonEvent sekitar $daysUntilMoonEvent hari lagi. Fase dihitung secara astronomis sebagai estimasi.', style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.5), textAlign: TextAlign.center),
-          ]),
+          child: Column(
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.nightlight_round, color: AppTheme.coronaGold),
+                  SizedBox(width: 8),
+                  Text(
+                    'FASE BULAN SAAT INI',
+                    style: TextStyle(
+                      color: AppTheme.coolCyan,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(_phaseEmoji(phase), style: const TextStyle(fontSize: 86)),
+              const SizedBox(height: 4),
+              Text(
+                _phaseName(phase),
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _indonesianDate(now),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _stat(
+                      context,
+                      'Penerangan',
+                      '$illumination%',
+                      Icons.brightness_6_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _stat(
+                      context,
+                      'Berikutnya',
+                      nextMoonEvent,
+                      Icons.event_outlined,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Perkiraan $nextMoonEvent sekitar $daysUntilMoonEvent hari lagi. Fase dihitung secara astronomis sebagai estimasi.',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(height: 1.5),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 22),
-        Row(children: [
-          const Icon(Icons.brightness_3_rounded, color: AppTheme.coronaGold),
-          const SizedBox(width: 8),
-          Expanded(child: Text('Jadwal Gerhana Bulan', style: Theme.of(context).textTheme.titleLarge)),
-        ]),
+        Row(
+          children: [
+            const Icon(Icons.brightness_3_rounded, color: AppTheme.coronaGold),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Jadwal Gerhana Bulan',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 6),
-        const Text('Jadwal berikut disusun dari sumber astronomi; keterlihatan dan jam pengamatan bergantung pada lokasi.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.5)),
+        const Text(
+          'Jadwal berikut disusun dari sumber astronomi; keterlihatan dan jam pengamatan bergantung pada lokasi.',
+          style: TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 12,
+            height: 1.5,
+          ),
+        ),
         const SizedBox(height: 12),
         _eclipseCard(
           date: '21 Februari 2027',
@@ -145,43 +257,126 @@ class MoonTab extends StatelessWidget {
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: AppTheme.surfaceGlass, borderRadius: BorderRadius.circular(AppTheme.radius), border: Border.all(color: AppTheme.borderLight)),
-          child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Sumber jadwal', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-            SizedBox(height: 6),
-            Text('NASA Eclipse pages dan timeanddate.com untuk keterlihatan di Indonesia. Fase Bulan adalah estimasi perhitungan lokal; bukan pengamatan langsung.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.5)),
-          ]),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceGlass,
+            borderRadius: BorderRadius.circular(AppTheme.radius),
+            border: Border.all(color: AppTheme.borderLight),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Sumber jadwal',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'NASA Eclipse pages dan timeanddate.com untuk keterlihatan di Indonesia. Fase Bulan adalah estimasi perhitungan lokal; bukan pengamatan langsung.',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _stat(BuildContext context, String label, String value, IconData icon) => Container(
+  Widget _stat(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) => Container(
     padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: AppTheme.surfaceElevated, borderRadius: BorderRadius.circular(AppTheme.radius), border: Border.all(color: AppTheme.borderSubtle)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, color: AppTheme.coronaGold, size: 18),
-      const SizedBox(height: 8),
-      Text(value, style: Theme.of(context).textTheme.titleMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
-      const SizedBox(height: 3),
-      Text(label, style: Theme.of(context).textTheme.bodySmall),
-    ]),
+    decoration: BoxDecoration(
+      color: AppTheme.surfaceElevated,
+      borderRadius: BorderRadius.circular(AppTheme.radius),
+      border: Border.all(color: AppTheme.borderSubtle),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppTheme.coronaGold, size: 18),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleMedium,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 3),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+      ],
+    ),
   );
 
-  Widget _eclipseCard({required String date, required String type, required String visibility, required IconData icon}) => Container(
+  Widget _eclipseCard({
+    required String date,
+    required String type,
+    required String visibility,
+    required IconData icon,
+  }) => Container(
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(color: AppTheme.surfaceElevated, borderRadius: BorderRadius.circular(AppTheme.radius), border: Border.all(color: AppTheme.borderSubtle)),
-    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(width: 42, height: 42, decoration: BoxDecoration(color: AppTheme.eclipseViolet.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: AppTheme.coolCyan)),
-      const SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(date, style: const TextStyle(color: AppTheme.coronaGold, fontSize: 12, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        Text(type, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 5),
-        Text(visibility, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.45)),
-      ])),
-    ]),
+    decoration: BoxDecoration(
+      color: AppTheme.surfaceElevated,
+      borderRadius: BorderRadius.circular(AppTheme.radius),
+      border: Border.all(color: AppTheme.borderSubtle),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: AppTheme.eclipseViolet.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, color: AppTheme.coolCyan),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                date,
+                style: const TextStyle(
+                  color: AppTheme.coronaGold,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                type,
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                visibility,
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12,
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 }
