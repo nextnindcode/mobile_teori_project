@@ -125,7 +125,7 @@ class MoonTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Pantau fase Bulan dan jadwal gerhana berikutnya dari Eclipse Tools.',
+                    'Pantau fase Bulan dan jelajahi jadwal gerhana berikutnya.',
                     style: TextStyle(
                       color: AppTheme.textSecondary,
                       height: 1.5,
