@@ -106,7 +106,7 @@ class GameController extends ChangeNotifier {
         notifyListeners();
       } else {
         _timer?.cancel();
-        _answers[currentQuestion.id] = '';
+        _answers[currentQuestion.id] = 'SKIP';
         _goToNextRound();
       }
     });
