@@ -73,7 +73,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     }
     try {
       final converted = _currencyRates!.convert(amountIdr.toDouble(), 'IDR', _selectedCurrency);
-      return '${CurrencyService.flag(_selectedCurrency)} ${_selectedCurrency} ${CurrencyService.format(_selectedCurrency, converted)}';
+      return '${CurrencyService.flag(_selectedCurrency)} $_selectedCurrency ${CurrencyService.format(_selectedCurrency, converted)}';
     } catch (_) {
       return 'Kurs belum tersedia';
     }
