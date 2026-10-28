@@ -342,63 +342,108 @@ Pengembangan EclipseVerse diharapkan memberikan manfaat sebagai berikut.
 
 1. ## Flutter  {#flutter}
 
-Flutter merupakan *Software Development Kit* (SDK) sumber terbuka (*open-source*) yang dikembangkan oleh Google untuk membangun aplikasi *multiplatform* menggunakan satu basis kode (*single codebase*). Arsitektur Flutter berbasis komponen *widget* yang fleksibel, di mana seluruh elemen antarmuka pengguna dirender secara langsung menggunakan mesin grafis bawaan tanpa mengandalkan jembatan (*bridge*) komponen asli sistem operasi, sehingga menghasilkan kinerja aplikasi yang responsif dan konsisten (Google Developers, 2023). 
+Flutter merupakan Software Development Kit (SDK) sumber terbuka (open-source) yang dikembangkan oleh Google untuk membangun aplikasi multiplatform menggunakan satu basis kode (single codebase). Dengan pendekatan tersebut, pengembang dapat membuat aplikasi dengan struktur kode yang relatif sama untuk beberapa platform tanpa harus membangun seluruh aplikasi secara terpisah. Flutter menggunakan bahasa pemrograman Dart dan menerapkan pendekatan berbasis widget untuk membangun antarmuka pengguna. Widget merupakan komponen penyusun antarmuka, mulai dari elemen sederhana seperti teks, ikon, dan tombol hingga struktur yang lebih kompleks seperti halaman, daftar, dan navigasi (Google Developers, 2023).  
+Dalam pengembangannya, Flutter menyediakan mekanisme untuk mengatur tampilan sekaligus interaksi antarkomponen. Setiap widget dapat memiliki properti yang menentukan bentuk, ukuran, warna, posisi, maupun perilakunya. Widget juga dapat disusun secara bertingkat sehingga membentuk antarmuka yang lebih kompleks. Pendekatan ini membantu pengembang memisahkan tampilan aplikasi menjadi komponen-komponen yang lebih terstruktur dan mudah dipelihara. Selain itu, fitur Hot Reload memungkinkan perubahan kode tertentu ditampilkan dengan cepat selama proses pengembangan tanpa harus selalu menjalankan ulang aplikasi dari awal.  
+Flutter juga memiliki dukungan kompilasi yang disesuaikan dengan kebutuhan pengembangan dan distribusi aplikasi. Pada proses pengembangan, mekanisme Just-In-Time (JIT) membantu mempercepat siklus pengujian, sedangkan kompilasi Ahead-Of-Time (AOT) digunakan untuk menghasilkan kode yang dapat dijalankan secara lebih efisien pada tahap rilis. Karakteristik tersebut menjadikan Flutter sesuai untuk pengembangan aplikasi yang membutuhkan konsistensi antarmuka dan integrasi berbagai fitur perangkat (Google Developers, 2023).  
+Dalam proyek EclipseVerse, Flutter digunakan sebagai teknologi utama untuk membangun aplikasi mobile. Antarmuka halaman autentikasi, beranda, fandom, katalog merchandise, keranjang belanja, event, profil, serta fitur pendukung lainnya dikembangkan menggunakan widget Flutter. Penggunaan satu kerangka pengembangan juga membantu tim mengorganisasi kode berdasarkan fitur sehingga pengembangan dan pemeliharaan antarmodul dapat dilakukan secara lebih terstruktur.
 
 2. ## Dart  {#dart}
 
-Dart adalah bahasa pemrograman berorientasi objek (*object-oriented programming*) dengan sistem pengetikan kuat (*strongly typed*) yang digunakan sebagai bahasa utama dalam framework Flutter. Dart mendukung kompilasi *Ahead-Of-Time* (AOT) untuk menghasilkan kode mesin yang efisien saat aplikasi dirilis, serta kompilasi *Just-In-Time* (JIT) yang mengaktifkan fitur *Hot Reload* untuk mempercepat proses pengujian dan pengembangan antarmuka (Google Developers, 2023). 
+Dart merupakan bahasa pemrograman yang dikembangkan oleh Google dan digunakan sebagai bahasa utama dalam pengembangan aplikasi Flutter. Dart mendukung paradigma pemrograman berorientasi objek (object-oriented programming), yaitu pendekatan yang mengorganisasi program ke dalam objek yang memiliki data dan perilaku. Bahasa ini juga memiliki sistem tipe (type system) yang membantu pengembang menentukan jenis data yang digunakan oleh variabel, fungsi, maupun objek. Dengan struktur tersebut, kode dapat disusun secara lebih jelas dan kesalahan terkait penggunaan tipe data dapat diketahui lebih awal.  
+Dart mendukung mekanisme kompilasi Just-In-Time (JIT) dan Ahead-Of-Time (AOT). JIT digunakan selama proses pengembangan untuk mendukung fitur seperti Hot Reload, sedangkan AOT mengubah kode menjadi bentuk yang sesuai untuk dijalankan secara lebih efisien pada aplikasi yang telah dirilis. Perbedaan ini memungkinkan pengembang memperoleh proses pengembangan yang cepat tanpa mengabaikan kebutuhan kinerja aplikasi ketika digunakan oleh pengguna (Google Developers, 2023).  
+Dalam pengembangan aplikasi Flutter, Dart digunakan untuk mendefinisikan widget, mengatur perpindahan halaman, memproses masukan pengguna, mengelola keadaan (state), dan menjalankan logika bisnis. Dart juga dapat digunakan untuk mengolah respons dari layanan web, mengelola data yang diperoleh dari API, serta mengintegrasikan fungsi perangkat melalui pustaka atau plugin yang tersedia.  
+Pada EclipseVerse, Dart digunakan untuk menghubungkan antarmuka dengan proses yang berlangsung di baliknya. Sebagai contoh, ketika pengguna melakukan pencarian anggota band, memilih produk, menghitung konversi mata uang, atau mengirim pertanyaan ke Eclipse AI, kode Dart menangani masukan pengguna, memanggil fungsi yang diperlukan, dan menampilkan hasil pemrosesan. Dengan demikian, Dart tidak hanya berfungsi untuk membangun tampilan, tetapi juga menjadi bagian utama dalam pengaturan alur kerja aplikasi.
 
 3. ## REST API {#rest-api}
 
-*Representational State Transfer* (REST) API merupakan gaya arsitektur antarmuka pemrograman aplikasi yang memfasilitasi pertukaran data antara aplikasi klien dan server melalui protokol HTTP/HTTPS. REST API mengelola sumber daya menggunakan metode standar HTTP seperti GET, POST, PUT, dan DELETE, dengan struktur format data JSON (*JavaScript Object Notation*) yang ringan dan mudah diproses oleh sistem aplikasi seluler (Utami et al., 2021). 
+Representational State Transfer (REST) API merupakan antarmuka yang memungkinkan aplikasi berkomunikasi dengan layanan lain melalui pola arsitektur REST. Dalam aplikasi mobile, REST API umumnya digunakan sebagai penghubung antara aplikasi klien dan server untuk mengirimkan permintaan, menjalankan proses tertentu, serta menerima hasil pemrosesan. Komunikasi tersebut memanfaatkan protokol HTTP atau HTTPS, sedangkan data yang dikirimkan dapat menggunakan format JSON (JavaScript Object Notation) karena strukturnya relatif ringan dan mudah diproses oleh berbagai bahasa pemrograman (Utami et al., 2021).  
+REST API menggunakan metode HTTP untuk menunjukkan jenis operasi yang diminta. Metode GET umumnya digunakan untuk mengambil data, POST untuk mengirimkan data atau membuat sumber daya, PUT untuk memperbarui sumber daya, dan DELETE untuk menghapus sumber daya. Pemilihan metode disesuaikan dengan tujuan permintaan. Selain metode tersebut, API biasanya mengembalikan kode status HTTP untuk menunjukkan hasil pemrosesan, misalnya keberhasilan permintaan atau terjadinya kesalahan. Respons API juga dapat berisi data, pesan, dan informasi lain yang dibutuhkan oleh aplikasi klien.  
+Dalam penerapannya, REST API membantu memisahkan antarmuka aplikasi dari pemrosesan data di server. Aplikasi mobile tidak harus mengakses basis data server secara langsung. Sebaliknya, aplikasi mengirimkan permintaan melalui endpoint yang disediakan, kemudian server memvalidasi permintaan, menjalankan logika bisnis, berinteraksi dengan basis data jika diperlukan, dan mengembalikan respons. Pemisahan ini mendukung pengelolaan akses dan konsistensi proses bisnis karena aturan penting dapat diterapkan di sisi server.  
+Pada EclipseVerse, layanan API digunakan untuk mendukung sejumlah fitur yang memerlukan pertukaran data dengan server, seperti katalog produk, pemrosesan pesanan, riwayat transaksi, notifikasi, dan pengiriman pertanyaan kepada layanan AI. Aplikasi mengirimkan permintaan sesuai kebutuhan fitur, kemudian mengolah respons untuk ditampilkan kepada pengguna. Karena proyek menggunakan lebih dari satu layanan backend, mekanisme komunikasi perlu disesuaikan dengan layanan yang menangani masing-masing fitur. Dengan demikian, REST API menjadi salah satu komponen yang menghubungkan antarmuka mobile dengan pemrosesan data di sisi server.
 
 4. ## PHP {#php}
 
-PHP (*Hypertext Preprocessor*) adalah bahasa pemrograman *server-side scripting* yang dirancang untuk mengelola logika bisnis di sisi server dan memproses data dinamis. Dalam arsitektur aplikasi mobile, PHP digunakan untuk membangun layanan *web service* yang memproses permintaan dari REST API dan menghubungkannya dengan basis data server (Pratama & Rukun, 2020). 
+PHP (PHP: Hypertext Preprocessor) merupakan bahasa pemrograman yang banyak digunakan untuk membangun aplikasi web dan menjalankan pemrosesan di sisi server (server-side scripting). Berbeda dari kode yang terutama dijalankan pada perangkat pengguna, kode PHP pada arsitektur layanan web diproses di server. Hasil pemrosesan tersebut kemudian dikirimkan kepada klien melalui respons yang dapat berupa teks, HTML, JSON, atau format lain sesuai kebutuhan aplikasi.  
+Dalam pengembangan REST API, PHP dapat digunakan untuk menerima permintaan HTTP, membaca parameter yang dikirimkan oleh aplikasi, melakukan validasi masukan, menjalankan logika bisnis, mengakses basis data, dan menyusun respons. Pemrosesan di sisi server memungkinkan aturan bisnis penting diterapkan pada satu tempat. Sebagai contoh, pemeriksaan ketersediaan stok atau perhitungan total pesanan dapat dilakukan oleh server sehingga hasilnya tidak hanya bergantung pada perhitungan yang ditampilkan pada antarmuka aplikasi (Pratama & Rukun, 2020).  
+PHP dapat dihubungkan dengan basis data menggunakan mekanisme koneksi yang sesuai. Dalam pengelolaan transaksi, penggunaan prepared statement membantu memisahkan perintah SQL dari nilai masukan pengguna. Teknik ini merupakan salah satu upaya untuk mengurangi risiko injeksi SQL, meskipun keamanan aplikasi tetap memerlukan validasi masukan, pengaturan hak akses, dan penanganan kesalahan yang tepat.  
+Dalam EclipseVerse, PHP digunakan pada layanan backend tertentu yang berkomunikasi dengan aplikasi melalui API dan terhubung dengan basis data MySQL. PHP menangani permintaan sesuai endpoint yang disediakan, termasuk proses pengambilan atau pengolahan data yang dibutuhkan oleh fitur aplikasi. Penggunaan PHP pada sebagian layanan tidak berarti seluruh backend EclipseVerse menggunakan teknologi yang sama, karena proyek juga memanfaatkan layanan lain untuk kebutuhan autentikasi dan pengelolaan data tertentu.
 
 5. ## MySQL {#mysql}
 
-MySQL merupakan sistem manajemen basis data relasional (*Relational Database Management System* / RDBMS) berbasis *Structured Query Language* (SQL) yang berfungsi mengelola data aplikasi secara terstruktur di sisi server. MySQL menyediakan integritas data, sistem keamanan pengguna, dan skalabilitas tinggi untuk menangani transaksi data berskala besar (Raharjo, 2020). 
+MySQL merupakan sistem manajemen basis data relasional (Relational Database Management System atau RDBMS) yang digunakan untuk menyimpan dan mengelola data secara terstruktur. Dalam basis data relasional, data disusun ke dalam tabel yang terdiri atas baris dan kolom. Setiap tabel dapat merepresentasikan jenis data tertentu, sedangkan hubungan antartabel dapat dibentuk melalui kunci utama (primary key) dan kunci asing (foreign key). Struktur tersebut membantu menjaga keterkaitan data dan mengurangi ketidakkonsistenan dalam penyimpanan informasi (Raharjo, 2020).  
+MySQL menggunakan SQL (Structured Query Language) untuk menjalankan operasi terhadap data. Operasi tersebut mencakup penambahan data menggunakan INSERT, pengambilan data menggunakan SELECT, perubahan data menggunakan UPDATE, dan penghapusan data menggunakan DELETE. Selain itu, MySQL mendukung pengaturan hak akses pengguna serta transaksi untuk mengelola sejumlah operasi yang perlu dijalankan sebagai satu kesatuan. Transaksi penting ketika suatu proses melibatkan beberapa perubahan data yang harus tetap konsisten.  
+Dalam aplikasi yang menangani transaksi, penyimpanan data di server memungkinkan informasi dikelola secara terpusat. Sebagai contoh, informasi produk, harga, stok, dan pesanan perlu diolah berdasarkan data yang tersimpan di server agar aplikasi tidak hanya bergantung pada nilai yang berasal dari perangkat pengguna. Pengaturan tersebut membantu menjaga konsistensi informasi ketika data diakses atau diperbarui melalui permintaan yang berbeda.  
+Pada EclipseVerse, MySQL digunakan sebagai basis data server untuk layanan tertentu yang dibangun menggunakan PHP. Data yang dikelola dapat mencakup katalog produk, stok, pesanan, dan informasi lain sesuai struktur tabel yang diterapkan. Dalam proses checkout, pemeriksaan harga dan stok perlu dilakukan pada sisi server agar nilai transaksi didasarkan pada data yang tersimpan, bukan hanya pada informasi sementara di antarmuka. MySQL dengan demikian berperan sebagai salah satu komponen penyimpanan data daring dalam arsitektur EclipseVerse.
 
 6. ## SQLite {#sqlite}
 
-SQLite adalah mesin basis data relasional bersifat *embedded* yang terpasang secara lokal di dalam memori perangkat seluler tanpa memerlukan proses server terpisah. SQLite dimanfaatkan pada aplikasi mobile untuk menyediakan fitur *local storage* dan *caching*, sehingga data krusial tetap dapat diakses oleh pengguna saat perangkat tidak terhubung ke jaringan internet (Sukamto & Shalahuddin, 2018). 
+SQLite merupakan mesin basis data relasional yang dapat ditanamkan langsung ke dalam aplikasi (embedded database). Berbeda dari sistem basis data yang membutuhkan server tersendiri, SQLite bekerja melalui pustaka yang terintegrasi dengan aplikasi dan menyimpan data secara lokal pada perangkat. SQLite mendukung operasi SQL untuk membuat tabel, menyimpan data, membaca data, memperbarui data, dan menghapus data. Karakteristik tersebut membuat SQLite banyak digunakan untuk kebutuhan penyimpanan lokal pada aplikasi mobile (Sukamto & Shalahuddin, 2018).  
+Penyimpanan lokal memiliki beberapa manfaat, antara lain mengurangi kebutuhan untuk meminta data yang sama berulang kali dari server dan memungkinkan informasi tertentu tetap tersedia ketika koneksi internet tidak stabil. SQLite juga dapat digunakan untuk menyimpan data sementara atau data yang perlu dipertahankan pada perangkat. Namun, data lokal tidak secara otomatis sama dengan data server. Apabila aplikasi menggunakan penyimpanan lokal dan daring secara bersamaan, pengembang perlu menentukan sumber data utama serta aturan untuk memperbarui atau menyelaraskan data jika diperlukan.  
+Salah satu penggunaan SQLite dalam aplikasi mobile adalah penyimpanan keranjang belanja. Data produk yang dipilih pengguna dapat disimpan di perangkat sehingga isi keranjang tetap tersedia ketika pengguna berpindah halaman atau menutup aplikasi. Ketika proses transaksi dilakukan, data keranjang tersebut tetap perlu diperiksa kembali terhadap harga dan ketersediaan stok yang berlaku di server.  
+Dalam EclipseVerse, SQLite digunakan untuk menyimpan data keranjang belanja secara lokal. Pendekatan ini membantu pengguna mempertahankan daftar produk yang ingin dibeli tanpa harus mengambil ulang seluruh data keranjang dari server setiap kali halaman dibuka. Meskipun demikian, data keranjang lokal tidak menggantikan proses validasi pada saat checkout. Harga dan stok tetap perlu diperiksa oleh layanan server agar transaksi menggunakan informasi yang sesuai dengan kondisi terbaru.
 
 7. ## Autentikasi dan Session {#autentikasi-dan-session}
 
-Autentikasi dan manajemen *session* merupakan mekanisme keamanan untuk memverifikasi identitas pengguna dan mengontrol hak akses ke dalam sistem. Dalam arsitektur aplikasi modern, pengelolaan sesi memanfaatkan *JSON Web Token* (JWT), di mana token digital yang terenkripsi dikirimkan pada setiap permintaan API untuk memvalidasi identitas pengguna secara aman tanpa perlu menyimpan kata sandi pada perangkat (Setiawan et al., 2022). 
+Autentikasi merupakan proses untuk memverifikasi identitas pengguna ketika pengguna berusaha mengakses suatu sistem. Proses ini umumnya menggunakan kombinasi informasi seperti alamat email dan kata sandi. Sementara itu, otorisasi berkaitan dengan penentuan tindakan atau sumber daya yang boleh diakses oleh pengguna setelah identitasnya diverifikasi. Kedua konsep tersebut saling berkaitan, tetapi memiliki fungsi yang berbeda: autentikasi memastikan identitas, sedangkan otorisasi mengatur hak akses.  
+Setelah proses login berhasil, aplikasi biasanya memerlukan mekanisme untuk mempertahankan status login agar pengguna tidak harus memasukkan kredensial setiap kali membuka halaman. Mekanisme tersebut dikenal sebagai pengelolaan sesi (session management). Pada aplikasi yang berkomunikasi dengan layanan API, sesi dapat dikelola menggunakan token. Token menjadi bukti autentikasi yang dikirimkan bersama permintaan tertentu agar server dapat mengenali sesi atau identitas pengguna tanpa meminta kata sandi pada setiap permintaan.  
+Salah satu pendekatan yang dikenal adalah JSON Web Token (JWT), yaitu format token yang memuat klaim dan dapat diverifikasi menggunakan mekanisme kriptografi sesuai konfigurasi sistem. JWT tidak selalu berarti token dienkripsi; pada penggunaan yang umum, isi token dapat dikodekan dan ditandatangani sehingga integritasnya dapat diperiksa. Oleh sebab itu, token tetap perlu dilindungi, memiliki masa berlaku yang sesuai, dan disimpan secara aman pada perangkat. Penggunaan hash untuk menyimpan kata sandi atau token di server juga memiliki tujuan berbeda dari enkripsi, sehingga istilah tersebut perlu dibedakan dalam penjelasan keamanan (Setiawan et al., 2022).  
+Dalam EclipseVerse, autentikasi digunakan untuk membatasi akses terhadap fitur yang memerlukan akun pengguna. Sistem menyediakan registrasi dan login, kemudian mempertahankan sesi agar pengguna tidak harus melakukan login ulang selama sesi masih berlaku. Berdasarkan rancangan proyek, kata sandi diproses menggunakan bcrypt, sedangkan token sesi memiliki masa berlaku tertentu dan disimpan sesuai mekanisme keamanan yang diterapkan. Pada saat logout, sesi atau token yang digunakan dihapus sehingga akses pengguna melalui sesi tersebut dihentikan. Dengan demikian, autentikasi dan pengelolaan sesi mendukung keamanan serta kesinambungan penggunaan aplikasi.
 
 8. ## Biometric {#biometric}
 
-Autentikasi biometrik adalah mekanisme verifikasi identitas berdasarkan karakteristik biologis unik pengguna seperti sidik jari (*fingerprint*) atau pemindaian wajah (*face recognition*). Pada pengembangannya di Flutter, fitur ini diintegrasikan melalui plugin local\_auth yang memanggil antarmuka API keamanan bawaan sistem operasi perangkat (*BiometricPrompt* pada Android atau *LocalAuthentication* pada iOS) untuk mengamankan akses fitur sensitif (Fauzi & Hidayat, 2023). 
+Autentikasi biometrik merupakan mekanisme verifikasi identitas berdasarkan karakteristik biologis atau perilaku yang dimiliki seseorang. Contoh karakteristik biologis yang dapat digunakan adalah sidik jari dan wajah. Pada perangkat mobile, autentikasi biometrik umumnya memanfaatkan fasilitas keamanan yang telah disediakan oleh sistem operasi dan perangkat keras. Aplikasi meminta sistem untuk melakukan verifikasi, sedangkan pemrosesan data biometrik mengikuti mekanisme keamanan perangkat yang digunakan (Fauzi & Hidayat, 2023).  
+Autentikasi biometrik memberikan alternatif terhadap proses login menggunakan kata sandi. Pengguna dapat melakukan verifikasi melalui sensor yang tersedia pada perangkat sehingga proses akses menjadi lebih praktis. Meskipun demikian, keberhasilan autentikasi biometrik bergantung pada dukungan perangkat, pengaturan keamanan pengguna, dan izin atau konfigurasi yang dibutuhkan. Aplikasi juga perlu menangani kondisi ketika perangkat tidak mendukung biometrik, pengguna belum mendaftarkan biometrik, atau proses verifikasi gagal.  
+Pada pengembangan aplikasi Flutter, fungsi biometrik dapat diintegrasikan menggunakan plugin yang menjembatani kode aplikasi dengan mekanisme autentikasi sistem operasi. Plugin tersebut tidak berarti aplikasi harus menyimpan data sidik jari mentah. Pada umumnya, aplikasi meminta sistem operasi untuk melakukan verifikasi dan menerima hasil berupa keberhasilan atau kegagalan autentikasi. Oleh karena itu, penyimpanan dan pengelolaan data biometrik perlu dibedakan dari penyimpanan informasi akun aplikasi.  
+Dalam EclipseVerse, autentikasi biometrik digunakan sebagai alternatif untuk mempermudah pengguna masuk kembali ke aplikasi. Pengguna terlebih dahulu melakukan login biasa, kemudian mengaktifkan fitur biometrik melalui profil jika perangkat mendukungnya. Setelah diaktifkan, pengguna dapat menggunakan sidik jari untuk proses login berikutnya. Mekanisme ini bertujuan meningkatkan kenyamanan akses tanpa menggantikan kebutuhan pengelolaan akun dan sesi yang aman.
 
 9. ## Location Based Service (LBS) {#location-based-service-(lbs)}
 
-*Location-Based Service* (LBS) adalah layanan berbasis lokasi yang memanfaatkan informasi koordinat geografis *real-time* perangkat melalui sinyal GPS. Untuk menghitung jarak garis lurus antara koordinat pengguna dan lokasi tujuan di bumi, digunakan “Formula Haversine” yang memperhitungkan kelengkungan permukaan bumi secara presisi tanpa membebani komputasi server (Ramadhan & Nurcahyo, 2021). 
+Location-Based Service (LBS) merupakan layanan yang memanfaatkan informasi lokasi geografis perangkat untuk menyediakan informasi atau fungsi yang relevan dengan posisi pengguna. Informasi lokasi dapat diperoleh melalui GPS atau sumber lokasi lain yang didukung perangkat. Data lokasi umumnya direpresentasikan sebagai koordinat lintang (latitude) dan bujur (longitude). Pemanfaatan koordinat tersebut memungkinkan aplikasi menghitung jarak, mengurutkan lokasi berdasarkan kedekatan, atau menampilkan posisi pada peta (Ramadhan & Nurcahyo, 2021).  
+Dalam aplikasi mobile, penggunaan LBS memerlukan perhatian terhadap izin akses lokasi dan kondisi layanan lokasi pada perangkat. Aplikasi perlu meminta izin yang sesuai sebelum mengambil lokasi pengguna. Apabila izin ditolak atau layanan lokasi tidak tersedia, aplikasi sebaiknya memberikan informasi yang jelas dan menyediakan penanganan alternatif. Selain itu, informasi lokasi termasuk data yang berkaitan dengan privasi sehingga pengguna perlu mengetahui alasan aplikasi memerlukannya.  
+Salah satu metode untuk menghitung jarak antara dua koordinat geografis adalah Formula Haversine. Metode ini memperhitungkan bentuk bumi sebagai bola untuk memperkirakan jarak permukaan antara dua titik berdasarkan koordinat lintang dan bujurnya. Hasil perhitungan dapat digunakan untuk mengurutkan lokasi dari yang terdekat ke yang terjauh. Jarak yang dihasilkan merupakan estimasi jarak garis besar di permukaan bumi, bukan selalu jarak perjalanan melalui jalan raya.  
+Dalam EclipseVerse, LBS digunakan untuk membantu pengguna menemukan event yang berada paling dekat dengan lokasi mereka. Setelah pengguna memberikan izin lokasi dan layanan lokasi tersedia, aplikasi memperoleh koordinat pengguna, kemudian menghitung jarak ke lokasi event menggunakan Formula Haversine. Daftar event selanjutnya dapat diurutkan berdasarkan jarak dalam kilometer. Informasi tersebut membantu pengguna membandingkan kedekatan lokasi event, sedangkan jarak perjalanan sebenarnya dapat berbeda dari hasil perhitungan koordinat.
 
 10. ## Sensor (Accelerometer dan Gyroscope) {#sensor-(accelerometer-dan-gyroscope)}
 
-Sensor inersia pada perangkat seluler digunakan untuk mendeteksi orientasi dan pergerakan fisik perangkat. Sensor *accelerometer* mengukur percepatan linear pada sumbu X, Y, dan Z terhadap gaya gravitasi, sedangkan *gyroscope* mengukur kecepatan sudut atau rotasi perangkat, di mana kombinasi keduanya dimanfaatkan sebagai kontrol interaktif berbasis gerakan pada aplikasi (Pratama et al., 2022). 
+Sensor pada perangkat mobile memungkinkan aplikasi memperoleh informasi mengenai kondisi fisik dan pergerakan perangkat. Dua sensor yang sering digunakan untuk mendeteksi gerakan adalah accelerometer dan gyroscope. Accelerometer mengukur percepatan pada sumbu tertentu, termasuk pengaruh gravitasi, sedangkan gyroscope mengukur kecepatan sudut atau perubahan rotasi perangkat. Data dari kedua sensor tersebut dapat digunakan untuk mengenali gerakan dan mengubahnya menjadi masukan bagi aplikasi (Pratama et al., 2022).  
+Accelerometer menghasilkan data percepatan yang dapat membantu aplikasi memperkirakan kemiringan atau gerakan perangkat. Namun, nilai percepatan tidak selalu menunjukkan gerakan pengguna secara langsung karena pengukuran juga dapat dipengaruhi oleh gravitasi dan getaran. Gyroscope memberikan informasi tentang rotasi perangkat sehingga dapat digunakan untuk mendeteksi perubahan orientasi atau gerakan memutar. Pengolahan data sensor perlu memperhatikan ambang batas dan pola gerakan agar aplikasi tidak mudah memberikan respons terhadap gerakan kecil yang tidak disengaja.  
+Dalam penerapan interaksi berbasis sensor, pengembang perlu menentukan hubungan antara data sensor dan tindakan aplikasi. Misalnya, perubahan nilai pada sumbu tertentu dapat digunakan untuk memindahkan pilihan ke kanan atau kiri, sedangkan gerakan lain dapat digunakan untuk mengonfirmasi pilihan. Pengaturan ambang batas, jeda pembacaan, dan mekanisme pencegahan pemicu berulang membantu membuat interaksi lebih stabil. Aplikasi juga sebaiknya menyediakan metode input alternatif apabila sensor tidak tersedia atau tidak dapat digunakan dengan baik.  
+Dalam EclipseVerse, accelerometer dan gyroscope digunakan pada mini game tebak anggota band. Accelerometer membantu menggeser sorotan pilihan berdasarkan kemiringan perangkat, sedangkan gyroscope digunakan untuk mengenali gerakan konfirmasi sesuai rancangan permainan. Penggunaan sensor menjadikan perangkat sebagai bagian dari mekanisme interaksi, bukan hanya alat untuk menampilkan soal dan pilihan jawaban. Meskipun demikian, aplikasi tetap menyediakan pilihan menjawab melalui sentuhan agar permainan dapat digunakan ketika input berbasis sensor tidak sesuai dengan kondisi perangkat atau preferensi pengguna.
 
 11. ## AI dan LLM {#ai-dan-llm}
 
-*Artificial Intelligence* (AI) mengalami kemajuan pesat melalui penerapan *Large Language Model* (LLM), yaitu model *deep learning* berbasis arsitektur *Transformer* yang dilatih dengan sekumpulan data teks berukuran masif. Pemanfaatan LLM seperti Google Gemini API pada aplikasi seluler memungkinkan penyediaan fitur *chatbot* interaktif yang mampu memahami bahasa alami serta memberikan respons yang kontekstual secara *real-time* (Nugroho & Putra, 2023). 
+Artificial Intelligence (AI) atau kecerdasan buatan merupakan bidang yang mempelajari pengembangan sistem yang mampu menjalankan tugas yang biasanya membutuhkan kemampuan kognitif manusia, seperti mengenali pola, memproses informasi, memahami bahasa, dan menghasilkan rekomendasi. AI mencakup berbagai pendekatan, mulai dari sistem berbasis aturan hingga model pembelajaran mesin (machine learning). Salah satu perkembangan dalam bidang ini adalah Large Language Model (LLM), yaitu model yang dilatih menggunakan data teks dalam skala besar untuk memproses dan menghasilkan bahasa alami (Nugroho & Putra, 2023).  
+LLM dapat digunakan untuk membangun sistem percakapan yang menerima pertanyaan dalam bahasa alami dan menghasilkan respons berdasarkan pola yang dipelajari selama pelatihan serta konteks yang diberikan saat digunakan. Dalam aplikasi mobile, model tersebut biasanya diakses melalui layanan atau API. Aplikasi mengirimkan pertanyaan ke backend, kemudian backend meneruskan permintaan ke layanan model dan mengembalikan respons kepada aplikasi. Pola ini memungkinkan aplikasi menyediakan fitur percakapan tanpa harus menjalankan model berukuran besar secara langsung pada perangkat.  
+Kualitas jawaban LLM dipengaruhi oleh rumusan pertanyaan, konteks yang disertakan, kemampuan model, dan keterbatasan informasi yang tersedia. Model juga dapat menghasilkan jawaban yang terdengar meyakinkan tetapi tidak sepenuhnya akurat. Oleh karena itu, respons LLM tidak selalu dapat dianggap sebagai fakta yang telah diverifikasi. Pengembang perlu memperhatikan keamanan permintaan, pembatasan panjang input, penanganan kesalahan, waktu respons, serta perlindungan informasi yang dikirimkan kepada layanan eksternal.  
+Dalam EclipseVerse, AI diterapkan melalui fitur Eclipse AI yang memungkinkan pengguna mengajukan pertanyaan dan menerima jawaban dalam bentuk percakapan. Berdasarkan rancangan sistem, pertanyaan dikirim melalui backend untuk diproses oleh layanan LLM, kemudian respons ditampilkan pada halaman chat. Konteks mengenai data aplikasi, seperti anggota band, event, dan produk, dapat digunakan sesuai implementasi untuk membantu menghasilkan jawaban yang relevan. Fitur ini berperan sebagai sarana interaksi berbasis bahasa alami, tetapi ketepatan jawabannya tetap perlu dipahami sesuai keterbatasan model dan sumber konteks yang tersedia. 
 
 12. ## Notifikasi {#notifikasi}
 
-Sistem notifikasi pada aplikasi mobile dibedakan menjadi *Push Notification* yang dikirim dari server eksternal melalui jaringan internet, serta *Local Notification* yang dipicu secara lokal oleh sistem operasi perangkat. Menggunakan plugin seperti flutter\_local\_notifications, aplikasi dapat menjadwalkan pengingat atau pesan peringatan secara lokal yang tetap muncul tepat waktu meskipun aplikasi dalam kondisi ditutup (Santoso & Wijaya, 2022). 
+Notifikasi merupakan mekanisme penyampaian informasi kepada pengguna mengenai suatu peristiwa, pengingat, atau perubahan status. Dalam aplikasi mobile, notifikasi dapat membantu pengguna mengetahui informasi penting tanpa harus terus-menerus membuka aplikasi. Secara umum, notifikasi dapat dibedakan berdasarkan sumber pemicunya, antara lain local notification yang dijadwalkan atau dipicu oleh aplikasi pada perangkat dan push notification yang dikirim melalui layanan dari server ke perangkat (Santoso & Wijaya, 2022).  
+Local notification dapat digunakan untuk menjadwalkan pengingat berdasarkan waktu atau kondisi tertentu yang telah ditentukan aplikasi. Notifikasi jenis ini dapat ditampilkan oleh sistem operasi meskipun aplikasi tidak sedang berada di layar, bergantung pada izin, pengaturan sistem, dan mekanisme penjadwalan yang digunakan. Sementara itu, push notification umumnya melibatkan layanan pengiriman notifikasi dan koneksi jaringan agar pesan dari server dapat diteruskan ke perangkat pengguna.  
+Penerapan notifikasi perlu memperhatikan izin pengguna, waktu pengiriman, dan relevansi informasi. Aplikasi juga perlu menentukan perilaku ketika izin notifikasi tidak diberikan atau ketika data jadwal berubah. Pengaturan tersebut membantu mencegah notifikasi yang tidak diinginkan dan meningkatkan kegunaan fitur. Selain menampilkan notifikasi pada perangkat, aplikasi dapat menyediakan halaman riwayat atau inbox untuk menampilkan informasi yang telah dikirim oleh server.  
+Dalam EclipseVerse, notifikasi digunakan untuk mengingatkan pengguna mengenai event dan menyampaikan informasi terkait aktivitas aplikasi. Local notification digunakan untuk pengingat event yang dijadwalkan, sedangkan daftar notifikasi dari server ditampilkan pada halaman inbox. Daftar tersebut disusun dengan urutan informasi terbaru terlebih dahulu agar pengguna dapat memeriksa pesan yang baru diterima. Pemisahan antara notifikasi lokal dan data notifikasi server membantu menjelaskan bahwa pengingat pada perangkat dan riwayat notifikasi daring merupakan mekanisme yang saling mendukung, tetapi tidak selalu memiliki sumber data yang sama.
 
 13. ## Blockchain {#blockchain}
 
-Blockchain adalah struktur data terdistribusi yang tersusun atas blok-blok data yang saling terhubung secara kriptografis menggunakan *hash chain*. Setiap blok memuat data transaksi, penanda waktu (*timestamp*), dan nilai hash dari blok sebelumnya, yang menjamin sifat *immutability* sehingga data yang telah dicatat tidak dapat diubah tanpa membatalkan keabsahan rantai blok secara keseluruhan. 
+Blockchain merupakan struktur pencatatan data yang menggunakan hubungan kriptografis antarbagiannya untuk membantu mendeteksi perubahan pada data yang telah dicatat. Dalam model blockchain, data dikelompokkan ke dalam blok yang dapat memuat informasi transaksi, penanda waktu, dan nilai hash dari blok sebelumnya. Nilai hash berfungsi sebagai representasi digital dari data masukan. Ketika data yang digunakan untuk membentuk hash berubah, nilai hash yang dihasilkan juga dapat berubah sehingga ketidaksesuaian dapat terdeteksi melalui proses verifikasi.  
+Hubungan antarnilai hash membentuk rantai. Setiap blok mengacu pada hash blok sebelumnya, sehingga perubahan pada suatu blok dapat memengaruhi kecocokan hash pada blok berikutnya. Pemeriksaan rantai dilakukan dengan menghitung ulang hash berdasarkan data yang tersimpan dan membandingkannya dengan nilai hash yang tercatat. Apabila ditemukan ketidaksesuaian, sistem dapat menandai bagian rantai yang perlu diperiksa lebih lanjut. Namun, hash saja tidak secara otomatis menjamin bahwa data tidak dapat diubah oleh pihak yang memiliki akses untuk menulis ulang seluruh catatan. Jaminan keamanan suatu blockchain juga bergantung pada rancangan sistem, mekanisme konsensus, pengaturan akses, dan cara penyimpanan datanya.  
+Salah satu algoritma hash yang dapat digunakan adalah SHA-256, yang menghasilkan nilai hash dengan panjang tetap dari data masukan. Dalam sistem pencatatan transaksi, nilai hash dapat digunakan untuk memeriksa konsistensi data antara catatan transaksi dan rantai hash yang dibentuk. Mekanisme ini berbeda dari enkripsi karena hash pada dasarnya digunakan untuk menghasilkan representasi data yang dapat diperiksa, bukan untuk menyembunyikan isi data agar dapat dibuka kembali menggunakan kunci.  
+Dalam EclipseVerse, konsep rantai hash diterapkan untuk membantu memeriksa integritas data pesanan. Sistem membuat catatan berantai menggunakan SHA-256 dan menyimpannya pada tabel transaksi yang berkaitan dengan blockchain. Fitur verifikasi menghitung ulang rantai tersebut untuk memeriksa apakah nilai yang tersimpan masih konsisten, kemudian menampilkan status valid atau tidak valid apabila ditemukan ketidaksesuaian. Implementasi ini lebih tepat dijelaskan sebagai mekanisme verifikasi integritas berbasis rantai hash. Keberadaan rantai hash pada basis data tidak dengan sendirinya berarti sistem telah menerapkan blockchain terdistribusi dengan mekanisme konsensus. Subbab ini masih memerlukan sumber ilmiah atau dokumentasi teknis yang dapat diverifikasi karena versi naskah sebelumnya belum mencantumkan sitasi dalam teks untuk teori blockchain.
 
 14. ## Marketplace {#marketplace}
 
-*Marketplace* merupakan platform perdagangan digital tempat bertemunya penjual dan pembeli untuk melakukan transaksi produk atau jasa secara daring. Sistem *marketplace* memfasilitasi pengelolaan katalog produk, keranjang belanja, integrasi gerbang pembayaran (*payment gateway*), serta pencatatan transaksi untuk mendukung proses jual beli yang aman dan terstruktur (Hidayat & Agustin, 2021). 
+Marketplace merupakan platform perdagangan digital yang mempertemukan pihak yang menawarkan produk atau jasa dengan pihak yang ingin membeli. Platform marketplace menyediakan fasilitas untuk menampilkan informasi produk dan mendukung proses transaksi melalui fitur seperti katalog, pencarian, penyaringan kategori, keranjang belanja, pemesanan, serta pencatatan status transaksi. Dengan adanya fasilitas tersebut, pengguna dapat menelusuri produk dan melakukan tahapan pembelian melalui satu sistem yang terintegrasi (Hidayat & Agustin, 2021).  
+Dalam sistem marketplace, katalog produk berperan sebagai tempat penyajian informasi seperti nama, kategori, deskripsi, harga, dan ketersediaan barang. Fitur pencarian dan filter membantu pengguna menemukan produk sesuai kebutuhan. Keranjang belanja memungkinkan pengguna mengumpulkan beberapa produk sebelum melanjutkan ke tahap pemesanan. Selanjutnya, proses checkout digunakan untuk memvalidasi data pembelian, menghitung total, dan menyimpan pesanan agar dapat ditelusuri kembali melalui riwayat transaksi.  
+Pengelolaan transaksi marketplace perlu memperhatikan konsistensi informasi produk dan keamanan pemrosesan pesanan. Informasi harga dan stok yang ditampilkan pada antarmuka dapat berubah karena aktivitas lain. Oleh sebab itu, pemeriksaan akhir perlu dilakukan pada sisi server ketika pengguna melakukan checkout. Sistem juga perlu menangani kondisi kegagalan dengan baik agar perubahan data yang berkaitan dengan transaksi tidak meninggalkan kondisi yang tidak konsisten.  
+Pada EclipseVerse, marketplace digunakan untuk menyediakan katalog merchandise yang berkaitan dengan tema fandom. Pengguna dapat mencari produk, menyaring kategori, memasukkan produk ke keranjang, dan melanjutkan ke proses checkout. Data keranjang disimpan secara lokal menggunakan SQLite, sedangkan proses validasi harga, stok, dan pencatatan pesanan dilakukan melalui layanan server sesuai implementasinya. Setelah transaksi diproses, pengguna dapat melihat riwayat pesanan untuk memeriksa informasi dan status transaksi. Dengan demikian, marketplace menjadi salah satu bagian utama yang menghubungkan kebutuhan penggemar terhadap merchandise dengan mekanisme pemesanan dalam aplikasi.
 
 15. ## Fandom Hub {#fandom-hub}
 
-*Fandom Hub* adalah platform ruang komunitas digital yang dirancang khusus untuk memfasilitasi interaksi, diskusi, dan penyebaran konten antar penggemar suatu figur publik, grup, atau karya budaya pop. Platform ini menggabungkan fitur publikasi media, forum interaktif, dan aktivitas sosial digital untuk meningkatkan keterikatan (*user engagement*) dalam komunitas (Srinarwati, 2020). 
+Fandom Hub merupakan ruang digital yang dirancang untuk mendukung kebutuhan penggemar dalam mengakses informasi dan berinteraksi dengan konten yang berkaitan dengan figur publik, grup musik, atau karya budaya populer. Ruang digital bertema fandom dapat menyediakan informasi mengenai anggota grup, jadwal kegiatan, produk koleksi, dan fitur lain yang mendukung aktivitas penggemar. Dalam konteks komunitas digital, keterhubungan antara informasi, aktivitas, dan pengalaman pengguna dapat membantu membangun keterlibatan pengguna (user engagement) terhadap platform yang digunakan (Srinarwati, 2020).  
+Fandom hub berbeda dari sekadar halaman informasi karena konsepnya dapat menggabungkan beberapa kebutuhan penggemar ke dalam satu aplikasi. Informasi anggota membantu pengguna mengenali figur yang diikuti, informasi event membantu pengguna mengetahui kegiatan yang akan berlangsung, sedangkan katalog merchandise mendukung kebutuhan untuk menelusuri produk yang berkaitan dengan fandom. Fitur tambahan seperti pengingat, permainan, profil, dan interaksi berbasis AI dapat memperluas cara pengguna berinteraksi dengan aplikasi. Namun, cakupan suatu fandom hub bergantung pada fitur yang benar-benar disediakan oleh sistem.  
+Pengembangan platform fandom juga perlu mempertimbangkan keteraturan informasi, kemudahan navigasi, keamanan akun, dan kejelasan fungsi tiap fitur. Pengguna sebaiknya dapat berpindah dari informasi anggota ke event atau merchandise tanpa mengalami alur yang membingungkan. Selain itu, pengelolaan akun dan data pengguna perlu dilakukan dengan memperhatikan keamanan serta privasi. Dengan rancangan yang terstruktur, berbagai fungsi dapat saling melengkapi tanpa kehilangan tujuan utama aplikasi sebagai platform bertema fandom.  
+EclipseVerse dikembangkan sebagai aplikasi mobile yang menggabungkan informasi fandom dengan beberapa layanan pendukung. Aplikasi menyediakan informasi anggota band, katalog merchandise, informasi event, pengingat, mini game berbasis sensor, konversi mata uang dan waktu, profil pengguna, serta fitur percakapan Eclipse AI. Penggabungan tersebut memungkinkan pengguna mengakses berbagai kebutuhan terkait fandom melalui satu aplikasi. Oleh karena itu, konsep fandom hub menjadi dasar tema pengembangan EclipseVerse, sedangkan fitur-fitur yang tersedia merupakan bentuk penerapan konsep tersebut sesuai ruang lingkup proyek.
 
 # **BAB III** **PERANCANGAN** {#bab-iii-perancangan}
 
@@ -550,23 +595,29 @@ Blockchain adalah struktur data terdistribusi yang tersusun atas blok-blok data 
 
 1.  Sequence Diagram Login & Registrasi
 
-		![][image15]
+		![][image15]  
+Gambar di atas menunjukkan alur pengguna masuk ke aplikasi, termasuk mendaftar bila belum punya akun. Pengguna membuka aplikasi EclipseVerse, sistem menampilkan splash, lalu halaman login. Jika pengguna belum punya akun, ia mengakses halaman registrasi, mengisi formulir, dan mengonfirmasi akun melalui email yang dikirim Supabase, kemudian kembali ke halaman login. Untuk masuk, pengguna memilih cara login, yaitu mengisi form login atau memakai biometric. Pada jalur biometric, sistem memeriksa data biometric. Jika ada, sistem menampilkan pop up untuk memindai sidik jari. Jika tidak ada, sistem menampilkan snackbar yang meminta pengguna login dengan form, lalu pengguna kembali memilih cara login. Jika login berhasil, sistem menampilkan halaman Home. Jika gagal, sistem menampilkan snackbar login gagal dan meminta pengguna login kembali. 
 
 2.  Sequence Diagram Cari Member  
-   	![][image16]  
-     
+   	![][image16]
+
+   Gambar di atas menunjukkan alur pengguna mencari member tertentu. Setelah mengakses halaman Member dan melihat daftar yang ditampilkan sistem, pengguna melakukan pencarian berdasarkan nama atau posisi member dalam band. Sistem memeriksa apakah ada member yang cocok dengan kata kunci tersebut. Jika ditemukan, sistem menampilkan hasil pencarian. Jika tidak, sistem menampilkan pesan “Member tidak ditemukan” dan meminta pengguna mencari kembali.  
 3.  Sequence Diagram Mengaktifkan Membership  
-   	![][image17]  
-     
+   	![][image17]
+
+   Gambar di atas menunjukkan alur pengguna mengaktifkan membership. Pengguna masuk ke halaman Profil, lalu sistem menampilkan halaman tersebut dan mengecek status membership pengguna. Jika pengguna sudah punya membership, sistem menampilkan status membership aktif dan proses selesai. Jika belum, sistem menampilkan status bahwa pengguna bukan member, lalu pengguna mengklik kartu aktifkan membership dan memilih paket. Sistem kemudian mengecek poin yang dimiliki pengguna. Jika poin cukup, sistem mengubah status pengguna menjadi membership aktif dan mengurangi poin. Jika tidak cukup, sistem menampilkan pop up bahwa poin tidak cukup.  
 4.  Sequence Diagram Mengakses Halaman Event & Konversi Waktu  
-   	![][image18]  
-     
+   	![][image18]
+
+   Gambar di atas menunjukkan alur pengguna melihat event dan menyesuaikan jam event dengan zona waktunya. Pengguna mengakses halaman Event dan sistem menampilkan daftar event yang tersedia. Pengguna mengklik salah satu kartu event, lalu sistem menampilkan detail event tersebut. Dari detail itu, pengguna mengklik zona waktu yang berbeda, dan sistem menampilkan hasil konversi waktu event sesuai dengan zona waktu yang dipilih.   
 5.  Sequence Diagram Filter Member  
-   	![][image19]  
-     
+   	![][image19]
+
+   Gambar di atas menunjukkan alur pengguna menyaring daftar member berdasarkan posisinya dalam band. Pengguna mengakses halaman Member dan sistem menampilkan daftar member. Pengguna kemudian mengaktifkan filter berdasarkan posisi member, misalnya vokalis atau gitaris. Sistem memproses pilihan itu dan menampilkan hasil filter berupa member yang sesuai dengan posisi yang dipilih.   
 6.  Sequence Diagram Update Foto Profil  
-   	![][image20]  
-     
+   	![][image20]
+
+   Gambar di atas menunjukkan alur pengguna mengganti foto profilnya. Pengguna mengakses halaman Profil dan sistem menampilkan halaman tersebut. Pengguna lalu mengklik ikon foto di dekat foto profil dan memilih foto profil baru dari galeri. Setelah foto dipilih, sistem memperbarui foto profil pengguna sehingga foto baru menggantikan foto yang lama.   
 7. v  
 8. v  
 9. v  
@@ -882,13 +933,145 @@ Berdasarkan ERD di atas, dirancang sebuah basis data relasional yang berpusat pa
 
 7. ## Fandom {#fandom}
 
+**Potongan kode lib/features/fandom/member\_model.dart**
+
+| `// Logika Fallback Team String team = '${json['team'] ?? ''}'.trim(); if (team.isEmpty) {   final pos = '${json['position'] ?? ''}'.toLowerCase();   if (pos.contains('vocal')) {     team = 'Vocal Team';   } else if (pos.contains('rapper')) {     team = 'Hip-Hop Team';   } else {     team = 'Performance Team';   } }` |
+| :---- |
+
+File ini berfungsi sebagai fondasi utama dalam pengelolaan data member. File ini bertugas untuk mengubah data mentah berformat JSON dari database menjadi objek member yang dapat dikelola aplikasi. Terdapat logika fallback jika data kolom team kosong pada database, sistem tidak akan menampilkan data kosong melainkan akan secara otomatis mengklasifikasikan tim member berdasarkan kata kunci yang ada pada kolom position.
+
+**Potongan kode lib/features/fandom/member\_service**
+
+| `// Ambil Data & Gambar & Fallback Cache static Future<List<Member>> fetchMembers() async {   try {     // 1. Tarik data dari Supabase     final rows = await _client.from('members').select('...');          // 2. Ubah path gambar jadi URL publik     final data = rows.map((item) {       final path = item['profile_image_path'];       item['image_url'] = path.isNotEmpty            ? _client.storage.from('eclipseverse-media').getPublicUrl(path)            : null;       return item;     }).toList();     // 3. Simpan ke SQLite lokal     await LocalDb.saveMembers(data);           return data.map(Member.fromJson).toList();   } catch (_) {     // 4. Kalau internet mati, ambil dari SQLite     final cached = await LocalDb.getMembers();     return cached.map(Member.fromJson).toList();   } }` |
+| :---- |
+
+File ini bertindak sebagai komunikasi antara aplikasi flutter dengan Supabase sekaligus menerapkan arsitektur Offline-First. Ketika aplikasi terhubung ke internet, fungsi fetchMembers akan menarik seluruh data member beserta jalur penyimpanan gambar profil\_image\_path dari tabel members. Gambar akan diproses menjadi Public URL menggunakan layanan Supabase Storage supaya dapat ditampilkan di aplikasi. Lalu data akan disimpan ke dalam database local melalui perintah LocalDb.saveMembers(data), jika aplikasi dibuka tanpa internet maka blok catch akan menangkap error dan segara mengambil data cadangan dari SQLite.
+
+**Potongan kode lib/features/fandom/fandom\_page.dart**
+
+| `// Logika Filter Gabungan (Tim & Pencarian) List<Member> get _filtered {   final q = _search.text.trim().toLowerCase();   return _all.where((m) {     // 1. Cek apakah tim cocok     final matchFilter = _teamFilter == 'Semua' || m.team.toLowerCase() == _teamFilter.toLowerCase();          // 2. Cek apakah nama/posisi mengandung kata kunci pencarian     final matchSearch = q.isEmpty || m.stageName.toLowerCase().contains(q) || m.position.toLowerCase().contains(q);     // Harus lolos KEDUA syarat (Tim DAN Pencarian)     return matchFilter && matchSearch;    }).toList(); }` |
+| :---- |
+
+File ini mengatur seluruh antarmuka pengguna untuk halaman member, menyajikan data dalam bentuk grid yang responsif. Sistem filter berbasis real-time dan multi-kriteria. Melalui variabel \_filtered pengguna dapat melakukan pencarian dengan tombol filter posisi member dalam band dan pencarian menggunakan kolom pencarian. Hasil dari filter dan pencarian akan selalu spesifik dan relevan. 
+
+**Potongan kode lib/features/fandom/member\_detail\_page\_dart**
+
+| `// Menampilkan Foto Profil dengan Fallback Inisial CircleAvatar(   radius: 56,   backgroundColor: memberColor(m.id), // Warna dinamis berdasar ID   backgroundImage: m.imageUrl != null && m.imageUrl!.isNotEmpty       ? NetworkImage(m.imageUrl!)       : null,   // Kalau gambar gagal diload / kosong, munculin huruf depan nama   child: m.imageUrl == null || m.imageUrl!.isEmpty       ? Text(m.initial, style: TextStyle(fontSize: 48))       : null, )` |
+| :---- |
+
+File ini dirancang untuk menyajikan informasi member secara lengkap ketika pengguna mengklik salah satu kartu. Komponen CircleAvatar dilengkapi dengan logika pengkondisian jika imageUrl bernilai kosong atau gagal memuat maka akan ditampilkan lingkaran dengan inisial member untuk mencegah crash dan memastikan konsistensi desain.
+
 8. ## Event List {#event-list}
+
+**Potongan kode lib/features/event/event\_model.dart**
+
+| `bool get isPast => eventDate.isBefore(DateTime.now().toUtc()); factory Event.fromJson(Map<String, dynamic> j) => Event(       id: toInt(j['id']),       title: '${j['title'] ?? ''}',       // ...       eventDate: parseUtc(j['event_date']),     );` |
+| :---- |
+
+File ini mendefinisikan struktur objek Event dan bertugas mengubah data JSON dari Supabase menjadi format yang bisa dibaca Flutter. Di dalamnya terdapat logika penting untuk menentukan status suatu event berdasarkan waktu saat ini. Properti isPast akan mengecek apakah tanggal event (yang berformat UTC) sudah melewati waktu sekarang atau belum, yang nantinya dipakai untuk mengubah warna kartu di UI.
+
+**Potongan kode lib/features/event/event\_serve.dart**
+
+| `static Future<List<Event>> fetchEvents() async {   final rows = await _client       .from('events')       .select('id,title,description,event_date,venue,city,latitude,longitude,status')       .neq('status', 'draft')       .order('event_date')       .limit(100)       .timeout(const Duration(seconds: 12));   return rows.map((row) => Event.fromJson(Map<String, dynamic>.from(row))).toList(); }` |
+| :---- |
+
+File ini berfungsi sebagai jembatan komunikasi antara aplikasi dengan database Supabase. Fungsi utamanya adalah menarik daftar event yang statusnya bukan "draft" dan mengurutkannya dari tanggal terdekat. File ini juga dilengkapi dengan timeout agar aplikasi tidak menunggu terlalu lama jika koneksi internet terputus.  
+**Potongan kode lib/features/event/event\_page.dart**
+
+| `final isPast = e.isPast; final cardColor = isPast     ? Colors.grey.shade900.withValues(alpha: 0.5) // Warna pudar jika lewat     : AppTheme.surfaceElevated; // ... Text(   isPast ? 'EVENT BERAKHIR' : 'MENDATANG',   style: TextStyle(color: isPast ? Colors.grey : AppTheme.coronaGold), )` |
+| :---- |
+
+File ini mengatur tampilan daftar event (UI). Logika utama yang menarik di sini adalah penggunaan ternary operator untuk mengubah warna kartu secara dinamis. Jika event sudah lewat (isPast bernilai true), maka warna kartu akan berubah menjadi abu-abu gelap dan teksnya berubah menjadi "EVENT BERAKHIR". Jika belum, kartu akan tampil dengan warna tema normal.
+
+**Potongan kode lib/features/event/event\_detail\_page.dart**
+
+| `// Konversi Zona Waktu final convertedTime = TimeService.at(e.eventDate, _selectedTzName); Text(   DateFormat('EEEE, dd MMMM yyyy · HH:mm').format(convertedTime),   // ... ) // Tombol Pengingat onPressed: e.isPast ? null : () => _toggleReminder(e), // ... final ok = await NotificationService.scheduleEventReminder(e);` |
+| :---- |
+
+File ini menampilkan detail event, salah satunya fitur konversi zona waktu. Aplikasi memanggil TimeService.at untuk mengubah waktu UTC dari database menjadi waktu lokal sesuai pilihan pengguna (misal WIB atau London). Di bagian bawah, terdapat tombol yang memanggil NotificationService.scheduleEventReminder untuk menjadwalkan notifikasi lokal sebelum acara dimulai.
 
 9. ## Eclipse Tools: Konversi Kurs {#eclipse-tools:-konversi-kurs}
 
+**Potongan Kode lib/features/tools/currency\_service.dart**
+
+| `// Mengambil data API dan menyimpannya ke cache lokal final response = await http.get(Uri.parse(_apiUrl)).timeout(const Duration(seconds: 8)); // ... await LocalDb.setPref(_cacheKey, jsonEncode(result.toJson())); // Logika fallback jika internet mati catch (error) {   final cached = await LocalDb.getPref(_cacheKey);   if (cached != null) {     // Kembalikan data dari cache     return CurrencyRates.fromJson(Map<String, dynamic>.from(jsonDecode(cached) as Map));   }   rethrow; }` |
+| :---- |
+
+File ini bertanggung jawab untuk mengambil data kurs mata uang terbaru dari API eksternal (open.er-api.com) dan menyimpannya ke dalam penyimpanan lokal (SQLite) sebagai cadangan. Jika pengguna sedang offline atau API gagal diakses, fungsi catch akan otomatis mengambil data kurs terakhir yang tersimpan di HP agar aplikasi tetap bisa digunakan. File ini juga menyediakan fungsi convert untuk menghitung nilai tukar antar mata uang.
+
+**Potongan Kode lib/features/tools/currency\_tab.dart**
+
+| `// Melakukan kalkulasi konversi saat pengguna mengetik nominal if (v != null)   for (final c in CurrencyService.codes.where((c) => c != _from))     Card(       child: ListTile(         title: Text(c),         trailing: Text(           CurrencyService.format(c, rates.convert(v, _from, c)),         ),       ),     ),` |
+| :---- |
+
+File ini menyediakan tampilan antarmuka bagi pengguna untuk memasukkan nominal uang dan memilih mata uang asal. Melalui dropdown dan text field, aplikasi akan secara real-time mengalkulasi dan menampilkan hasil konversi ke mata uang lainnya (IDR, USD, KRW, JPY) menggunakan fungsi rates.convert yang sudah disiapkan di service. Halaman ini juga menampilkan informasi kapan terakhir data kurs diperbarui.
+
+**Potongan Kode lib/features/marketplace/product\_detail\_sheet.dart**
+
+| `// Mengambil data kurs saat inisialisasi Future<void> _fetchRates() async {   final rates = await CurrencyService.fetchRates();   if (mounted) setState(() => _currencyRates = rates); } // Logika konversi harga produk if (_currencyRates != null) {   convertedPrice = _currencyRates!.convert(     totalPriceIDR.toDouble(), 'IDR', _selectedCurrency,   ); }` |
+| :---- |
+
+Pada file ini, fitur konversi mata uang diintegrasikan langsung ke dalam Bottom Sheet detail produk. Saat produk ditampilkan, aplikasi memanggil CurrencyService.fetchRates() di latar belakang. Jika data kurs sudah siap, harga produk (yang aslinya dalam IDR) akan dikonversi secara dinamis ke mata uang yang dipilih oleh pengguna (IDR, USD, KRW, atau JPY) saat tombol mata uang di-klik.
+
+**Potongan Kode lib/features/tools/tools\_page.dart**
+
+| `// Membuat TabBar untuk navigasi antar fitur bottom: TabBar(   controller: _tc,   tabs: const [Tab(text: 'Kurs'), Tab(text: 'Waktu')], ), // Menampilkan halaman sesuai tab yang dipilih body: TabBarView(   controller: _tc,   children: const [CurrencyTab(), TimeTab()], ),` |
+| :---- |
+
+File ini berfungsi sebagai wadah utama (kerangka) untuk menggabungkan beberapa fitur utilitas, yaitu Kurs dan Waktu. Menggunakan TabBar dan TabBarView bawaan Flutter, pengguna dapat berpindah antar fitur dengan mudah. Halaman ini juga mendukung parameter initialTab sehingga aplikasi bisa langsung membuka tab "Kurs" atau "Waktu" secara spesifik jika diakses dari shortcut halaman lain.
+
 10. ## Eclipse Tools: Konversi Waktu {#eclipse-tools:-konversi-waktu}
 
+**Potongan Kode lib/features/tools/tools\_page.dart**
+
+| `// Membuat TabBar untuk navigasi antar fitur bottom: TabBar(   controller: _tc,   tabs: const [Tab(text: 'Kurs'), Tab(text: 'Waktu')], ), // Menampilkan halaman sesuai tab yang dipilih body: TabBarView(   controller: _tc,   children: const [CurrencyTab(), TimeTab()], ),` |
+| :---- |
+
+File ini berfungsi sebagai wadah (kerangka) yang menyatukan fitur Kurs dan Waktu dalam satu halaman menggunakan TabBar. Dengan antarmuka berbasis tab ini, pengguna dapat dengan mudah berpindah antara fitur konversi mata uang dan konversi waktu. Halaman ini juga mendukung parameter initialTab untuk membuka tab tertentu secara langsung jika diakses dari shortcut halaman lain.
+
+**Potongan Kode lib/features/tools/time\_service.dart**
+
+| `// Konversi waktu UTC ke zona pilihan dengan pengaman (fallback ke WIB) static tz.TZDateTime at(DateTime utc, String zone) {   _ensure();   try {     return tz.TZDateTime.from(utc, tz.getLocation(zone));   } catch (e) {     return tz.TZDateTime.from(utc, tz.getLocation('Asia/Jakarta'));   } } // Daftar zona waktu wajib static const requiredZones = [wib, wita, wit, london, japan, singapore, malaysia, thailand];` |
+| :---- |
+
+File ini bertugas sebagai mesin utama untuk menangani segala hal terkait konversi waktu menggunakan package timezone. Di dalamnya didefinisikan daftar zona waktu yang diwajibkan (WIB, WITA, WIT, London, Jepang, Singapura, Malaysia, Thailand, dan Seoul). Fungsi utamanya adalah at() yang mengubah waktu berformat UTC dari database menjadi waktu lokal sesuai zona yang dipilih. File ini juga dilengkapi dengan blok try-catch untuk mencegah aplikasi crash jika terjadi kegagalan saat memuat data zona waktu tertentu.
+
+**Potongan Kode lib/features/tools/time\_tab.dart**
+
+| `// Menghitung hasil konversi (dari event atau input manual) Map<String, tz.TZDateTime>? _result() {   if (_mode == 0) { // Mode dari event     final hit = _events.where((e) => e.id == _eventId);     if (hit.isEmpty) return null;     return TimeService.convertAll(hit.first.eventDate);   }   // Mode manual: Konversi input user ke UTC lalu sebarkan ke zona lain   final utc = TimeService.toUtc(_date.year, _date.month, _date.day, _time.hour, _time.minute, _origin.tzName);   return TimeService.convertAll(utc); }` |
+| :---- |
+
+File ini menyediakan antarmuka (UI) bagi pengguna untuk mengonversi waktu, baik yang diambil langsung dari jadwal event maupun secara manual. Pengguna dapat memilih mode "Dari Event" atau "Manual". Jika memilih manual, pengguna bisa memasukkan tanggal, jam, dan memilih zona asal melalui dropdown. Aplikasi kemudian akan memproses input tersebut melalui TimeService.toUtc dan menampilkan hasil konversinya ke seluruh zona waktu yang tersedia dalam bentuk daftar kartu.
+
+**Potongan Kode lib/features/event/event\_detail\_page.dart**
+
+| `// Mengubah waktu event sesuai zona yang dipilih user final convertedTime = TimeService.at(e.eventDate, _selectedTzName); // Menampilkan hasil konversi Text(   DateFormat('EEEE, dd MMMM yyyy · HH:mm').format(convertedTime),   style: const TextStyle(color: AppTheme.coronaGold, fontSize: 16, fontWeight: FontWeight.bold), )` |
+| :---- |
+
+Pada halaman detail event, fitur konversi waktu diintegrasikan secara langsung. Pengguna dapat melihat jadwal acara dalam zona waktu lokal mereka (default WIB) dan dapat menggantinya dengan mengetuk chip zona waktu lain (seperti London atau Tokyo). Waktu yang ditampilkan akan berubah secara instan berkat fungsi TimeService.at yang dipanggil setiap kali pengguna mengganti pilihan zona waktu.
+
 11. ## Profil dan Biometric {#profil-dan-biometric}
+
+**Potongan Kode lib/features/profile/profile\_page.dart**
+
+| `// Membuat nama file unik dengan timestamp final storagePath = 'avatars/${user.id}/profile_${DateTime.now().millisecondsSinceEpoch}$ext'; // Upload file baru await client.storage.from('eclipseverse-media').upload(storagePath, savedFile, ...); // Hapus foto lama dari storage if (oldPath != null && oldPath.isNotEmpty && oldPath != storagePath) {   await client.storage.from('eclipseverse-media').remove([oldPath]); } // Buang cache gambar lama dari memori HP await NetworkImage(_avatarPath!).evict();` |
+| :---- |
+
+File ini mengatur seluruh antarmuka halaman Profil, termasuk pengambilan data pengguna, pengecekan status membership, dan pengelolaan foto profil. Perbaikan utama pada versi ini terletak pada fungsi \_pickPhoto. Ketika pengguna memilih foto baru, aplikasi tidak lagi menggunakan nama file yang sama (profile.jpg), melainkan membuat nama file yang unik dengan menambahkan timestamp (profile\_123456789.jpg). Hal ini dilakukan untuk menghindari masalah cache yang sering terjadi pada CDN Supabase atau Flutter, sehingga foto baru dapat langsung muncul tanpa perlu hot reload. Selain itu, aplikasi secara otomatis menghapus foto lama dari Supabase Storage setelah foto baru berhasil diunggah, dan membuang cache gambar lama dari memori (menggunakan .evict()) agar tidak terjadi tumpang tindih.
+
+| `// Menampilkan loading di dalam avatar saat upload child: _isUploadingPhoto     ? const Center(child: CircularProgressIndicator(color: Colors.white))     : (_avatarPath != null ? ... : _buildInitial()), // Mengirim sinyal ke halaman lain bahwa profil telah diupdate profileUpdateNotifier.value++;` |
+| :---- |
+
+Selain itu, ditambahkan juga ValueNotifier (profileUpdateNotifier) yang berfungsi sebagai sinyal global. Ketika foto profil berhasil diubah, nilai notifier ini akan bertambah. Ini memungkinkan halaman lain (seperti Home) untuk mendengarkan perubahan tersebut dan otomatis memperbarui tampilan foto profil di sana tanpa perlu memuat ulang seluruh aplikasi. Terakhir, untuk memberikan pengalaman pengguna yang lebih baik, ditambahkan indikator loading (\_isUploadingPhoto) berupa CircularProgressIndicator di dalam avatar saat proses unggah foto sedang berlangsung.
+
+**Potongan Kode lib/features/profile/biometric\_service.dart**
+
+| `// Mengecek apakah HP mendukung biometrik dan sudah didaftarkan static Future<bool> isSupported() async {   try {     final deviceOk = await _auth.isDeviceSupported();     if (!deviceOk) return false;     final enrolled = await _auth.getAvailableBiometrics();     return enrolled.isNotEmpty;   } catch (_) {     return false;   } } // Memunculkan pop-up verifikasi sidik jari static Future<bool> authenticate() async {   try {     return await _auth.authenticate(       localizedReason: 'Verifikasi untuk membuka EclipseVerse',     );   } catch (_) {     return false; // Gagal atau dibatalkan   } }` |
+| :---- |
+
+File ini berfungsi sebagai pembungkus (wrapper) untuk package local\_auth, yang memungkinkan aplikasi untuk berinteraksi dengan sensor biometrik (sidik jari atau pengenalan wajah) yang ada di perangkat pengguna. Layanan ini tidak menyimpan data biometrik apa pun; ia hanya meminta sistem operasi (OS) Android untuk melakukan verifikasi dan mengembalikan nilai boolean (berhasil atau gagal).
+
+Terdapat dua fungsi utama di dalamnya. Fungsi isSupported() digunakan untuk mengecek apakah perangkat pengguna mendukung fitur biometrik dan apakah pengguna sudah mendaftarkan sidik jarinya di pengaturan HP. Fungsi ini akan mengembalikan nilai false jika perangkat tidak mendukung atau terjadi error. Sementara itu, fungsi authenticate() memicu pop-up verifikasi sidik jari di layar pengguna. Jika pengguna berhasil memverifikasi sidik jarinya, fungsi ini mengembalikan nilai true; jika gagal atau dibatalkan, akan mengembalikan false. Blok try-catch digunakan untuk mencegah aplikasi crash jika terjadi kendala teknis pada sensor.
 
 12. ## Saran & Kesan {#saran-&-kesan}
 
@@ -934,36 +1117,37 @@ Untuk mengakomodasi berbagai ukuran layar HP, komponen UI (terutama yang berisi 
 
 **Potongan Kode lib/features/ai/ai\_page.dart**
 
-Manajemen Konteks Percakapan (Conversational Memory) 
+Peningkatan Antarmuka Pengguna (Empty State Dashboard) 
 
-| `Future<void> _sendMessage() async {   final text = _textController.text.trim();   if (text.isEmpty) return;   // 1. Ambil pesan sebelumnya (abaikan pesan error)   final previousMessages = _messages.where((msg) => msg['isError'] != true).toList();      // 2. Batasi hanya 10 pesan terakhir (mencegah payload terlalu besar)   final history = previousMessages       .skip(previousMessages.length > 10 ? previousMessages.length - 10 : 0)       .map((msg) => <String, String>{             'role': msg['isUser'] == true ? 'user' : 'assistant',             'text': msg['text']?.toString() ?? '',           })       .toList();   setState(() {     _messages.add({'text': text, 'isUser': true});     _isLoading = true;   });   _textController.clear();   _scrollToBottom();   try {     // 3. Kirim pesan beserta riwayatnya ke service     final reply = await AiService.kirimPesan(text, history: history);     setState(() {       _messages.add({'text': reply, 'isUser': false});     });   } catch (e) {     // ... (handle error)   } }`  |
+| `Future<void> _loadLandingInfo() async {   try {     // Mengambil data Membership dan GameScore secara paralel     final results = await Future.wait<dynamic>([       MembershipService.currentMembership(),       GameService.getBestScore(),     ]);     if (!mounted) return;          final membership = results[0] as Map<String, dynamic>?;     final isActive = await MembershipService.isActive();          setState(() {       _membershipLabel = isActive ? 'Member Aktif' : 'Belum menjadi member';       _bestScore = results[1] as int? ?? 0;     });   } catch (_) {     if (mounted) setState(() => _membershipLabel = 'Status belum tersedia');   } }`  |
 | :---- |
 
-Fitur Eclipse AI memungkinkan pengguna untuk berinteraksi dengan asisten virtual. Modul ini terbagi menjadi dua lapisan, yaitu antarmuka (UI) di ai\_page.dart dan lapisan layanan API di ai\_service.dart. Sistem menerapkan teknik Conversational Memory agar AI dapat memahami konteks percakapan, bukan hanya sekadar menjawab pertanyaan secara terpisah. 
+Modul Eclipse AI memungkinkan pengguna berinteraksi dengan asisten virtual (LLM) menggunakan bahasa natural. Pada revisi ini, antarmuka pengguna (UI) telah ditingkatkan secara signifikan dengan menambahkan Empty State Dashboard dan fitur Rich Text Rendering (Markdown) pada chat bubble. 
 
-Aplikasi mengambil 10 pesan terakhir dari daftar chat untuk dijadikan sebagai history (riwayat). Pesan-pesan error dibuang dari riwayat. Riwayat ini diubah formatnya menjadi `{'role': 'user'/'assistant', 'text': '...'}` agar bisa dipahami oleh model AI (Groq). Dengan cara ini, jika user bertanya “Siapa nama leader-nya?” lalu “Apa fun fact dia?”, AI akan tahu kata “dia” merujuk pada leader tersebut. 
+Sebelum pengguna mengirim pesan pertama, aplikasi tidak lagi menampilkan layar kosong. Aplikasi kini menampilkan Empty State yang berisi informasi ringkas namun krusial. Terdapat dua kartu informasi utama, yaitu Status Membership dan Skor Tertinggi (Best Score). Data ini diambil secara paralel (bersamaan) menggunakan Future.wait agar halaman dapat dimuat dengan cepat. 
 
-Fungsi skip() digunakan untuk memotong array. Jika pesannya sudah lebih dari 10, maka 10 pesan terakhir yang akan diambil. Ini adalah praktik best-practice untuk menghemat penggunaan token (biaya API) dan mencegah error karena payload terlalu besar. 
+Integrasi Rich Text Rendering (Markdown) 
 
-Fungsi kirimPesan juga memiliki batas waktu (.timeout(Duration(seconds: 28))). Jika internet putus, ia akan menangkap TimeoutException. UI akan menampilkan Bubble merah bertuliskan “Coba Lagi”, dan pengguna bisa menekan tombol itu untuk mengirim ulang pesan tanpa harus mengetik ulang. 
-
-Manajemen UI dan Auto-Scroll 
-
-| `void _scrollToBottom() {   // addPostFrameCallback memastikan UI selesai di-render dulu   WidgetsBinding.instance.addPostFrameCallback((_) {     if (_scrollController.hasClients) {       _scrollController.animateTo(         _scrollController.position.maxScrollExtent,         duration: const Duration(milliseconds: 300),         curve: Curves.easeOut,       );     }   }); }`  |
+| `// Logika pada _buildChatBubble if (isUser || isError)   // Pesan user dan error tetap pakai Text biasa   Text(msg['text'] as String, ...)  else   // Pesan dari AI menggunakan MarkdownBody   MarkdownBody(     data: msg['text'] as String,     selectable: true,     styleSheet: MarkdownStyleSheet(       p: AppTheme.textTheme.bodyLarge?.copyWith(         color: AppTheme.textPrimary,          height: 1.4       ),     ),   ),`  |
 | :---- |
 
-Tampilan chat menggunakan ListView.builder agar performa tetap ringan meskipun ada banyak pesan. Setiap kali ada pesan baru, aplikasi otomatis men-scroll ke bawah menggunakan ScrollController yang dibungkus dengan addPostFrameCallback (memastikan UI sudah selesai di-render sebelum scroll dijalankan). 
+Model LLM (Llama-3) seringkali mengembalikan jawaban dengan format Markdown (seperti teks tebal \*\*, list dengan \-, atau blok kode). Jika dirender menggunakan widget Text biasa, simbol-simbol tersebut akan terlihat kotor. Oleh karena itu, untuk Chat Bubble milik AI, digunakan package flutter\_markdown (MarkdownBody) agar teks dapat diformat dengan rapi. 
+
+Penanganan Error Asli (Defensive Programming) 
+
+| `} catch (e) {   setState(() {     _messages.add({       'text': 'Error: $e', // Menampilkan pesan error sesungguhnya       'isUser': false,        'isError': true     });   }); }` |
+| :---- |
+
+Pada blok catch, aplikasi menangkap Exception dan menampilkannya secara eksplisit di dalam Chat Bubble (teks berwarna merah). Ini sangat membantu saat tahap debugging. Selain itu, terdapat tombol "Coba Lagi" yang secara cerdas menghapus pesan error terakhir dari list dan otomatis mengirim ulang pesan terakhir yang gagal. 
 
 **Potongan Kode lib/features/ai/ai\_service.dart** 
 
-Komunikasi API dan Penanganan Error Terpusat 
+Komunikasi API Terpusat 
 
-| `class AiService {   static final _client = Supabase.instance.client;   static Future<String> kirimPesan(     String pesan, {     List<Map<String, String>> history = const [],   }) async {     try {       // Memanggil Edge Function 'eclipse-ai' di Supabase       final response = await _client.functions           .invoke('eclipse-ai', body: {             'message': pesan,              'history': history // Mengirim riwayat chat           })           .timeout(const Duration(seconds: 28)); // Batas waktu 28 detik                  if (response.status < 200 || response.status >= 300) {         throw Exception('Eclipse AI belum dapat menjawab. Coba lagi nanti.');       }              final body = response.data;       if (body is Map && body['reply'] is String) {         return (body['reply'] as String).trim();       }       throw Exception('Format jawaban Eclipse AI tidak valid.');            } on FunctionException catch (e) {       throw Exception(e.details?.toString() ?? 'Eclipse AI sementara tidak tersedia.');     } on AuthException {       throw Exception('Sesi login tidak valid. Silakan login kembali.');     } catch (e) {       if (e.toString().contains('TimeoutException')) {         throw Exception('Eclipse AI terlalu lama merespons. Coba lagi.');       }       rethrow;     }   } }` |
+| `class AiService {   static final _client = Supabase.instance.client;   static Future<String> kirimPesan(String pesan) async {     final prompt = pesan.trim();     if (prompt.isEmpty) throw Exception('Pesan tidak boleh kosong.');          try {       // Memanggil Edge Function       final response = await _client.functions           .invoke('eclipse-ai', body: {'message': prompt})           .timeout(const Duration(seconds: 28));                  if (response.status < 200 || response.status >= 300) {         throw Exception('Eclipse AI belum dapat menjawab.');       }              final body = response.data;       if (body is Map && body['reply'] is String) {         return (body['reply'] as String).trim();       }       throw Exception('Format jawaban tidak valid.');            } on FunctionException catch (e) {       throw Exception(e.details?.toString() ?? 'AI sementara tidak tersedia.');     } on AuthException {       throw Exception('Sesi login tidak valid.');     } catch (e) {       if (e.toString().contains('TimeoutException')) {         throw Exception('Eclipse AI terlalu lama merespons.');       }       rethrow;     }   } }`  |
 | :---- |
 
-Lapisan service bertindak sebagai jembatan antara Flutter dan Supabase Edge Function. Ia menggunakan method invoke() dari Supabase. Lapisan ini juga dilengkapi dengan Exception Handling yang spesifik, membedakan antara error timeout, error autentikasi (sesi habis), dan error dari server AI. 
-
-Blok catch di atas membedah error berdasarkan tipenya. Jika koneksi lambat (TimeoutException), user diberi pesan “Eclipse AI terlalu lama merespons. Coba Lagi”. Jika sesinya expired (AuthException), user akan diminta untuk login ulang. 
+Lapisan service memanggil Supabase Edge Function (eclipse-ai). Terdapat validasi ganda, yaitu memastikan prompt tidak kosong, serta memastikan respons dari server memiliki struktur JSON yang sesuai. Fitur .timeout(28 detik) ditambahkan agar aplikasi tidak menunggu selamanya jika server AI sedang down. 
 
 **Potongan Kode backend/api/ai/chat.php** 
 
@@ -998,27 +1182,28 @@ Fungsi distanceKm mengembalikan nilai double (jarak dalam km). Fungsi getDirecti
 
 **Potongan Kode lib/features/nearby/compass\_widget.dart** 
 
-| `// Membaca stream data dari sensor kompas HP _subscription = FlutterCompass.events?.listen((event) {   if (mounted) {     setState(() {       _heading = event.heading; // Menyimpan derajat arah (0-360)     });   } }); // Di dalam UI (merotasi jarum kompas) AnimatedRotation(   // Diberi minus (-) karena putaran jarum kompas berlawanan dengan putaran HP   turns: -(_heading! / 360),    duration: const Duration(milliseconds: 120),   curve: Curves.easeOut,   child: Icon(Icons.navigation, color: Colors.red), // Jarum penunjuk )` |
+| `// 1. Mendapatkan arah hadap HP (Heading) dari sensor _subscription = FlutterCompass.events?.listen((event) {   setState(() { _headingDegrees = event.heading; }); }); // 2. Menghitung selisih arah (Relative Bearing) final relative = (bearing - _headingDegrees! + 360) % 360; // 3. Merotasi ikon navigasi sesuai selisih arah Transform.rotate(   angle: relative * math.pi / 180,   child: const Icon(Icons.navigation, color: AppTheme.coolCyan), )`  |
 | :---- |
 
-Untuk membaca arah hadap perangkat, digunakan package flutter\_compass. Data heading (derajat 0-360) yang diterima dari sensor Magnetometer HP akan memutar widget kompas secara halus menggunakan AnimatedRotation. 
+Aplikasi menghitung selisih sudut antara arah hadap HP (sensor kompas) dengan arah tujuan event (Bearing). Nilai selisih ini digunakan untuk merotasi ikon panah navigasi secara real-time. Kompas juga ditampilkan secara melayang (floating) di pojok kanan atas peta. 
 
-**Potongan Kode lib/features/nearby/nearby\_map\_page.dart** 
+**Potongan Kode lib/features/nearby/nearby\_page.dart dan nearby\_map\_page.dart** 
 
-| `// 1. Request ke API OSRM (Format: lon,lat;lon,lat) final uri = Uri.parse(   'https://router.project-osrm.org/route/v1/driving/'   '${widget.userLon},${widget.userLat};'   '${event.longitude},${event.latitude}'   '?overview=full&geometries=geojson', ); final response = await http.get(uri); final body = jsonDecode(response.body); final coordinates = body['routes'][0]['geometry']['coordinates'] as List; // 2. Konversi koordinat ke format LatLng peta final points = coordinates.map((pair) {   return LatLng((pair[1] as num).toDouble(), (pair[0] as num).toDouble()); }).toList(); // 3. Gambar garis rute di peta PolylineLayer(   polylines: [     Polyline(points: points, strokeWidth: 5, color: AppTheme.eclipseViolet)   ], )`  |
+Integrasi Peta Interaktif (FlutterMap) dan Rute (OSRM API) 
+
+| `// 1. Memanggil API OSRM untuk mendapatkan rute final uri = Uri.parse('https://router.project-osrm.org/route/v1/driving/${pos.longitude},${pos.latitude};${event.longitude},${event.latitude}?overview=full&geometries=geojson'); final response = await http.get(uri); // 2. Menggambar garis rute di peta if (_routePoints.length > 1)   PolylineLayer(     polylines: [Polyline(points: _routePoints, strokeWidth: 5, color: AppTheme.eclipseViolet)],   ), // 3. Auto-zoom peta agar muat seluruh garis rute if (points.length > 1) {   _mapController.fitCamera(     CameraFit.coordinates(coordinates: points, padding: const EdgeInsets.all(48)),   ); }`  |
 | :---- |
 
-Pada halaman Peta (NearbyMapPage), aplikasi tidak hanya menampilkan titik. Aplikasi memanggil API gratis OSRM (Open Source Routing Machine) untuk mendapatkan rute jalan raya. Data yang dikembalikan berformat GeoJSON, yang berisi array of coordinates. Array ini di-parsing menjadi garis (Polyline) di atas peta. 
+Halaman Nearby kini langsung menampilkan FlutterMap (OpenStreetMap). Ketika pengguna memilih sebuah event (baik dari kartu swipe di bawah atau marker di peta), sistem akan memanggil API OSRM untuk menggambar garis rute (Polyline) kendaraan dari posisi pengguna ke lokasi event. Peta juga otomatis melakukan zoom out (fitCamera) agar seluruh garis rute terlihat di layar. 
 
-| `// Menghitung waktu berangkat = Waktu Event - Durasi Rute - 30 Menit Buffer final estimatedDeparture = target.eventDate.toLocal()     .subtract(Duration(minutes: _routeDurationMinutes! + 30)); // Menampilkan teks saran jam berangkat final departureLabel = estimatedDeparture.isAfter(DateTime.now())     ? 'Saran berangkat: ${estimatedDeparture.hour.toString().padLeft(2, '0')}:${estimatedDeparture.minute.toString().padLeft(2, '0')} (buffer 30 menit)'     : 'Sebaiknya berangkat sekarang agar punya buffer sebelum acara.';`  |
+**Potongan Kode lib/features/nearby/nearby\_page.dart** 
+
+Daftar Event Berbentuk Kartu Swipeable (Horizontal Scroll) 
+
+| `// ListView horizontal untuk kartu event di bawah peta SizedBox(   height: 142,   child: ListView.separated(     scrollDirection: Axis.horizontal,     itemCount: _activeEvents.length,     itemBuilder: (context, index) {       final event = _activeEvents[index];       final distance = LocationService.distanceKm(..., event.latitude, event.longitude);              return Card(         child: InkWell(           onTap: () => _selectEvent(event), // Pilih event & gambar rute           child: Row(             children: [               Image.network(event.imageUrl), // Foto event               Column(                 children: [                   Text(event.title),                   Text('${distance.toStringAsFixed(1)} km dari kamu'), // Jarak                 ],               ),             ],           ),         ),       );     },   ), )` |
 | :---- |
 
-Aplikasi tidak hanya menunjukkan rute, tetapi juga memberikan saran jam berangkat. Caranya, waktu event dikurangi dengan durasi perjalanan dari API OSRM, lalu dikurangi lagi buffer waktu 30 menit untuk persiapan. Fitur ini sangat berguna agar pengguna tidak terlambat. 
-
-| `// Menghitung relative bearing (selisih arah) final relative = bearing == null || _headingDegrees == null     ? null     : (bearing - _headingDegrees! + 360) % 360; // Rumus normalisasi sudut // Di UI, rotasi ikon panah sesuai selisih arah Transform.rotate(   angle: relative * math.pi / 180,   child: const Icon(Icons.navigation, color: AppTheme.coolCyan), )` |
-| :---- |
-
-Di peta terdapat ikon navigasi (panah biru). Panah ini bisa berputar sesuai arah tujuan event. Untuk melakukannya, aplikasi menghitung selisih antara sudut arah tujuan (Bearing) dan sudut arah HP (Heading Kompas). 
+Di bagian bawah peta, terdapat deretan kartu event yang bisa digeser (swipe) ke kiri/kanan. Kartu ini diurutkan berdasarkan jarak terdekat dari pengguna. Setiap kartu menampilkan foto event, judul, kota, dan jarak spesifik (contoh: “1.5 km dari kamu”).  
 
 16. ## Mini Game dan Sensor  {#mini-game-dan-sensor}
 
@@ -1201,7 +1386,7 @@ Pengujian dilakukan dengan menguji setiap fitur berdasarkan daftar Requirement F
 | TC-10  | Konversi (RF-015/016)  | Mengonversi waktu misal 20:00 KST ke WIB dan mengonversi mata uang 100 USD ke IDR.  | Waktu menjadi 18:00 WIB, nominal IDR sesuai kurs API.  | Pass/Lulus  |
 | TC-11  | Mini Game (RF-017)  | Bermain kuis dan menggunakan sensor kemiringan HP (Accelerometer dan Gyroscope).   | Sorotan pilihan (A/B) berpindah sesuai arah miring HP (Accelerometer) dan menganggukkan HP untuk mengonfirmasi jawaban (Gyroscope).  | Pass/Lulus  |
 | TC-12  | Notifikasi (RF-018)  | Menekan tombol reminder event untuk 1 jam sebelum event dimulai.  | Notifikasi muncul di status bar HP.  | Pass/Lulus  |
-| TC-13  | Saran & Kesan (RF-019)  | Mengirim rating 6 (di luar batas 1-5) dan saran.  | Sistem menolak input (Error 422\) dan menampilkan pesan validasi.  | Pass/Lulus  |
+| TC-13  | Saran & Kesan (RF-019)  | Memberikan rating 5 bintang, mengisi kesan dan saran, lalu menekan tombol Submit.  | Data berhasil tersimpan di tabel feedback Supabase dan muncul pesan sukses.  | Pass/Lulus  |
 | TC-14  | Eclipse AI (RF-020)  | Mengirim pertanyaan, misal “Siapa nama leader Eclipse?”.  | AI akan menjawab “Solen” berdasarkan konteks dari database.  | Pass/Lulus  |
 | TC-15  | Membership (RF-023)  | Membeli paket membership dengan poin yang kurang.  | Sistem akan menolak dan muncul pesan “Poin tidak cukup”.  | Pass/Lulus  |
 
@@ -1254,7 +1439,29 @@ Berdasarkan hasil pengujian fungsional (*Blackbox Testing*) dan *User Acceptance
 
 1. ## Kesimpulan {#kesimpulan}
 
+Berdasarkan hasil perancangan, implementasi, dan pengujian aplikasi EclipseVerse sebagai Marketplace Merchandise & Fandom Hub berbasis Android, dapat ditarik beberapa kesimpulan utama sebagai berikut:
+
+    Keberhasilan Integrasi Sistem dan Arsitektur: Aplikasi EclipseVerse berhasil dibangun menggunakan Flutter sebagai framework antarmuka dan Supabase sebagai Backend-as-a-Service (BaaS). Pemisahan peran database berjalan dengan baik, di mana data master (produk, event, member), transaksi (orders), dan data user disimpan secara online di Supabase, sementara data yang bersifat spesifik perangkat (keranjang belanja dan preferensi) disimpan secara offline menggunakan SQLite. Hal ini membuat aplikasi tetap responsif dan memiliki ketahanan terhadap koneksi internet yang tidak stabil.
+
+    Implementasi Gamifikasi dan Membership yang Terintegrasi: Sistem Paid Membership berhasil diimplementasikan dengan alur yang saling terhubung (siklus tertutup). Pengguna dapat mengumpulkan poin dari mini-game (menggunakan sensor accelerometer dan gyroscope), lalu menukarkannya untuk membeli paket membership. Status membership ini kemudian berfungsi sebagai kunci akses (hak istimewa) untuk membuka kategori produk eksklusif (Collectibles) dan memberikan kuota untuk melakukan redeem (penukaran) kartu foto member.
+
+    Pemanfaatan Fitur Perangkat dan Layanan Pihak Ketiga: Aplikasi berhasil memaksimalkan fitur mobile computing, seperti penggunaan tiga sensor (akselerometer, giroskop, dan magnetometer/kompas untuk fitur Nearby LBS), kamera/galeri untuk pembaruan foto profil, serta autentikasi biometrik (sidik jari) untuk keamanan login. Selain itu, integrasi API eksternal seperti ExchangeRate-API untuk konversi mata uang dan Timezone Database untuk konversi waktu acara berjalan dengan akurat.
+
+    Antarmuka Pengguna (UI/UX) yang Adaptif: Desain antarmuka dengan tema "Cosmic" (EclipseVerse) berhasil memberikan pengalaman pengguna yang modern dan konsisten. Fitur-fitur seperti penanganan error (jaringan terputus), fallback cache (data cadangan), serta pembaruan data secara real-time antar halaman (seperti sinkronisasi status member di halaman Profil) membuat aplikasi terasa mulus dan profesional.
+
 2. ## Saran {#saran}
+
+Meskipun aplikasi EclipseVerse telah berfungsi dengan baik, terdapat beberapa hal yang dapat dikembangkan lebih lanjut untuk menyempurnakan aplikasi ini di masa mendatang:
+
+    Penggunaan Payment Gateway Nyata: Saat ini, proses pembayaran (baik untuk merchandise maupun membership) masih menggunakan sistem simulasi. Untuk pengembangan ke tahap produksi, disarankan untuk mengintegrasikan penyedia payment gateway resmi di Indonesia (seperti Midtrans atau Xendit) agar transaksi dapat diproses secara nyata dengan berbagai metode pembayaran (Virtual Account, E-Wallet, dll).
+
+    Optimalisasi Push Notification: Notifikasi saat ini sebagian besar masih bersifat lokal (berjalan di dalam perangkat). Disarankan untuk mengimplementasikan push notification jarak jauh menggunakan Firebase Cloud Messaging (FCM) atau layanan sejenis, sehingga pengguna tetap mendapatkan notifikasi terkait pengumuman event atau status pesanan meskipun aplikasi sedang tidak dibuka.
+
+    Pengembangan Sisi Admin (CMS): Saat ini, data master (produk, event, member) dikelola secara manual melalui dashboard Supabase. Sangat disarankan untuk membuat aplikasi berbasis web khusus Admin (Content Management System), sehingga pengelolaan konten, penambahan stok, dan pengaturan membership dapat dilakukan dengan lebih mudah tanpa harus menyentuh kode atau database langsung.
+
+    Peningkatan Keamanan Data: Meskipun autentikasi dan session sudah ditangani oleh Supabase, penerapan Row Level Security (RLS) yang lebih ketat pada setiap tabel harus dipastikan secara menyeluruh pada tahap deployment. Selain itu, untuk fitur kredensial biometrik, disarankan untuk tidak menyimpan password di Secure Storage, melainkan menggunakan mekanisme token refresh yang lebih aman dari sisi arsitektur keamanan.
+
+    Peningkatan Kualitas Mini-Game: Mini-game "Guess the Member" dapat terus dikembangkan dengan menambahkan variasi pertanyaan, sistem peringkat (leaderboard), serta integrasi sistem reward yang lebih kompleks agar pengguna semakin betah menghabiskan waktu di dalam aplikasi.
 
 # **DAFTAR PUSTAKA** {#daftar-pustaka}
 
