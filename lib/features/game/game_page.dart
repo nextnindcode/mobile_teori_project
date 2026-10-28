@@ -47,7 +47,7 @@ class _GamePageState extends State<GamePage> {
   }
 
   String? _imageForOption(String option) {
-    final name = option.replaceFirst(RegExp(r'^[A-D]\\.\\s*'), '').trim();
+    final name = option.replaceFirst(RegExp(r'^[A-D]\.\s*'), '').trim();
     return _memberImageUrls[name.toLowerCase()];
   }
 
@@ -69,8 +69,9 @@ class _GamePageState extends State<GamePage> {
       onMove: (direction) {
         if (!mounted || controller.questions.isEmpty || controller.isGameOver || _isAnswered) return;
         setState(() {
-          _highlightedIndex = (_highlightedIndex + direction) % 2;
-          if (_highlightedIndex < 0) _highlightedIndex = 1;
+          final optionCount = controller.currentQuestion.options.length;
+          _highlightedIndex = (_highlightedIndex + direction) % optionCount;
+          if (_highlightedIndex < 0) _highlightedIndex += optionCount;
         });
       },
       onConfirm: () {
@@ -302,16 +303,22 @@ class _GamePageState extends State<GamePage> {
           ),
           const SizedBox(height: 18),
           SizedBox(
-            height: 76,
-            child: Row(
-              children: List.generate(2, (index) {
+            height: 152,
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 8,
+              childAspectRatio: 2.35,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              children: List.generate(question.options.length, (index) {
                 final option = question.options[index];
                 final selected = option == _selectedOption;
                 final highlighted = index == _highlightedIndex && !_isAnswered;
                 final imageUrl = _imageForOption(option);
                 return Expanded(
                   child: Padding(
-                    padding: EdgeInsets.only(right: index == 0 ? 6 : 0, left: index == 1 ? 6 : 0),
+                    padding: EdgeInsets.zero,
                     child: AnimatedScale(
                       scale: highlighted ? 1.025 : 1,
                       duration: const Duration(milliseconds: 160),
