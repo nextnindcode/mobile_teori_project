@@ -582,7 +582,7 @@ class _HomePageState extends State<HomePage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(22),
-          onTap: () => _open(Routes.tools, arguments: 2),
+          onTap: () => _open(Routes.observatory),
           child: Ink(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
