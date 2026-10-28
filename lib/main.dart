@@ -26,8 +26,8 @@ import 'features/notification/notification_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Semua anggota menggunakan satu Supabase project yang sama.
-  // Tidak ada lagi ketergantungan pada XAMPP, localhost, atau IP laptop.
+  // Semua anggota menggunakan satu proyek Supabase yang sama.
+  // Aplikasi tidak lagi bergantung pada XAMPP, localhost, atau alamat IP laptop.
   await Supabase.initialize(
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.publishableKey,
