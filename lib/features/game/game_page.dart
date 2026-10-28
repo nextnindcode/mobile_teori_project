@@ -392,7 +392,7 @@ class _GamePageState extends State<GamePage> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  option.replaceFirst(RegExp(r'^[A-D]\\.\\s*'), ''),
+                                  option.replaceFirst(RegExp(r'^[A-D]\.\s*'), ''),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.start,
