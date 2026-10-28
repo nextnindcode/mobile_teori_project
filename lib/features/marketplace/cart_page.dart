@@ -189,9 +189,14 @@ class _CartPageState extends State<CartPage> {
                               _changeQuantity(id, quantity + 1);
                             }),
                           ]),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Subtotal: ${_rupiah(price * quantity)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.coronaGold),
+                          ),
                         ])),
-                        const SizedBox(width: 8),
-                        Flexible(child: Text(_rupiah(price * quantity), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.end, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.coronaGold))),
                       ]),
                     ),
                   );
