@@ -101,9 +101,9 @@ class MoonTab extends StatelessWidget {
             Text(_indonesianDate(now), style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 16),
             Row(children: [
-              Expanded(child: _stat('Penerangan', '$illumination%', Icons.brightness_6_outlined)),
+              Expanded(child: _stat(context, 'Penerangan', '$illumination%', Icons.brightness_6_outlined)),
               const SizedBox(width: 10),
-              Expanded(child: _stat('Berikutnya', nextMoonEvent, Icons.event_outlined)),
+              Expanded(child: _stat(context, 'Berikutnya', nextMoonEvent, Icons.event_outlined)),
             ]),
             const SizedBox(height: 10),
             Text('Perkiraan $nextMoonEvent sekitar $daysUntilMoonEvent hari lagi. Fase dihitung secara astronomis sebagai estimasi.', style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.5), textAlign: TextAlign.center),
@@ -156,7 +156,7 @@ class MoonTab extends StatelessWidget {
     );
   }
 
-  Widget _stat(String label, String value, IconData icon) => Container(
+  Widget _stat(BuildContext context, String label, String value, IconData icon) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(color: AppTheme.surfaceElevated, borderRadius: BorderRadius.circular(AppTheme.radius), border: Border.all(color: AppTheme.borderSubtle)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
