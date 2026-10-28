@@ -19,8 +19,7 @@ class TimeService {
   static const thailand = ZoneOption('Thailand (Bangkok)', 'Asia/Bangkok');
   static const kst = ZoneOption('KST (Seoul)', 'Asia/Seoul');
 
-  /// 8 zona wajib per requirement Master Prompt:
-  /// WIB, WITA, WIT, London, Jepang, Singapura, Malaysia, Thailand
+  /// Zona yang digunakan untuk hasil konversi (Malaysia sementara dihapus).
   static const requiredZones = [
     wib,
     wita,
