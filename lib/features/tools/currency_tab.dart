@@ -189,7 +189,6 @@ class _CurrencyTabState extends State<CurrencyTab> {
                   code: code,
                   amount: rates.convert(amount, _from, code),
                   sourceCode: _from,
-                  sourceAmount: amount,
                 ),
             ],
           )
@@ -345,7 +344,6 @@ class _CurrencyTabState extends State<CurrencyTab> {
     required String code,
     required double amount,
     required String sourceCode,
-    required double sourceAmount,
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
