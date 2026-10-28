@@ -52,15 +52,14 @@ class GameService {
   }
 
   static Future<Map<String, dynamic>> submitAnswers(
-    List<Map<String, dynamic>> answers, {
-    bool memberChallenge = false,
-  }) async {
+    List<Map<String, dynamic>> answers,
+  ) async {
     if (answers.length != questionsPerSession) {
       throw Exception('Satu sesi harus berisi tepat $questionsPerSession jawaban.');
     }
 
     final result = await _client.rpc(
-      memberChallenge ? 'submit_member_quiz_attempt' : 'submit_quiz_attempt',
+      'submit_quiz_attempt',
       params: {'p_answers': answers},
     ).timeout(const Duration(seconds: 10));
 
