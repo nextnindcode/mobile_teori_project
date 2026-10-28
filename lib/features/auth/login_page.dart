@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/offline_auth_service.dart';
+
 import '../../core/auth_service.dart';
 import '../../core/local_db.dart';
 import '../../core/routes.dart';
@@ -41,6 +43,17 @@ class _LoginPageState extends State<LoginPage> {
       if (user == null) throw Exception('Login gagal.');
 
       await AuthService.cacheUserLocally(user);
+      final cachedProfile = await LocalDb.getProfile(user.id);
+      if (cachedProfile != null) {
+        await OfflineAuthService.saveCredentials(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          userId: user.id,
+          name: cachedProfile['name']?.toString() ?? 'Pengguna',
+          profileEmail: cachedProfile['email']?.toString() ?? _emailController.text.trim(),
+        );
+      }
+      await LocalDb.setPref('offline_mode', '0');
       await SessionTimeoutService.clearBackgroundTime();
       if (!mounted) return;
 
@@ -58,11 +71,17 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
     } on AuthException catch (e) {
+      if (e.statusCode == null) {
+        final signedInOffline = await _tryOfflineLogin();
+        if (signedInOffline) return;
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message), backgroundColor: Colors.red),
       );
     } catch (e) {
+      final signedInOffline = await _tryOfflineLogin();
+      if (signedInOffline) return;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login gagal: $e'), backgroundColor: Colors.red),
@@ -70,6 +89,39 @@ class _LoginPageState extends State<LoginPage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<bool> _tryOfflineLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) return false;
+
+    final offlineProfile = await OfflineAuthService.verify(
+      email: email,
+      password: password,
+    );
+    if (offlineProfile == null) return false;
+
+    await LocalDb.saveProfile(
+      userId: offlineProfile.userId,
+      name: offlineProfile.name,
+      email: offlineProfile.email,
+    );
+    await LocalDb.setPref('active_user_id', offlineProfile.userId);
+    await LocalDb.setPref('user_role', 'user');
+    await LocalDb.setPref('offline_mode', '1');
+    await SessionTimeoutService.clearBackgroundTime();
+
+    if (!mounted) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Login offline berhasil. Fitur yang membutuhkan internet mungkin belum tersedia.',
+        ),
+      ),
+    );
+    Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);
+    return true;
   }
 
   Future<void> _loginBiometric() async {
