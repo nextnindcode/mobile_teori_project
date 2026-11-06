@@ -155,7 +155,8 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!mounted) return;
     setState(() {
       _name = '${remoteProfile?['display_name'] ?? profile?['name'] ?? ''}';
-      _email = '${user?.email ?? remoteProfile?['email'] ?? profile?['email'] ?? ''}';
+      _email =
+          '${user?.email ?? remoteProfile?['email'] ?? profile?['email'] ?? ''}';
       _avatarPath =
           remoteAvatarUrl ??
           ((avatar != null && avatar.isNotEmpty) ? avatar : null);
@@ -179,28 +180,48 @@ class _ProfilePageState extends State<ProfilePage> {
           : path.extension(x.path);
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) {
-        if (mounted) showSnack(context, 'Silakan login kembali untuk mengubah foto profil.');
+        if (mounted)
+          showSnack(
+            context,
+            'Silakan login kembali untuk mengubah foto profil.',
+          );
         return;
       }
-      final savedPath = path.join(directory, 'eclipseverse_avatar_${user.id}$extension');
+      final savedPath = path.join(
+        directory,
+        'eclipseverse_avatar_${user.id}$extension',
+      );
       final savedFile = await File(x.path).copy(savedPath);
       await LocalDb.setPref('avatar_path_${user.id}', savedFile.path);
       var displayedPath = savedFile.path;
       try {
-          final storagePath = 'avatars/${user.id}/profile${path.extension(savedFile.path)}';
-          await Supabase.instance.client.storage
-              .from('eclipseverse-media')
-              .upload(storagePath, savedFile, fileOptions: FileOptions(
+        final storagePath =
+            'avatars/${user.id}/profile${path.extension(savedFile.path)}';
+        await Supabase.instance.client.storage
+            .from('eclipseverse-media')
+            .upload(
+              storagePath,
+              savedFile,
+              fileOptions: FileOptions(
                 upsert: true,
-                contentType: path.extension(savedFile.path).toLowerCase() == '.png' ? 'image/png' : 'image/jpeg',
-              ))
-              .timeout(const Duration(seconds: 12));
-          await Supabase.instance.client
-              .from('profiles')
-              .update({'avatar_path': storagePath, 'updated_at': DateTime.now().toUtc().toIso8601String()})
-              .eq('id', user.id)
-              .timeout(const Duration(seconds: 8));
-          displayedPath = Supabase.instance.client.storage.from('eclipseverse-media').getPublicUrl(storagePath);
+                contentType:
+                    path.extension(savedFile.path).toLowerCase() == '.png'
+                    ? 'image/png'
+                    : 'image/jpeg',
+              ),
+            )
+            .timeout(const Duration(seconds: 12));
+        await Supabase.instance.client
+            .from('profiles')
+            .update({
+              'avatar_path': storagePath,
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
+            })
+            .eq('id', user.id)
+            .timeout(const Duration(seconds: 8));
+        displayedPath = Supabase.instance.client.storage
+            .from('eclipseverse-media')
+            .getPublicUrl(storagePath);
       } catch (_) {
         // Pertahankan salinan lokal khusus akun jika penyimpanan daring tidak tersedia.
       }
@@ -215,23 +236,64 @@ class _ProfilePageState extends State<ProfilePage> {
     if (on) {
       final ok = await BiometricService.authenticate();
       if (!mounted) return;
-      if (!ok) { showSnack(context, 'Verifikasi biometric gagal atau dibatalkan'); return; }
+      if (!ok) {
+        showSnack(context, 'Verifikasi biometric gagal atau dibatalkan');
+        return;
+      }
       final user = Supabase.instance.client.auth.currentUser;
       final email = user?.email?.trim() ?? '';
-      if (email.isEmpty) { showSnack(context, 'Email akun tidak tersedia. Login kembali terlebih dahulu.'); return; }
+      if (email.isEmpty) {
+        showSnack(
+          context,
+          'Email akun tidak tersedia. Login kembali terlebih dahulu.',
+        );
+        return;
+      }
       final passwordController = TextEditingController();
-      final password = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(backgroundColor: AppTheme.surfaceElevated, title: const Text('Aktifkan login biometrik'), content: TextField(controller: passwordController, obscureText: true, decoration: const InputDecoration(labelText: 'Masukkan password akun saat ini')), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')), ElevatedButton(onPressed: () => Navigator.pop(ctx, passwordController.text), child: const Text('Verifikasi'))]));
+      final password = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.surfaceElevated,
+          title: const Text('Aktifkan login biometrik'),
+          content: TextField(
+            controller: passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Masukkan password akun saat ini',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, passwordController.text),
+              child: const Text('Verifikasi'),
+            ),
+          ],
+        ),
+      );
       passwordController.dispose();
       if (password == null) return;
-      if (password.trim().isEmpty) { if (mounted) showSnack(context, 'Password tidak boleh kosong.'); return; }
+      if (password.trim().isEmpty) {
+        if (mounted) showSnack(context, 'Password tidak boleh kosong.');
+        return;
+      }
       try {
-        await Supabase.instance.client.auth.signInWithPassword(email: email, password: password);
+        await Supabase.instance.client.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
         await SecureStore.saveCredentials(email, password);
         await LocalDb.setPref('biometric_enabled', '1');
         if (mounted) setState(() => _bioEnabled = true);
         if (mounted) showSnack(context, 'Login biometrik berhasil diaktifkan.');
-      } on AuthException catch (e) { if (mounted) showSnack(context, 'Verifikasi akun gagal: ${e.message}'); }
-      catch (_) { if (mounted) showSnack(context, 'Gagal mengaktifkan login biometrik.'); }
+      } on AuthException catch (e) {
+        if (mounted) showSnack(context, 'Verifikasi akun gagal: ${e.message}');
+      } catch (_) {
+        if (mounted) showSnack(context, 'Gagal mengaktifkan login biometrik.');
+      }
     } else {
       await SecureStore.deleteCredentials();
       await LocalDb.setPref('biometric_enabled', '0');
@@ -243,9 +305,16 @@ class _ProfilePageState extends State<ProfilePage> {
     if (on) {
       try {
         final granted = await NotificationService.init();
-        if (!granted) { if (mounted) showSnack(context, 'Izin notifikasi belum diberikan.'); return; }
+        if (!granted) {
+          if (mounted) showSnack(context, 'Izin notifikasi belum diberikan.');
+          return;
+        }
       } catch (_) {
-        if (mounted) showSnack(context, 'Izin notifikasi ditolak. Aktifkan lewat Pengaturan.');
+        if (mounted)
+          showSnack(
+            context,
+            'Izin notifikasi ditolak. Aktifkan lewat Pengaturan.',
+          );
         return;
       }
     } else {
@@ -274,8 +343,14 @@ class _ProfilePageState extends State<ProfilePage> {
         title: const Text('Keluar dari EclipseVerse?'),
         content: const Text('Sesi akun di perangkat ini akan diakhiri.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Batal')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Logout')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Logout'),
+          ),
         ],
       ),
     );
@@ -285,7 +360,8 @@ class _ProfilePageState extends State<ProfilePage> {
   ImageProvider? get _avatarImage {
     final p = _avatarPath;
     if (p == null) return null;
-    if (p.startsWith('https://') || p.startsWith('http://')) return NetworkImage(p);
+    if (p.startsWith('https://') || p.startsWith('http://'))
+      return NetworkImage(p);
     final f = File(p);
     return f.existsSync() ? FileImage(f) : null;
   }
@@ -302,35 +378,179 @@ class _ProfilePageState extends State<ProfilePage> {
                 Center(
                   child: Stack(
                     children: [
-                      CircleAvatar(radius: 56, backgroundColor: AppTheme.primaryDark, backgroundImage: _avatarImage, child: _avatarImage == null ? Text(_name.isEmpty ? '?' : _name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.bold)) : null),
-                      Positioned(right: 0, bottom: 0, child: CircleAvatar(radius: 18, backgroundColor: AppTheme.primaryLight, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.photo_library, size: 18), tooltip: 'Pilih foto dari galeri', onPressed: _pickPhoto))),
+                      CircleAvatar(
+                        radius: 56,
+                        backgroundColor: AppTheme.primaryDark,
+                        backgroundImage: _avatarImage,
+                        child: _avatarImage == null
+                            ? Text(
+                                _name.isEmpty ? '?' : _name[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 44,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: AppTheme.primaryLight,
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(Icons.photo_library, size: 18),
+                            tooltip: 'Pilih foto dari galeri',
+                            onPressed: _pickPhoto,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacingMedium),
-                Text(_name, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
-                Text(_email, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge),
+                Text(
+                  _name,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                Text(
+                  _email,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
                 const SizedBox(height: AppTheme.spacingMedium),
-                Card(child: Column(children: [
-                  const Divider(height: 1),
-                  const Divider(height: 1),
-                  const Divider(height: 1),
-                  ListTile(leading: const Icon(Icons.location_on_outlined), title: const Text('Lokasi perangkat'), subtitle: Text(_locationText), trailing: _locationLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.my_location), onTap: _locationLoading ? null : _refreshLocation),
-                ])),
+                // Card Lokasi Perangkat
+                Card(
+                  child: Column(
+                    children: [
+                      const Divider(height: 1),
+                      const Divider(height: 1),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.location_on_outlined),
+                        title: const Text('Lokasi perangkat'),
+                        subtitle: Text(_locationText),
+                        trailing: _locationLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.my_location),
+                        onTap: _locationLoading ? null : _refreshLocation,
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: AppTheme.spacingMedium),
-                Card(child: Column(children: [
-                  SwitchListTile(title: const Text('Login dengan sidik jari'), subtitle: Text(_bioSupported ? 'Gunakan sidik jari saat membuka aplikasi' : 'Perangkat tidak mendukung'), value: _bioEnabled, onChanged: _bioSupported ? _toggleBiometric : null),
-                  const Divider(height: 1),
-                  SwitchListTile(title: const Text('Notifikasi'), subtitle: const Text('Pengingat event dan info pesanan'), value: _notifEnabled, onChanged: _toggleNotification),
-                ])),
+                // Card Notifikasi dan Biometrik
+                Card(
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        title: const Text('Login dengan sidik jari'),
+                        subtitle: Text(
+                          _bioSupported
+                              ? 'Gunakan sidik jari saat membuka aplikasi'
+                              : 'Perangkat tidak mendukung',
+                        ),
+                        value: _bioEnabled,
+                        onChanged: _bioSupported ? _toggleBiometric : null,
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        title: const Text('Notifikasi'),
+                        subtitle: const Text(
+                          'Pengingat event dan info pesanan',
+                        ),
+                        value: _notifEnabled,
+                        onChanged: _toggleNotification,
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: AppTheme.spacingMedium),
-                Card(child: Column(children: [
-                  ListTile(leading: Icon(Icons.workspace_premium, color: _isMember ? Colors.amber : AppTheme.primaryLight), title: Text(_isMember ? 'VIP Member Aktif' : 'Membership EclipseVerse'), subtitle: Text(_isMember ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali' : 'Akses fitur redeem kartu'), trailing: const Icon(Icons.chevron_right), onTap: () async { await Navigator.pushNamed(context, Routes.membership); _checkMembership(); _checkCardStatus(); }),
-                  ListTile(leading: Icon(Icons.style, color: _hasRedeemedCards ? Colors.amber : Colors.grey), title: Text('Koleksi Kartu', style: TextStyle(color: _hasRedeemedCards ? AppTheme.textPrimary : Colors.grey)), subtitle: Text(_hasRedeemedCards ? 'Lihat kartu yang sudah kamu kumpulkan' : 'Belum ada kartu yang diklaim', style: TextStyle(color: _hasRedeemedCards ? AppTheme.textSecondary : Colors.grey)), trailing: const Icon(Icons.chevron_right), onTap: () { if (_hasMembershipHistory || _hasRedeemedCards || _isMember) { Navigator.pushNamed(context, Routes.redeem); } else { Navigator.pushNamed(context, Routes.membership); } }),
-                ])),
+                // Card Membership dan Koleksi Kartu
+                Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Icon(
+                          Icons.workspace_premium,
+                          color: _isMember
+                              ? Colors.amber
+                              : AppTheme.primaryLight,
+                        ),
+                        title: Text(
+                          _isMember
+                              ? 'VIP Member Aktif'
+                              : 'Membership EclipseVerse',
+                        ),
+                        subtitle: Text(
+                          _isMember
+                              ? 'Sisa Kuota Redeem: ${_membershipData?['redeem_quota'] ?? 0} Kali'
+                              : 'Akses fitur redeem kartu',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () async {
+                          await Navigator.pushNamed(context, Routes.membership);
+                          if (!mounted) return;
+                          setState(() => _loading = true);
+                          _checkMembership();
+                          _checkCardStatus();
+                          if (!mounted) return;
+                          setState(() => _loading = false);
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.style,
+                          color: _hasRedeemedCards ? Colors.amber : Colors.grey,
+                        ),
+                        title: Text(
+                          'Koleksi Kartu',
+                          style: TextStyle(
+                            color: _hasRedeemedCards
+                                ? AppTheme.textPrimary
+                                : Colors.grey,
+                          ),
+                        ),
+                        subtitle: Text(
+                          _hasRedeemedCards
+                              ? 'Lihat kartu yang sudah kamu kumpulkan'
+                              : 'Belum ada kartu yang diklaim',
+                          style: TextStyle(
+                            color: _hasRedeemedCards
+                                ? AppTheme.textSecondary
+                                : Colors.grey,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          if (_hasMembershipHistory ||
+                              _hasRedeemedCards ||
+                              _isMember) {
+                            Navigator.pushNamed(context, Routes.redeem);
+                          } else {
+                            Navigator.pushNamed(context, Routes.membership);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
                 const Divider(height: 1),
                 const SizedBox(height: AppTheme.spacingMedium),
-                OutlinedButton.icon(onPressed: widget.onLogout == null ? null : _confirmLogout, icon: const Icon(Icons.logout), label: const Text('Logout')),
+                OutlinedButton.icon(
+                  onPressed: widget.onLogout == null ? null : _confirmLogout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                ),
               ],
             ),
     );

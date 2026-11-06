@@ -1,16 +1,41 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 class MembershipService {
   static final _client = Supabase.instance.client;
 
+  // static Future<bool> isActive() async {
+  //   final user = _client.auth.currentUser;
+  //   if (user == null) return false;
+  //   final row = await _client.rpc(
+  //     'has_active_membership',
+  //     params: {'p_user_id': user.id},
+  //   );
+  //   return row == true;
+  // }
+
   static Future<bool> isActive() async {
     final user = _client.auth.currentUser;
     if (user == null) return false;
-    final row = await _client.rpc(
-      'has_active_membership',
-      params: {'p_user_id': user.id},
-    );
-    return row == true;
+
+    try {
+      final rows = await _client
+          .from('user_memberships')
+          .select('redeem_quota')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .gt('expires_at', DateTime.now().toUtc().toIso8601String())
+          .limit(1);
+
+      if (rows.isEmpty) return false;
+
+      // Cek apakah kuota masih ada. Kalau 0, anggap tidak aktif.
+      final quota = (rows.first['redeem_quota'] as num?)?.toInt() ?? 0;
+      return quota > 0;
+    } catch (e) {
+      debugPrint('Error isActive: $e');
+      return false;
+    }
   }
 
   static Future<Map<String, dynamic>?> currentMembership() async {
