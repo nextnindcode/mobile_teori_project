@@ -1,4 +1,3 @@
-// import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'eclipse_card_model.dart';
 
@@ -10,7 +9,11 @@ class RedeemService {
     if (user == null) throw Exception('Silakan login terlebih dahulu.');
 
     final results = await Future.wait<dynamic>([
-      _client.from('user_points').select('total_points').eq('user_id', user.id).maybeSingle(),
+      _client
+          .from('user_points')
+          .select('total_points')
+          .eq('user_id', user.id)
+          .maybeSingle(),
       _client.from('user_cards').select('card_id').eq('user_id', user.id),
     ]);
 
@@ -32,45 +35,22 @@ class RedeemService {
         .order('points_cost')
         .timeout(const Duration(seconds: 10));
 
-    // 2. Ambil data member dari tabel 'members' (sesuai screenshot kamu)
-    final memberRows = await _client
-        .from('members')
-        .select('stage_name, profile_image_path');
-
-    // 3. Buat "Kamus" untuk mencocokkan nama member dengan URL fotonya
-    final Map<String, String> memberImages = {};
-    for (var m in memberRows) {
-      final name = m['stage_name'].toString().toLowerCase();
-      final path = m['profile_image_path']?.toString() ?? '';
-      if (path.isNotEmpty) {
-        memberImages[name] = _client.storage
-            .from('eclipseverse-media')
-            .getPublicUrl(path);
-      }
-    }
-
-    // 4. Gabungkan data
+    // 2. Proses data
     return cardRows.map((item) {
       final row = Map<String, dynamic>.from(item);
-      final cardName = row['card_name'].toString().toLowerCase();
-
-      String imageUrl = '';
-      String imageAssetPath = 'assets/members/SOLEN.jpg'; // Default fallback
-
-      // Cocokkan nama kartu dengan nama member (misal: "SCOUPS Photocard" cocok dengan "SCOUPS")
-      for (String memberName in memberImages.keys) {
-        if (cardName.contains(memberName)) {
-          imageUrl = memberImages[memberName]!;
-          imageAssetPath = 'assets/members/${memberName.toUpperCase()}.jpg';
-          print('KARTU: $cardName | URL: $imageUrl');
-          break;
-        }
-      }
-
-      // Jika kolom image_path di tabel cards ternyata ada isinya, prioritaskan itu
+      
+      // Ambil path langsung dari database (contoh isinya: "members/SCOUPS.jpg")
       final cardImagePath = row['image_path']?.toString() ?? '';
+      
+      String imageUrl = '';
+      String imageAssetPath = 'assets/members/SOLEN.jpg'; // Default fallback jika kosong
+
       if (cardImagePath.isNotEmpty) {
+        // A. URL untuk internet (Supabase Storage)
         imageUrl = _client.storage.from('eclipseverse-media').getPublicUrl(cardImagePath);
+        
+        // B. Path untuk gambar lokal (offline) -> "assets/members/SCOUPS.jpg"
+        imageAssetPath = 'assets/$cardImagePath'; 
       }
 
       return EclipseCard(
@@ -104,4 +84,4 @@ class RedeemService {
         .timeout(const Duration(seconds: 10));
     return Map<String, dynamic>.from(result as Map);
   }
-} 
+}
