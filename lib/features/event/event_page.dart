@@ -53,29 +53,6 @@ class _EventListPageState extends State<EventListPage> with RouteAware {
     _load(); // Tarik data terbaru dari Supabase
   }
 
-  // Future<void> _load() async {
-  //   setState(() {
-  //     _loading = true;
-  //     _error = null;
-  //     _events = [];
-  //   });
-  //   try {
-  //     final r = await EventService.fetchEvents();
-  //     if (!mounted) return;
-  //     setState(() {
-  //       _events = r;
-  //       _loading = false;
-  //     });
-  //   } catch (e) {
-  //     if (!mounted) return;
-  //     setState(() {
-  //      _error = e.toString().replaceAll('Exception: ', ''));
-  //      _loading = false;
-  //     });
-  //   }
-  //   // if (mounted) setState(() => _loading = false);
-  // }
-
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -98,8 +75,21 @@ class _EventListPageState extends State<EventListPage> with RouteAware {
       });
     } catch (e) {
       if (!mounted) return;
+
+      String errorMessage = 'Terjadi kesalahan sistem.';
+      final rawError = e.toString();
+
+      if (rawError.contains('TimeoutException')) {
+        errorMessage = 'Koneksi internet kamu lambat. Silakan coba lagi.';
+      } else if (rawError.contains('SocketException')) {
+        errorMessage = 'Tidak ada koneksi internet. Periksa jaringanmu.';
+      } else {
+        // Bersihkan teks "Exception: " biar lebih rapi
+        errorMessage = rawError.replaceAll('Exception: ', '');
+      }
+
       setState(() {
-        _error = e.toString().replaceAll('Exception: ', '');
+        _error = errorMessage;
         _loading = false;
         _events = [];
       });
