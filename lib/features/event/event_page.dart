@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/route_observer.dart';
 import '../../core/routes.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/cosmic_widgets.dart';
@@ -21,7 +22,7 @@ class EventListPage extends StatefulWidget {
   State<EventListPage> createState() => _EventListPageState();
 }
 
-class _EventListPageState extends State<EventListPage> {
+class _EventListPageState extends State<EventListPage> with RouteAware {
   List<Event> _events = [];
   bool _loading = true;
   String? _error;
@@ -30,6 +31,26 @@ class _EventListPageState extends State<EventListPage> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    _load(); // Tarik data terbaru dari Supabase
   }
 
   // Future<void> _load() async {
