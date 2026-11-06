@@ -54,7 +54,8 @@ class _HomePageState extends State<HomePage> {
       final position = await LocationService.getCurrentLocation();
       if (!mounted || position == null) return;
       setState(() {
-        _currentLocation = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+        _currentLocation =
+            '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
       });
     } catch (_) {
       // Home tetap bisa dipakai saat izin lokasi tidak diberikan.
@@ -150,10 +151,66 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Future<void> _loadEvents() async {
+  //   try {
+  //     final client = Supabase.instance.client;
+
+  //     final rows = await client
+  //         .from('events')
+  //         .select(
+  //           'id, title, description, event_date, venue, city, '
+  //           'latitude, longitude, poster_path',
+  //         )
+  //         .eq('status', 'scheduled')
+  //         .order('event_date')
+  //         .limit(3)
+  //         .timeout(const Duration(seconds: 8));
+
+  //     final events = (rows as List).map((row) {
+  //       final data = Map<String, dynamic>.from(row);
+  //       final rawPath = data['poster_path']?.toString().trim() ?? '';
+
+  //       if (rawPath.isNotEmpty) {
+  //         if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
+  //           data['poster_path'] = rawPath;
+  //         } else {
+  //           var normalized = rawPath.replaceFirst(RegExp(r'^/+'), '');
+
+  //           if (normalized.startsWith('eclipseverse-media/')) {
+  //             normalized = normalized.substring('eclipseverse-media/'.length);
+  //           }
+
+  //           if (!normalized.startsWith('events/')) {
+  //             normalized = 'events/${normalized.split('/').last}';
+  //           }
+
+  //           data['poster_path'] = client.storage
+  //               .from('eclipseverse-media')
+  //               .getPublicUrl(normalized);
+  //         }
+  //       }
+
+  //       return Event.fromJson(data);
+  //     }).toList();
+
+  //     if (!mounted) return;
+
+  //     setState(() {
+  //       _upcomingEvents = events;
+  //       _isLoadingEvents = false;
+  //     });
+  //   } catch (_) {
+  //     if (mounted) {
+  //       setState(() => _isLoadingEvents = false);
+  //     }
+  //   }
+  // }
+
   Future<void> _loadEvents() async {
     try {
       final client = Supabase.instance.client;
 
+      // 1. Ambil semua event scheduled (TANPA .order dan .limit)
       final rows = await client
           .from('events')
           .select(
@@ -161,11 +218,9 @@ class _HomePageState extends State<HomePage> {
             'latitude, longitude, poster_path',
           )
           .eq('status', 'scheduled')
-          .order('event_date')
-          .limit(3)
           .timeout(const Duration(seconds: 8));
 
-      final events = (rows as List).map((row) {
+      final allEvents = (rows as List).map((row) {
         final data = Map<String, dynamic>.from(row);
         final rawPath = data['poster_path']?.toString().trim() ?? '';
 
@@ -192,10 +247,22 @@ class _HomePageState extends State<HomePage> {
         return Event.fromJson(data);
       }).toList();
 
+      // 👇 2. URUTKAN BERDASARKAN YANG PALING DEKAT DENGAN HARI INI 👇
+      final now = DateTime.now().toUtc();
+
+      allEvents.sort((a, b) {
+        final diffA = a.eventDate.difference(now).inSeconds.abs();
+        final diffB = b.eventDate.difference(now).inSeconds.abs();
+        return diffA.compareTo(diffB);
+      });
+
+      // 3. Ambil 3 event teratas saja
+      final upcomingEvents = allEvents.take(3).toList();
+
       if (!mounted) return;
 
       setState(() {
-        _upcomingEvents = events;
+        _upcomingEvents = upcomingEvents;
         _isLoadingEvents = false;
       });
     } catch (_) {
@@ -347,18 +414,18 @@ class _HomePageState extends State<HomePage> {
           color: AppTheme.eclipseViolet,
           backgroundColor: AppTheme.surfaceElevated,
           child: ListView(
-          padding: const EdgeInsets.only(bottom: 36),
-          children: [
-            _buildHeroHeader(),
-            const SizedBox(height: 16),
-            _buildObservatoryShortcut(),
-            const SizedBox(height: 18),
-            _buildQuickActionGrid(),
-            const SizedBox(height: 28),
-            _buildUpcomingEventsSection(),
-            const SizedBox(height: 28),
-            _buildFeaturedProductsSection(),
-          ],
+            padding: const EdgeInsets.only(bottom: 36),
+            children: [
+              _buildHeroHeader(),
+              const SizedBox(height: 16),
+              _buildObservatoryShortcut(),
+              const SizedBox(height: 18),
+              _buildQuickActionGrid(),
+              const SizedBox(height: 28),
+              _buildUpcomingEventsSection(),
+              const SizedBox(height: 28),
+              _buildFeaturedProductsSection(),
+            ],
           ),
         ),
       ),
