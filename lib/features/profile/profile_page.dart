@@ -240,15 +240,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       final extension = path.extension(x.path).isEmpty
           ? '.jpg'
           : path.extension(x.path);
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
-        if (mounted)
-          showSnack(
-            context,
-            'Silakan login kembali untuk mengubah foto profil.',
-          );
-        return;
-      }
       final savedPath = path.join(
         directory,
         'eclipseverse_avatar_${user.id}$extension',

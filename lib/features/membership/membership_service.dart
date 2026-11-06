@@ -20,10 +20,7 @@ class MembershipService {
     if (user == null) return false;
 
     try {
-<<<<<<< HEAD
-=======
       // 1. Cek apakah punya membership yang statusnya 'active' dan belum expired
->>>>>>> 201d4da4c752e8a985d130ce6e075d97192a159e
       final rows = await _client
           .from('user_memberships')
           .select('redeem_quota')
@@ -34,15 +31,10 @@ class MembershipService {
 
       if (rows.isEmpty) return false;
 
-<<<<<<< HEAD
-      // Cek apakah kuota masih ada. Kalau 0, anggap tidak aktif.
-      final quota = (rows.first['redeem_quota'] as num?)?.toInt() ?? 0;
-=======
       // 2. Cek apakah kuotanya masih ada
       final quota = (rows.first['redeem_quota'] as num?)?.toInt() ?? 0;
 
       // Kalau kuota 0, anggap "tidak aktif" biar UI-nya berubah
->>>>>>> 201d4da4c752e8a985d130ce6e075d97192a159e
       return quota > 0;
     } catch (e) {
       debugPrint('Error isActive: $e');
