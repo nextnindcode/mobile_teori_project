@@ -336,14 +336,30 @@ class _RedeemPageState extends State<RedeemPage> {
                   children: [
                     ImageFiltered(
                       imageFilter: ImageFilter.blur(sigmaX: isOwned ? 0 : 4, sigmaY: isOwned ? 0 : 4),
-                      child: Image.network(
-                        card.imageUrl,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, progress) => progress == null
-                            ? child
-                            : Container(color: AppTheme.surfaceSecondary, child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.coolCyan))),
-                        errorBuilder: (context, error, stackTrace) => Container(color: AppTheme.surfaceSecondary, child: const Center(child: Icon(Icons.broken_image, color: AppTheme.textSecondary, size: 40))),
-                      ),
+                      child: card.imageUrl.isEmpty
+                      ? Image.asset(
+                          card.imageAssetPath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: AppTheme.surfaceSecondary,
+                            child: const Center(child: Icon(Icons.style, color: AppTheme.textSecondary, size: 40)),
+                          ),
+                        )
+                      : Image.network(
+                          card.imageUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) => progress == null
+                              ? child
+                              : Container(color: AppTheme.surfaceSecondary, child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.coolCyan))),
+                          errorBuilder: (context, error, stackTrace) => Image.asset(
+                            card.imageAssetPath, // Jika internet gagal, pakai gambar lokal
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: AppTheme.surfaceSecondary, 
+                              child: const Center(child: Icon(Icons.broken_image, color: AppTheme.textSecondary, size: 40))
+                            ),
+                          ),
+                        ),
                     ),
                     if (!isOwned)
                       Container(

@@ -1,23 +1,16 @@
-import 'package:flutter/foundation.dart';
+// import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import 'eclipse_card_model.dart';
 
 class RedeemService {
   static final _client = Supabase.instance.client;
 
-  // 1. Ambil total poin dan daftar kartu milik user
   static Future<Map<String, dynamic>> getUserStats() async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Silakan login terlebih dahulu.');
 
-    // Gunakan <dynamic> agar Future.wait tidak error saat menggabungkan Map dan List
     final results = await Future.wait<dynamic>([
-      _client
-          .from('user_points')
-          .select('total_points')
-          .eq('user_id', user.id)
-          .maybeSingle(),
+      _client.from('user_points').select('total_points').eq('user_id', user.id).maybeSingle(),
       _client.from('user_cards').select('card_id').eq('user_id', user.id),
     ]);
 
@@ -30,67 +23,84 @@ class RedeemService {
     };
   }
 
-  // 2. Ambil katalog kartu (Menggabungkan data dari tabel cards dan members)
   static Future<List<EclipseCard>> getCards() async {
+    // 1. Ambil data kartu dari tabel 'cards'
     final cardRows = await _client
         .from('cards')
-        .select('id, card_name, points_cost, is_available, image_path, members(stage_name, profile_image_path)')
+        .select('id, card_name, points_cost, is_available, image_path')
         .eq('is_available', true)
         .order('points_cost')
         .timeout(const Duration(seconds: 10));
 
-    String publicImageUrl(dynamic storagePath) {
-      final path = storagePath?.toString().trim() ?? '';
-      if (path.isEmpty) return '';
-      if (path.startsWith('https://') || path.startsWith('http://')) return path;
-      return _client.storage.from('eclipseverse-media').getPublicUrl(path);
+    // 2. Ambil data member dari tabel 'members' (sesuai screenshot kamu)
+    final memberRows = await _client
+        .from('members')
+        .select('stage_name, profile_image_path');
+
+    // 3. Buat "Kamus" untuk mencocokkan nama member dengan URL fotonya
+    final Map<String, String> memberImages = {};
+    for (var m in memberRows) {
+      final name = m['stage_name'].toString().toLowerCase();
+      final path = m['profile_image_path']?.toString() ?? '';
+      if (path.isNotEmpty) {
+        memberImages[name] = _client.storage
+            .from('eclipseverse-media')
+            .getPublicUrl(path);
+      }
     }
 
+    // 4. Gabungkan data
     return cardRows.map((item) {
       final row = Map<String, dynamic>.from(item);
-      final member = row['members'] is Map
-          ? Map<String, dynamic>.from(row['members'] as Map)
-          : <String, dynamic>{};
-      final cardImage = publicImageUrl(row['image_path']);
-      final memberImage = publicImageUrl(member['profile_image_path']);
+      final cardName = row['card_name'].toString().toLowerCase();
+
+      String imageUrl = '';
+      String imageAssetPath = 'assets/members/SOLEN.jpg'; // Default fallback
+
+      // Cocokkan nama kartu dengan nama member (misal: "SCOUPS Photocard" cocok dengan "SCOUPS")
+      for (String memberName in memberImages.keys) {
+        if (cardName.contains(memberName)) {
+          imageUrl = memberImages[memberName]!;
+          imageAssetPath = 'assets/members/${memberName.toUpperCase()}.jpg';
+          break;
+        }
+      }
+
+      // Jika kolom image_path di tabel cards ternyata ada isinya, prioritaskan itu
+      final cardImagePath = row['image_path']?.toString() ?? '';
+      if (cardImagePath.isNotEmpty) {
+        imageUrl = _client.storage.from('eclipseverse-media').getPublicUrl(cardImagePath);
+      }
 
       return EclipseCard(
         id: (row['id'] as num).toInt(),
         name: '${row['card_name'] ?? 'Photocard'}',
         cost: (row['points_cost'] as num).toInt(),
-        imageUrl: cardImage.isNotEmpty ? cardImage : memberImage,
+        imageUrl: imageUrl,
+        imageAssetPath: imageAssetPath,
       );
     }).toList();
   }
 
-  // 3. Proses tukar kartu melalui Supabase RPC
   static Future<bool> redeemCard(int cardId) async {
     final response = await _client
         .rpc('redeem_photocard', params: {'p_card_id': cardId})
         .timeout(const Duration(seconds: 12));
 
-    debugPrint('Respon Database: $response');
-
     if (response is Map) {
       final success = response['success'] == true;
-
       if (!success) {
-        throw Exception(
-          response['message']?.toString() ?? 'Gagal menukar photocard.',
-        );
+        throw Exception(response['message']?.toString() ?? 'Gagal menukar photocard.');
       }
-
       return true;
     }
-
     throw Exception('Respons database tidak valid.');
   }
 
-  // 4. Verifikasi blockchain ledger
   static Future<Map<String, dynamic>> verifyBlockchain() async {
     final result = await _client
         .rpc('verify_blockchain_ledger')
         .timeout(const Duration(seconds: 10));
     return Map<String, dynamic>.from(result as Map);
   }
-}
+} 
