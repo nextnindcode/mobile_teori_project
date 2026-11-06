@@ -62,6 +62,7 @@ class RedeemService {
         if (cardName.contains(memberName)) {
           imageUrl = memberImages[memberName]!;
           imageAssetPath = 'assets/members/${memberName.toUpperCase()}.jpg';
+          print('KARTU: $cardName | URL: $imageUrl');
           break;
         }
       }
