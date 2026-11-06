@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tz;
 
 import 'theme/app_theme.dart';
 import 'core/routes.dart';
@@ -26,6 +28,8 @@ import 'features/notification/notification_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // inisialisasi zona waktu buat konversi
+  tz.initializeTimeZones();
 
   // Semua anggota menggunakan satu proyek Supabase yang sama.
   // Aplikasi tidak lagi bergantung pada XAMPP, localhost, atau alamat IP laptop.

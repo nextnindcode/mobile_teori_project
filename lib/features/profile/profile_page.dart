@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:eclipseverse/features/profile/profile_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,14 +21,16 @@ class ProfilePage extends StatefulWidget {
   final Future<void> Function()? onLogout;
 
   const ProfilePage({super.key, this.onLogout});
+
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with RouteAware {
   String _name = '';
   String _email = '';
   String? _avatarPath;
+
   bool _bioSupported = false;
   bool _bioEnabled = false;
   bool _notifEnabled = false;
@@ -36,6 +39,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _membershipData;
 
   bool _hasRedeemedCards = false;
+  bool _isUploadingPhoto = false;
   bool _hasMembershipHistory = false;
   String _locationText = 'Belum diperbarui';
   bool _locationLoading = false;
@@ -47,12 +51,23 @@ class _ProfilePageState extends State<ProfilePage> {
     _checkMembership();
     _checkMembershipHistory();
     _checkCardStatus();
+
+    // Refresh data ketika frame aplikasi selesai dibangun.
+    WidgetsBinding.instance.addPersistentFrameCallback((_) {
+      _refreshData();
+    });
+  }
+
+  Future<void> _refreshData() async {
+    await _checkMembership();
+    await _checkCardStatus();
   }
 
   Future<void> _checkMembership() async {
     try {
       final isActive = await MembershipService.isActive();
       final data = await MembershipService.currentMembership();
+
       if (mounted) {
         setState(() {
           _isMember = isActive;
@@ -67,13 +82,19 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _checkMembershipHistory() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
+
     try {
       final rows = await Supabase.instance.client
           .from('user_memberships')
           .select('id')
           .eq('user_id', user.id)
           .limit(1);
-      if (mounted) setState(() => _hasMembershipHistory = rows.isNotEmpty);
+
+      if (mounted) {
+        setState(() {
+          _hasMembershipHistory = rows.isNotEmpty;
+        });
+      }
     } catch (e) {
       debugPrint('Gagal cek riwayat membership: $e');
     }
@@ -82,6 +103,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _checkCardStatus() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
+
     try {
       final res = await Supabase.instance.client
           .from('user_cards')
@@ -101,9 +123,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _refreshLocation() async {
     setState(() => _locationLoading = true);
+
     try {
       final position = await LocationService.getCurrentLocation();
       if (!mounted || position == null) return;
+
       setState(() {
         _locationText =
             '${position.latitude.toStringAsFixed(5)}, '
@@ -111,25 +135,32 @@ class _ProfilePageState extends State<ProfilePage> {
       });
     } catch (e) {
       if (!mounted) return;
+
       setState(() {
         _locationText = e.toString().replaceFirst('Exception: ', '');
       });
     } finally {
-      if (mounted) setState(() => _locationLoading = false);
+      if (mounted) {
+        setState(() => _locationLoading = false);
+      }
     }
   }
 
   Future<void> _load() async {
     final user = Supabase.instance.client.auth.currentUser;
     final cachedUserId = user?.id ?? await LocalDb.getPref('active_user_id');
+
     final profile = cachedUserId == null || cachedUserId.isEmpty
         ? null
         : await LocalDb.getUserProfile(cachedUserId);
+
     final avatar = cachedUserId == null || cachedUserId.isEmpty
         ? null
         : await LocalDb.getPref('avatar_path_${cachedUserId}');
+
     String? remoteAvatarUrl;
     Map<String, dynamic>? remoteProfile;
+
     if (user != null) {
       try {
         final row = await Supabase.instance.client
@@ -138,28 +169,41 @@ class _ProfilePageState extends State<ProfilePage> {
             .eq('id', user.id)
             .maybeSingle()
             .timeout(const Duration(seconds: 6));
+
         remoteProfile = row == null ? null : Map<String, dynamic>.from(row);
+
         final storagePath = row?['avatar_path']?.toString();
+
         if (storagePath != null && storagePath.isNotEmpty) {
-          remoteAvatarUrl = Supabase.instance.client.storage
+          final baseUrl = Supabase.instance.client.storage
               .from('eclipseverse-media')
               .getPublicUrl(storagePath);
+
+          remoteAvatarUrl =
+              '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
         }
       } catch (_) {
         // Gunakan cache avatar lokal jika jaringan sedang tidak tersedia.
       }
     }
+
     final bio = await LocalDb.getPref('biometric_enabled');
     final notif = await LocalDb.getPref('notification_enabled');
     final supported = await BiometricService.isSupported();
+
     if (!mounted) return;
+
     setState(() {
       _name = '${remoteProfile?['display_name'] ?? profile?['name'] ?? ''}';
+
       _email =
+         
           '${user?.email ?? remoteProfile?['email'] ?? profile?['email'] ?? ''}';
+
       _avatarPath =
           remoteAvatarUrl ??
           ((avatar != null && avatar.isNotEmpty) ? avatar : null);
+
       _bioSupported = supported;
       _bioEnabled = supported && bio == '1';
       _notifEnabled = notif == '1';
@@ -173,7 +217,25 @@ class _ProfilePageState extends State<ProfilePage> {
         source: ImageSource.gallery,
         imageQuality: 80,
       );
+
       if (x == null) return;
+
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user == null) {
+        if (mounted) {
+          showSnack(
+            context,
+            'Silakan login kembali untuk mengubah foto profil.',
+          );
+        }
+        return;
+      }
+
+      setState(() => _isUploadingPhoto = true);
+
+      // Salin foto ke penyimpanan aplikasi agar tidak hilang
+      // saat cache dibersihkan.
       final directory = await getDatabasesPath();
       final extension = path.extension(x.path).isEmpty
           ? '.jpg'
@@ -192,43 +254,107 @@ class _ProfilePageState extends State<ProfilePage> {
         'eclipseverse_avatar_${user.id}$extension',
       );
       final savedFile = await File(x.path).copy(savedPath);
-      await LocalDb.setPref('avatar_path_${user.id}', savedFile.path);
+
+      // Buang cache foto lama.
+      await FileImage(File(savedPath)).evict();
+
+      await LocalDb.setPref('avatar_path', savedFile.path);
+
+      // Upload foto ke Supabase Storage.
       var displayedPath = savedFile.path;
-      try {
-        final storagePath =
-            'avatars/${user.id}/profile${path.extension(savedFile.path)}';
-        await Supabase.instance.client.storage
-            .from('eclipseverse-media')
-            .upload(
-              storagePath,
-              savedFile,
-              fileOptions: FileOptions(
-                upsert: true,
-                contentType:
-                    path.extension(savedFile.path).toLowerCase() == '.png'
-                    ? 'image/png'
-                    : 'image/jpeg',
-              ),
-            )
-            .timeout(const Duration(seconds: 12));
-        await Supabase.instance.client
-            .from('profiles')
-            .update({
-              'avatar_path': storagePath,
-              'updated_at': DateTime.now().toUtc().toIso8601String(),
-            })
-            .eq('id', user.id)
-            .timeout(const Duration(seconds: 8));
-        displayedPath = Supabase.instance.client.storage
-            .from('eclipseverse-media')
-            .getPublicUrl(storagePath);
-      } catch (_) {
-        // Pertahankan salinan lokal khusus akun jika penyimpanan daring tidak tersedia.
+      var uploadFailed = false;
+
+      final client = Supabase.instance.client;
+      final currentUser = client.auth.currentUser;
+
+      if (currentUser != null) {
+        try {
+          final ext = path.extension(savedFile.path).toLowerCase();
+
+          // Nama file unik setiap kali foto diganti.
+          final storagePath =
+              'avatars/${currentUser.id}/profile_'
+              '${DateTime.now().millisecondsSinceEpoch}$ext';
+
+          // Simpan path foto lama untuk dihapus setelah upload berhasil.
+          final oldRow = await client
+              .from('profiles')
+              .select('avatar_path')
+              .eq('id', currentUser.id)
+              .maybeSingle()
+              .timeout(const Duration(seconds: 6));
+
+          final oldPath = oldRow?['avatar_path']?.toString();
+
+          await client.storage
+              .from('eclipseverse-media')
+              .upload(
+                storagePath,
+                savedFile,
+                fileOptions: FileOptions(
+                  contentType: ext == '.png' ? 'image/png' : 'image/jpeg',
+                ),
+              )
+              .timeout(const Duration(seconds: 12));
+
+          await client
+              .from('profiles')
+              .update({
+                'avatar_path': storagePath,
+                'updated_at': DateTime.now().toUtc().toIso8601String(),
+              })
+              .eq('id', currentUser.id)
+              .timeout(const Duration(seconds: 8));
+
+          // Hapus foto lama di storage jika upload baru berhasil.
+          if (oldPath != null && oldPath.isNotEmpty && oldPath != storagePath) {
+            try {
+              await client.storage.from('eclipseverse-media').remove([oldPath]);
+            } catch (_) {
+              // Kegagalan menghapus foto lama tidak membatalkan upload baru.
+            }
+          }
+
+          final baseUrl = client.storage
+              .from('eclipseverse-media')
+              .getPublicUrl(storagePath);
+
+          displayedPath = '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+        } catch (e) {
+          uploadFailed = true;
+          debugPrint('Upload avatar gagal: $e');
+        }
       }
+
       if (!mounted) return;
-      setState(() => _avatarPath = displayedPath);
-    } catch (_) {
-      if (mounted) showSnack(context, 'Gagal memilih foto');
+
+      // Buang cache foto lama dari URL jika sebelumnya berasal dari server.
+      if (_avatarPath != null && _avatarPath!.startsWith('http')) {
+        try {
+          await NetworkImage(_avatarPath!).evict();
+        } catch (_) {}
+      }
+
+      setState(() {
+        _avatarPath = displayedPath;
+        _isUploadingPhoto = false;
+      });
+
+      profileUpdateNotifier.value++;
+
+      if (uploadFailed) {
+        showSnack(
+          context,
+          'Foto tersimpan di perangkat, tapi gagal diunggah ke server',
+        );
+      }
+    } catch (e) {
+      debugPrint('Pilih foto gagal: $e');
+
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+        showSnack(context, 'Gagal memilih foto');
+      }
     }
   }
 
@@ -236,10 +362,15 @@ class _ProfilePageState extends State<ProfilePage> {
     if (on) {
       final ok = await BiometricService.authenticate();
       if (!mounted) return;
+
       if (!ok) {
+       
         showSnack(context, 'Verifikasi biometric gagal atau dibatalkan');
+       
         return;
+     
       }
+
       final user = Supabase.instance.client.auth.currentUser;
       final email = user?.email?.trim() ?? '';
       if (email.isEmpty) {
@@ -275,16 +406,22 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       );
       passwordController.dispose();
+
       if (password == null) return;
+
       if (password.trim().isEmpty) {
-        if (mounted) showSnack(context, 'Password tidak boleh kosong.');
+        if (mounted) {
+          showSnack(context, 'Password tidak boleh kosong.');
+        }
         return;
       }
+
       try {
         await Supabase.instance.client.auth.signInWithPassword(
           email: email,
           password: password,
         );
+
         await SecureStore.saveCredentials(email, password);
         await LocalDb.setPref('biometric_enabled', '1');
         if (mounted) setState(() => _bioEnabled = true);
@@ -297,7 +434,10 @@ class _ProfilePageState extends State<ProfilePage> {
     } else {
       await SecureStore.deleteCredentials();
       await LocalDb.setPref('biometric_enabled', '0');
-      if (mounted) setState(() => _bioEnabled = false);
+
+      if (mounted) {
+        setState(() => _bioEnabled = false);
+      }
     }
   }
 
@@ -305,35 +445,47 @@ class _ProfilePageState extends State<ProfilePage> {
     if (on) {
       try {
         final granted = await NotificationService.init();
+
         if (!granted) {
-          if (mounted) showSnack(context, 'Izin notifikasi belum diberikan.');
+          if (mounted) {
+            showSnack(context, 'Izin notifikasi belum diberikan.');
+          }
           return;
         }
       } catch (_) {
-        if (mounted)
+        if (mounted) {
           showSnack(
             context,
             'Izin notifikasi ditolak. Aktifkan lewat Pengaturan.',
           );
+        }
         return;
       }
     } else {
-      // Saat notifikasi dinonaktifkan, batalkan pengingat acara yang sudah dijadwalkan.
+      // Batalkan pengingat acara yang sudah dijadwalkan.
       try {
         final rows = await Supabase.instance.client
             .from('events')
             .select('id')
             .eq('status', 'scheduled');
+
         for (final row in rows) {
           final id = (row['id'] as num?)?.toInt();
-          if (id != null) await NotificationService.cancelEventReminder(id);
+
+          if (id != null) {
+            await NotificationService.cancelEventReminder(id);
+          }
         }
       } catch (e) {
         debugPrint('Gagal membatalkan reminder event: $e');
       }
     }
+
     await LocalDb.setPref('notification_enabled', on ? '1' : '0');
-    if (mounted) setState(() => _notifEnabled = on);
+
+    if (mounted) {
+      setState(() => _notifEnabled = on);
+    }
   }
 
   Future<void> _confirmLogout() async {
@@ -343,6 +495,14 @@ class _ProfilePageState extends State<ProfilePage> {
         title: const Text('Keluar dari EclipseVerse?'),
         content: const Text('Sesi akun di perangkat ini akan diakhiri.'),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Logout'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Batal'),
@@ -378,20 +538,37 @@ class _ProfilePageState extends State<ProfilePage> {
                 Center(
                   child: Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 56,
-                        backgroundColor: AppTheme.primaryDark,
-                        backgroundImage: _avatarImage,
-                        child: _avatarImage == null
-                            ? Text(
-                                _name.isEmpty ? '?' : _name[0].toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 44,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : null,
+                      Container(
+                        width: 112,
+                        height: 112,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.primaryDark,
+                        ),
+                        child: ClipOval(
+                          child: _isUploadingPhoto
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : (_avatarPath != null
+                                    ? (_avatarPath!.startsWith('http')
+                                          ? Image.network(
+                                              key: ValueKey(_avatarPath),
+                                              _avatarPath!,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  _buildInitial(),
+                                            )
+                                          : Image.file(
+                                              File(_avatarPath!),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  _buildInitial(),
+                                            ))
+                                    : _buildInitial()),
+                        ),
                       ),
                       Positioned(
                         right: 0,
@@ -422,7 +599,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: AppTheme.spacingMedium),
-                // Card Lokasi Perangkat
+
+                // Lokasi perangkat.
                 Card(
                   child: Column(
                     children: [
@@ -448,25 +626,28 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacingMedium),
-                // Card Notifikasi dan Biometrik
+
+                // Pengaturan login biometrik dan notifikasi.
                 Card(
                   child: Column(
                     children: [
                       SwitchListTile(
-                        title: const Text('Login dengan sidik jari'),
+                        secondary: const Icon(Icons.fingerprint),
+                        title: const Text('Login biometrik'),
                         subtitle: Text(
                           _bioSupported
-                              ? 'Gunakan sidik jari saat membuka aplikasi'
-                              : 'Perangkat tidak mendukung',
+                              ? 'Gunakan biometrik untuk login'
+                              : 'Perangkat tidak mendukung biometrik',
                         ),
                         value: _bioEnabled,
                         onChanged: _bioSupported ? _toggleBiometric : null,
                       ),
                       const Divider(height: 1),
                       SwitchListTile(
+                        secondary: const Icon(Icons.notifications_outlined),
                         title: const Text('Notifikasi'),
                         subtitle: const Text(
-                          'Pengingat event dan info pesanan',
+                          'Pengingat acara dan informasi pesanan',
                         ),
                         value: _notifEnabled,
                         onChanged: _toggleNotification,
@@ -553,6 +734,19 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildInitial() {
+    return Center(
+      child: Text(
+        _name.isEmpty ? '?' : _name[0].toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 44,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

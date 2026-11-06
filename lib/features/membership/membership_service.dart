@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 
@@ -19,6 +20,10 @@ class MembershipService {
     if (user == null) return false;
 
     try {
+<<<<<<< HEAD
+=======
+      // 1. Cek apakah punya membership yang statusnya 'active' dan belum expired
+>>>>>>> 201d4da4c752e8a985d130ce6e075d97192a159e
       final rows = await _client
           .from('user_memberships')
           .select('redeem_quota')
@@ -29,8 +34,15 @@ class MembershipService {
 
       if (rows.isEmpty) return false;
 
+<<<<<<< HEAD
       // Cek apakah kuota masih ada. Kalau 0, anggap tidak aktif.
       final quota = (rows.first['redeem_quota'] as num?)?.toInt() ?? 0;
+=======
+      // 2. Cek apakah kuotanya masih ada
+      final quota = (rows.first['redeem_quota'] as num?)?.toInt() ?? 0;
+
+      // Kalau kuota 0, anggap "tidak aktif" biar UI-nya berubah
+>>>>>>> 201d4da4c752e8a985d130ce6e075d97192a159e
       return quota > 0;
     } catch (e) {
       debugPrint('Error isActive: $e');
@@ -42,18 +54,35 @@ class MembershipService {
     final user = _client.auth.currentUser;
     if (user == null) return null;
 
-    final rows = await _client
-        .from('user_memberships')
-        .select(
-          'id, status, starts_at, expires_at, redeem_quota, membership_plans(name, benefits)',
-        )
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .gt('expires_at', DateTime.now().toUtc().toIso8601String())
-        .order('expires_at', ascending: false)
-        .limit(1);
+    try {
+      // 1. Ambil data tanpa filter tanggal dulu
+      final rows = await _client
+          .from('user_memberships')
+          .select(
+            'id, status, starts_at, expires_at, redeem_quota, membership_plans(name, benefits)',
+          )
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('expires_at', ascending: false)
+          .limit(1);
 
-    return rows.isEmpty ? null : Map<String, dynamic>.from(rows.first);
+      // Kalau datanya kosong, langsung return null
+      if (rows.isEmpty) return null;
+
+      // 2. Cek tanggal expired-nya pakai Dart (di sisi aplikasi)
+      final data = Map<String, dynamic>.from(rows.first);
+      final expiresAt = DateTime.tryParse(data['expires_at'].toString());
+
+      // 3. Kalau udah expired (waktu sekarang lebih besar dari expires_at--berarti udah lalu), anggap gak aktif
+      if (expiresAt != null && expiresAt.isBefore(DateTime.now().toUtc())) {
+        return null;
+      }
+
+      return data;
+    } catch (e) {
+      debugPrint('Error currentMembership: $e');
+      return null;
+    }
   }
 
   static Future<List<Map<String, dynamic>>> plans() async {
