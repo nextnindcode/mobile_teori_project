@@ -151,61 +151,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Future<void> _loadEvents() async {
-  //   try {
-  //     final client = Supabase.instance.client;
-
-  //     final rows = await client
-  //         .from('events')
-  //         .select(
-  //           'id, title, description, event_date, venue, city, '
-  //           'latitude, longitude, poster_path',
-  //         )
-  //         .eq('status', 'scheduled')
-  //         .order('event_date')
-  //         .limit(3)
-  //         .timeout(const Duration(seconds: 8));
-
-  //     final events = (rows as List).map((row) {
-  //       final data = Map<String, dynamic>.from(row);
-  //       final rawPath = data['poster_path']?.toString().trim() ?? '';
-
-  //       if (rawPath.isNotEmpty) {
-  //         if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
-  //           data['poster_path'] = rawPath;
-  //         } else {
-  //           var normalized = rawPath.replaceFirst(RegExp(r'^/+'), '');
-
-  //           if (normalized.startsWith('eclipseverse-media/')) {
-  //             normalized = normalized.substring('eclipseverse-media/'.length);
-  //           }
-
-  //           if (!normalized.startsWith('events/')) {
-  //             normalized = 'events/${normalized.split('/').last}';
-  //           }
-
-  //           data['poster_path'] = client.storage
-  //               .from('eclipseverse-media')
-  //               .getPublicUrl(normalized);
-  //         }
-  //       }
-
-  //       return Event.fromJson(data);
-  //     }).toList();
-
-  //     if (!mounted) return;
-
-  //     setState(() {
-  //       _upcomingEvents = events;
-  //       _isLoadingEvents = false;
-  //     });
-  //   } catch (_) {
-  //     if (mounted) {
-  //       setState(() => _isLoadingEvents = false);
-  //     }
-  //   }
-  // }
-
   Future<void> _loadEvents() async {
     try {
       final client = Supabase.instance.client;
@@ -247,7 +192,7 @@ class _HomePageState extends State<HomePage> {
         return Event.fromJson(data);
       }).toList();
 
-      // 👇 2. URUTKAN BERDASARKAN YANG PALING DEKAT DENGAN HARI INI 👇
+      // 2. URUTKAN BERDASARKAN YANG PALING DEKAT DENGAN HARI INI
       final now = DateTime.now().toUtc();
 
       allEvents.sort((a, b) {
