@@ -7,6 +7,7 @@ import 'theme/app_theme.dart';
 import 'core/routes.dart';
 import 'core/auth_service.dart';
 import 'core/supabase_config.dart';
+import 'core/route_observer.dart';
 import 'features/auth/login_page.dart';
 import 'features/auth/register_page.dart';
 import 'features/auth/splash_page.dart';
@@ -50,6 +51,7 @@ class MyApp extends StatelessWidget {
       title: 'EclipseVerse',
       theme: AppTheme.cosmicTheme(),
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [routeObserver], // Tambahkan RouteObserver
       home: const SplashPage(),
       routes: {
         Routes.login: (_) => const LoginPage(),
