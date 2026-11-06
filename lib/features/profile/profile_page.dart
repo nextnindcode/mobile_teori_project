@@ -197,7 +197,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       _name = '${remoteProfile?['display_name'] ?? profile?['name'] ?? ''}';
 
       _email =
-         
           '${user?.email ?? remoteProfile?['email'] ?? profile?['email'] ?? ''}';
 
       _avatarPath =
@@ -355,11 +354,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       if (!mounted) return;
 
       if (!ok) {
-       
         showSnack(context, 'Verifikasi biometric gagal atau dibatalkan');
-       
+
         return;
-     
       }
 
       final user = Supabase.instance.client.auth.currentUser;
@@ -486,14 +483,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         title: const Text('Keluar dari EclipseVerse?'),
         content: const Text('Sesi akun di perangkat ini akan diakhiri.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Logout'),
-          ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Batal'),
