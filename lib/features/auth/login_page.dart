@@ -50,7 +50,9 @@ class _LoginPageState extends State<LoginPage> {
           password: _passwordController.text,
           userId: user.id,
           name: cachedProfile['name']?.toString() ?? 'Pengguna',
-          profileEmail: cachedProfile['email']?.toString() ?? _emailController.text.trim(),
+          profileEmail:
+              cachedProfile['email']?.toString() ??
+              _emailController.text.trim(),
         );
       }
       await LocalDb.setPref('offline_mode', '0');
@@ -177,7 +179,7 @@ class _LoginPageState extends State<LoginPage> {
           await _openOfflineProfile(offlineProfile);
           return;
         }
-      } else {
+      } else if (e.statusCode == 400 || e.statusCode == 401) {
         await SecureStore.deleteCredentials();
         await LocalDb.setPref('biometric_enabled', '0');
       }
@@ -187,7 +189,9 @@ class _LoginPageState extends State<LoginPage> {
             content: Text(
               e.statusCode == null
                   ? 'Login biometrik tidak dapat terhubung. Periksa koneksi atau gunakan login offline.'
-                  : 'Kredensial biometrik sudah tidak valid. Silakan login dengan email dan kata sandi terbaru.',
+                  : e.statusCode == 400
+                  ? 'Kredensial biometrik sudah tidak valid. Silakan login dengan email dan kata sandi terbaru.'
+                  : 'Server sedang bermasalah. Coba lagi sebentar lagi.',
             ),
           ),
         );
@@ -287,8 +291,9 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     keyboardType: TextInputType.emailAddress,
-                    validator: (val) =>
-                        val == null || val.trim().isEmpty ? 'Email wajib diisi' : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'Email wajib diisi'
+                        : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -310,8 +315,9 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     obscureText: _obscurePassword,
-                    validator: (val) =>
-                        val == null || val.isEmpty ? 'Password wajib diisi' : null,
+                    validator: (val) => val == null || val.isEmpty
+                        ? 'Password wajib diisi'
+                        : null,
                   ),
                   const SizedBox(height: 24),
 

@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 
 class SecureStore {
   static const _storage = FlutterSecureStorage();
@@ -19,7 +20,7 @@ class SecureStore {
     await _storage.delete(key: _keyToken);
   }
 
-  // Fungsi untuk menyimpan, membaca, dan menghapus kredensial biometrik.
+  Fungsi untuk menyimpan, membaca, dan menghapus kredensial biometrik.
   static Future<void> saveCredentials(String email, String password) async {
     await _storage.write(key: _keyEmail, value: email);
     await _storage.write(key: _keyPassword, value: password);

@@ -190,6 +190,12 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     final bio = await LocalDb.getPref('biometric_enabled');
     final notif = await LocalDb.getPref('notification_enabled');
     final supported = await BiometricService.isSupported();
+    final creds = await SecureStore.getCredentials();
+    final hasCreds = creds != null;
+    if (bio == '1' && !hasCreds) {
+      // samakan toggle dengan ada tidaknya kredensial biometrik yang tersimpan.
+      await LocalDb.setPref('biometric_enabled', '0');
+    }
 
     if (!mounted) return;
 
@@ -204,7 +210,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           ((avatar != null && avatar.isNotEmpty) ? avatar : null);
 
       _bioSupported = supported;
-      _bioEnabled = supported && bio == '1';
+      _bioEnabled = supported && bio == '1' && hasCreds;
       _notifEnabled = notif == '1';
       _loading = false;
     });
