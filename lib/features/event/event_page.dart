@@ -32,20 +32,57 @@ class _EventListPageState extends State<EventListPage> {
     _load();
   }
 
+  // Future<void> _load() async {
+  //   setState(() {
+  //     _loading = true;
+  //     _error = null;
+  //     _events = [];
+  //   });
+  //   try {
+  //     final r = await EventService.fetchEvents();
+  //     if (!mounted) return;
+  //     setState(() {
+  //       _events = r;
+  //       _loading = false;
+  //     });
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     setState(() {
+  //      _error = e.toString().replaceAll('Exception: ', ''));
+  //      _loading = false;
+  //     });
+  //   }
+  //   // if (mounted) setState(() => _loading = false);
+  // }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
+      _events = [];
     });
+    await Future.delayed(const Duration(seconds: 1));
     try {
       final r = await EventService.fetchEvents();
       if (!mounted) return;
-      setState(() => _events = r);
+      setState(() {
+        _events = r;
+        _loading = false;
+        _events.sort((a, b) {
+          final now = DateTime.now().toUtc();
+          final diffA = a.eventDate.difference(now).inSeconds.abs();
+          final diffB = b.eventDate.difference(now).inSeconds.abs();
+          return diffA.compareTo(diffB);
+        });
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() {
+        _error = e.toString().replaceAll('Exception: ', '');
+        _loading = false;
+        _events = [];
+      });
     }
-    if (mounted) setState(() => _loading = false);
   }
 
   @override
@@ -123,13 +160,17 @@ class _EventListPageState extends State<EventListPage> {
                                     width: double.infinity,
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, __, ___) => Container(
-                                          height: 150,
-                                          width: double.infinity,
-                                          color: AppTheme.surfaceElevated,
-                                          child: const Center(
-                                            child: Icon(Icons.image_not_supported_outlined, color: AppTheme.textSecondary, size: 36),
-                                          ),
+                                      height: 150,
+                                      width: double.infinity,
+                                      color: AppTheme.surfaceElevated,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.image_not_supported_outlined,
+                                          color: AppTheme.textSecondary,
+                                          size: 36,
                                         ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),

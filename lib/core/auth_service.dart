@@ -32,7 +32,9 @@ class AuthService {
   /// Simpan data tampilan secara lokal; Supabase tetap menjadi sumber data utama.
   static Future<void> cacheUserLocally(User user) async {
     final previousUserId = await LocalDb.getPref('active_user_id');
-    if (previousUserId != null && previousUserId.isNotEmpty && previousUserId != user.id) {
+    if (previousUserId != null &&
+        previousUserId.isNotEmpty &&
+        previousUserId != user.id) {
       await LocalDb.clearAccountData();
     }
 
@@ -60,8 +62,8 @@ class AuthService {
     final name = profileName.isNotEmpty
         ? profileName
         : (metadataName.isNotEmpty
-            ? metadataName
-            : (email.contains('@') ? email.split('@').first : 'Pengguna'));
+              ? metadataName
+              : (email.contains('@') ? email.split('@').first : 'Pengguna'));
 
     await LocalDb.saveProfile(
       // Gunakan UUID Supabase agar profil setiap akun tetap terpisah.
@@ -83,10 +85,10 @@ class AuthService {
       await _client.auth.signOut();
     } finally {
       // Hapus data akun sebelumnya agar tidak tertinggal pada perangkat bersama.
-      await LocalDb.clearAccountData();
+      // await LocalDb.clearAccountData();
       await LocalDb.setPref('active_user_id', '');
-      await LocalDb.setPref('biometric_enabled', '0');
-      await SecureStore.deleteCredentials();
+      // await LocalDb.setPref('biometric_enabled', '0');
+      // await SecureStore.deleteCredentials();
       await SecureStore.deleteToken();
       await OfflineAuthService.clear();
       await LocalDb.setPref('offline_mode', '0');

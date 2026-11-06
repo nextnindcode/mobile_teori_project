@@ -63,64 +63,58 @@ class EventService {
   }
 
   /// Mengambil daftar event yang tidak berstatus draft.
+  /// Diurutkan berdasarkan event terdekat dengan hari ini.
   static Future<List<Event>> fetchEvents() async {
-    final rows = await _client
+    // 1. Ambil data dari Supabase (tanpa .order() biar fleksibel)
+    final response = await _client
         .from('events')
         .select(
-          'id,'
-          'title,'
-          'description,'
-          'event_date,'
-          'venue,'
-          'city,'
-          'latitude,'
-          'longitude,'
-          'status,'
-          'poster_path',
+          'id,title,description,event_date,venue,city,latitude,longitude,status,poster_path',
         )
         .neq('status', 'draft')
-        .order('event_date')
-        .limit(100)
+        .setHeader('Cache-Control', 'no-cache') // Paksa ambil data terbaru
         .timeout(const Duration(seconds: 12));
 
-    return rows.map((row) {
+    // 2. Ubah data JSON jadi List<Event>
+    final events = response.map((row) {
       final data = Map<String, dynamic>.from(row);
-
       final eventId = (data['id'] as num?)?.toInt();
-
       data['poster_path'] = _posterUrl(data['poster_path'], eventId: eventId);
-
       return Event.fromJson(data);
     }).toList();
+
+    // 3. URUTKAN BERDASARKAN YANG PALING DEKAT DENGAN HARI INI
+    final now = DateTime.now().toUtc();
+
+    events.sort((a, b) {
+      // Hitung selisih waktu (dalam detik) dari hari ini ke tanggal event
+      final diffA = a.eventDate.difference(now).inSeconds.abs();
+      final diffB = b.eventDate.difference(now).inSeconds.abs();
+
+      // Urutkan dari selisih paling kecil (paling dekat)
+      return diffA.compareTo(diffB);
+    });
+
+    return events;
   }
 
   /// Mengambil detail satu event berdasarkan ID.
   static Future<Event> fetchEventDetail(int id) async {
-    final row = await _client
+    final response = await _client
         .from('events')
         .select(
-          'id,'
-          'title,'
-          'description,'
-          'event_date,'
-          'venue,'
-          'city,'
-          'latitude,'
-          'longitude,'
-          'status,'
-          'poster_path',
+          'id,title,description,event_date,venue,city,latitude,longitude,status,poster_path',
         )
         .eq('id', id)
         .single()
+        .setHeader('Cache-Control', 'no-cache') // Paksa ambil data terbaru
         .timeout(const Duration(seconds: 12));
 
-    final data = Map<String, dynamic>.from(row);
-
+    final data = Map<String, dynamic>.from(response);
     data['poster_path'] = _posterUrl(
       data['poster_path'],
       eventId: (data['id'] as num?)?.toInt(),
     );
-
     return Event.fromJson(data);
   }
 }

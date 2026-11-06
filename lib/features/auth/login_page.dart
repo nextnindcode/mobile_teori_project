@@ -60,14 +60,21 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       // Simpan kredensial biometrik setelah login berhasil.
-      final isSupported = await BiometricService.isSupported();
-      if (isSupported) {
-        await SecureStore.saveCredentials(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
-        await LocalDb.setPref('biometric_enabled', '1');
-      }
+      // final isSupported = await BiometricService.isSupported();
+      // if (isSupported) {
+      //   await SecureStore.saveCredentials(
+      //     _emailController.text.trim(),
+      //     _passwordController.text,
+      //   );
+      //   await LocalDb.setPref('biometric_enabled', '1');
+      // }
+
+      // Paksa simpan kredensial tanpa ngecek isSupported
+      await SecureStore.saveCredentials(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      await LocalDb.setPref('biometric_enabled', '1');
 
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (_) => false);

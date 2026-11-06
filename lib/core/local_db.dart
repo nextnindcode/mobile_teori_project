@@ -213,7 +213,7 @@ class LocalDb {
   /// Pengaturan perangkat tetap disimpan; proses keluar akan menonaktifkan login biometrik.
   static Future<void> clearAccountData() async {
     final db = await database;
-    await db.delete('cart_local');
+    // await db.delete('cart_local');
     await db.delete('user_profile');
     await db.delete(
       'preferences',
@@ -224,7 +224,7 @@ class LocalDb {
 
   static Future<void> clearAll() async {
     final db = await database;
-    await db.delete('cart_local');
+    // await db.delete('cart_local');
     await db.delete('members_cache');
     await db.delete('user_profile');
   }

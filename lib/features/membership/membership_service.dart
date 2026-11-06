@@ -5,16 +5,6 @@ import 'package:flutter/foundation.dart';
 class MembershipService {
   static final _client = Supabase.instance.client;
 
-  // static Future<bool> isActive() async {
-  //   final user = _client.auth.currentUser;
-  //   if (user == null) return false;
-  //   final row = await _client.rpc(
-  //     'has_active_membership',
-  //     params: {'p_user_id': user.id},
-  //   );
-  //   return row == true;
-  // }
-
   static Future<bool> isActive() async {
     final user = _client.auth.currentUser;
     if (user == null) return false;
