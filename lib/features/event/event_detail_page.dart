@@ -72,13 +72,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   Future<void> _toggleReminder(Event e) async {
     if (_reminderOn) {
+      // 1. Batalkan jadwal notifikasi di OS HP
       await NotificationService.cancelEventReminder(e.id);
       if (!mounted) return;
+      
+      // 2. Hapus status di memori lokal  
+      await LocalDb.setPref('event_reminder_${e.id}', '0'); 
+      
       setState(() => _reminderOn = false);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Pengingat dibatalkan')));
       return;
     }
+
     try {
       await NotificationService.init();
       final ok = await NotificationService.scheduleEventReminder(e);
@@ -519,28 +525,43 @@ class _EventDetailPageState extends State<EventDetailPage> {
         ),
         const SizedBox(height: 16),
 
-        // Setelah diaktifkan, status pengingat disimpan dan tombol tidak bisa ditekan lagi.
+        // Tombol Pengingat 
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.surfaceSecondary,
-            foregroundColor: AppTheme.textSecondary,
+            backgroundColor: _reminderOn
+              ? AppTheme.eclipseViolet.withValues(alpha: 0.3) // Pengingat aktif 
+              : AppTheme.eclipseViolet, // Pengingat tidak aktif 
+                
+            // Teks: Putih semua agar kontras di kedua kondisi
+            foregroundColor: Colors.white,
+                
             disabledBackgroundColor: AppTheme.surfaceSecondary,
             disabledForegroundColor: AppTheme.textSecondary,
+            
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radius),
-              side: const BorderSide(color: AppTheme.borderSubtle),
+              side: BorderSide(
+                // Beri garis tepi ungu yang jelas saat transparan
+                color: _reminderOn ? AppTheme.eclipseViolet : Colors.transparent,
+                width: 1.5,
+              ),
             ),
+            elevation: _reminderOn ? 0 : 2,
           ),
-          onPressed: (e.isPast || _reminderOn) ? null : () => _toggleReminder(e),
+          
+          onPressed: e.isPast ? null : () => _toggleReminder(e),
+          
           icon: Icon(
-            _reminderOn ? Icons.notifications_active_outlined : Icons.notification_add_outlined,
+            _reminderOn 
+              ? Icons.notifications_off_outlined 
+              : Icons.notification_add_outlined,
             size: 20,
           ),
           label: Text(
             e.isPast
-                ? 'Event Sudah Berakhir'
-                : (_reminderOn ? 'Pengingat Sudah Aktif' : 'Ingatkan Saya'),
+              ? 'Event Sudah Berakhir'
+              : (_reminderOn ? 'Batalkan Pengingat' : 'Ingatkan Saya'),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),

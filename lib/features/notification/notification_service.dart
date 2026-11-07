@@ -159,7 +159,7 @@ class NotificationService {
   // Batalkan notifikasi reminder event
   static Future<void> cancelEventReminder(int id) async {
     await init();
-    await _notificationsPlugin.cancel(id: id * 10 + 1);
-    await _notificationsPlugin.cancel(id: id * 10 + 2);
+    await _notificationsPlugin.cancel(id: id * 10 + 1); // Untuk notifikasi event h-24 jam 
+    await _notificationsPlugin.cancel(id: id * 10 + 2); // Untuk notifikasi event h-1 jam 
   }
 }
