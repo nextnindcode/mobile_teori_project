@@ -238,7 +238,7 @@ class _RedeemPageState extends State<RedeemPage> {
           if (!_isMember || _redeemQuota <= 0)
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(16, 16, 16, 0), 
+              margin: const EdgeInsets.fromLTRB(16, 16, 16, 16), 
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppTheme.error.withValues(alpha: .1),
@@ -293,7 +293,7 @@ class _RedeemPageState extends State<RedeemPage> {
             child: Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: GridView.builder(
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 24),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
@@ -443,6 +443,8 @@ class _RedeemPageState extends State<RedeemPage> {
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
+                    maxLines: 1, 
+                    overflow: TextOverflow.ellipsis, 
                   ),
                   const SizedBox(height: 10),
                   SizedBox(

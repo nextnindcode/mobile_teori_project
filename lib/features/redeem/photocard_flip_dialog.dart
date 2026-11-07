@@ -18,7 +18,7 @@ class PhotocardFlipDialog extends StatefulWidget {
 }
 
 class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
-    with SingleTickerProviderStateMixin {
+  with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
   bool _showBack = false;
@@ -69,26 +69,35 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.eclipseViolet.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.eclipseViolet),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.touch_app, size: 14, color: AppTheme.coolCyan),
-                    const SizedBox(width: 4),
-                    Text(
-                      _showBack ? 'Sisi Belakang (Holo)' : 'Ketuk kartu untuk Flip',
-                      style: const TextStyle(
-                        color: AppTheme.coolCyan,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+              // Bungkus Container dengan Flexible 
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.eclipseViolet.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.eclipseViolet),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min, // Agar tidak memaksa selebar layar
+                    children: [
+                      const Icon(Icons.touch_app, size: 14, color: AppTheme.coolCyan),
+                      const SizedBox(width: 4),
+                      // Bungkus Text dengan Flexible 
+                      Flexible(
+                        child: Text(
+                          _showBack ? 'Sisi Belakang (Holo)' : 'Ketuk kartu untuk Flip',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppTheme.coolCyan,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               IconButton(
@@ -136,6 +145,7 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
                 ? 'Koleksi Digital Resmi Terverifikasi'
                 : 'Photocard Eksklusif EclipseVerse',
             style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -347,8 +357,16 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Card ID', style: TextStyle(color: Colors.white60, fontSize: 11)),
-                    Text('#EV-${widget.card.id.toString().padLeft(4, '0')}',
-                        style: const TextStyle(color: AppTheme.coolCyan, fontWeight: FontWeight.bold, fontSize: 11)),
+                    // Card ID dibungkus Expanded 
+                    Expanded(
+                      child: Text(
+                        '#EV-${widget.card.id.toString().padLeft(4, '0')}',
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppTheme.coolCyan, fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -356,8 +374,16 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Nilai Koleksi', style: TextStyle(color: Colors.white60, fontSize: 11)),
-                    Text('${widget.card.cost} Points',
-                        style: const TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold, fontSize: 11)),
+                    // Nilai Koleksi dibungkus Expanded 
+                    Expanded(
+                      child: Text(
+                        '${widget.card.cost} Points',
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppTheme.coronaGold, fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -365,12 +391,18 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Status Kepemilikan', style: TextStyle(color: Colors.white60, fontSize: 11)),
-                    Text(
-                      widget.isOwned ? 'Tersimpan di Koleksi' : 'Tersedia di Store',
-                      style: TextStyle(
-                        color: widget.isOwned ? AppTheme.success : AppTheme.textSecondary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                    // Status Kepemilikan dibungkus Expanded 
+                    Expanded(
+                      child: Text(
+                        widget.isOwned ? 'Tersimpan di Koleksi' : 'Tersedia di Store',
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: widget.isOwned ? AppTheme.success : AppTheme.textSecondary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
                       ),
                     ),
                   ],
@@ -383,4 +415,3 @@ class _PhotocardFlipDialogState extends State<PhotocardFlipDialog>
     );
   }
 }
-
