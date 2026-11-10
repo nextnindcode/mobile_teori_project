@@ -356,82 +356,22 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   Future<void> _toggleBiometric(bool on) async {
     if (on) {
-      final ok = await BiometricService.authenticate();
-      if (!mounted) return;
-
-      if (!ok) {
-        showSnack(context, 'Verifikasi biometric gagal atau dibatalkan');
-
-        return;
-      }
-
-      final user = Supabase.instance.client.auth.currentUser;
-      final email = user?.email?.trim() ?? '';
-      if (email.isEmpty) {
-        showSnack(
-          context,
-          'Email akun tidak tersedia. Login kembali terlebih dahulu.',
-        );
-        return;
-      }
-      final passwordController = TextEditingController();
-      final password = await showDialog<String>(
+      // Cukup panggil dialognya, sisanya biar dialog yang urus
+      final success = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppTheme.surfaceElevated,
-          title: const Text('Aktifkan login biometrik'),
-          content: TextField(
-            controller: passwordController,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Masukkan password akun saat ini',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, passwordController.text),
-              child: const Text('Verifikasi'),
-            ),
-          ],
-        ),
+        barrierDismissible: false,
+        builder: (ctx) => const _BiometricPasswordDialog(),
       );
-      passwordController.dispose();
 
-      if (password == null) return;
-
-      if (password.trim().isEmpty) {
-        if (mounted) {
-          showSnack(context, 'Password tidak boleh kosong.');
-        }
-        return;
-      }
-
-      try {
-        await Supabase.instance.client.auth.signInWithPassword(
-          email: email,
-          password: password,
-        );
-
-        await SecureStore.saveCredentials(email, password);
-        await LocalDb.setPref('biometric_enabled', '1');
-        if (mounted) setState(() => _bioEnabled = true);
-        if (mounted) showSnack(context, 'Login biometrik berhasil diaktifkan.');
-      } on AuthException catch (e) {
-        if (mounted) showSnack(context, 'Verifikasi akun gagal: ${e.message}');
-      } catch (_) {
-        if (mounted) showSnack(context, 'Gagal mengaktifkan login biometrik.');
+      // Kalau dialog ngembaliin true (berarti sukses verifikasi)
+      if (success == true && mounted) {
+        setState(() => _bioEnabled = true);
+        showSnack(context, 'Login biometrik berhasil diaktifkan.');
       }
     } else {
       await SecureStore.deleteCredentials();
       await LocalDb.setPref('biometric_enabled', '0');
-
-      if (mounted) {
-        setState(() => _bioEnabled = false);
-      }
+      if (mounted) setState(() => _bioEnabled = false);
     }
   }
 
@@ -733,6 +673,103 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+}
+
+class _BiometricPasswordDialog extends StatefulWidget {
+  const _BiometricPasswordDialog();
+
+  @override
+  State<_BiometricPasswordDialog> createState() =>
+      _BiometricPasswordDialogState();
+}
+
+class _BiometricPasswordDialogState extends State<_BiometricPasswordDialog> {
+  final TextEditingController _controller = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _verify() async {
+    final password = _controller.text.trim();
+    if (password.isEmpty) return;
+
+    final user = Supabase.instance.client.auth.currentUser;
+    final email = user?.email?.trim() ?? '';
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email tidak ditemukan. Login ulang.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Verifikasi password ke Supabase
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      // 2. Simpan kredensial
+      await SecureStore.saveCredentials(email, password);
+      await LocalDb.setPref('biometric_enabled', '1');
+
+      // 3. Tutup dialog dan kirim sinyal SUKSES (true)
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      // Kalau password salah, jangan tutup dialog
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password salah. Silakan coba lagi.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppTheme.surfaceElevated,
+      title: const Text('Aktifkan login biometrik'),
+      content: TextField(
+        controller: _controller,
+        obscureText: true,
+        enabled: !_isLoading,
+        decoration: const InputDecoration(
+          labelText: 'Masukkan password akun saat ini',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context, false),
+          child: const Text('Batal'),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _verify,
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Verifikasi'),
+        ),
+      ],
     );
   }
 }
